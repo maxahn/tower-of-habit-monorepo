@@ -1,0 +1,26 @@
+{
+    email ahnmaximus@gmail.com
+}
+
+api.tower-of-habit.sandbox.maxahn.fyi {
+    encode zstd gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "no-referrer"
+        -Server
+    }
+
+    respond "API coming soon..."
+
+#   reverse_proxy api:3000 {
+#       header_up X-Real-IP {remote_host}
+#   }
+
+    log {
+        output stdout
+        format json
+    }
+}
