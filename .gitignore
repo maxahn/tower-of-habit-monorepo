@@ -1,0 +1,96 @@
+# ─────────────────────────────────────────────
+# Tower — ROOT .gitignore
+# Cross-cutting only. Package-specific rules live in each package.
+# ─────────────────────────────────────────────
+
+# ── Dependencies (every workspace) ───────────
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+
+# ── Universal build artefacts ────────────────
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+.eslintcache
+.prettiercache
+
+# ── SECRETS ──────────────────────────────────
+# Deliberately kept at root so they apply at EVERY depth, regardless
+# of what any nested .gitignore does or forgets. Belt and braces.
+.env
+.env.*
+!.env.example
+!.env.test.example
+
+*.pem
+*.key
+*.p8
+*.p12
+*.mobileprovision
+*.keystore
+*.jks
+id_rsa*
+id_ed25519*
+age.key
+*.age
+credentials.json
+
+# ── Database dumps (task 0.10) ───────────────
+# User data. Never in git, wherever it lands.
+*.dump
+*.sql.gz
+*.backup
+backups/
+
+# ── Docker / deploy (root-level only) ────────
+# Leading slash anchors these to the repo root.
+/docker-compose.override.yml
+/.docker/
+/caddy_data/
+/caddy_config/
+/pgdata/
+
+# ── Logs & coverage ──────────────────────────
+logs/
+*.log
+npm-debug.log*
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+
+# ── Editors ──────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ───────────────────────────────────────
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ── Misc ─────────────────────────────────────
+.cache/
+tmp/
+temp/
+*.tgz
+
+# ─────────────────────────────────────────────
+# NOT IGNORED — do not add these
+# ─────────────────────────────────────────────
+# pnpm-lock.yaml       Required for --frozen-lockfile in CI (0.13)
+# docker-compose.yml   Base compose file; only the override is ignored
+# Caddyfile            Reads from env, safe to commit
+# .env.example         Documents every variable (0.8)
+
