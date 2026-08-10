@@ -57,7 +57,7 @@ services:
 #     PGTZ: UTC
 #   volumes:
 #     - pgdata:/var/lib/postgresql/data
-#     - ./postgres.conf:/etc/postgresql/postgresql.conf:ro
+#     - ./infrastructure/postgres/postgres.conf:/etc/postgresql/postgresql.conf:ro
 #   command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
 #   healthcheck:
 #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
