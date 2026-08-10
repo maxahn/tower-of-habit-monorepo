@@ -1,0 +1,23 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# The Expo decision — see step 3 for what you're trading away.
+nodeLinker: hoisted
+
+# Single source of truth for versions shared across packages.
+catalog:
+  typescript: ^5.9.3
+  zod: ^4.0.0
+  vitest: ^3.2.7
+  "@types/node": ^24.13.3
+
+# Build scripts are blocked unless allowed here. In v11 an unapproved
+# build is an ERROR, not a warning — installs fail outright.
+allowBuilds:
+  esbuild: true
+  "@swc/core": true
+  msgpackr-extract: false
+
+minimumReleaseAgeExclude:
+  - bullmq@6.0.10
