@@ -16,71 +16,80 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     networks: [edge]
-#   depends_on: [api]
+    #   depends_on: [api]
     logging: *default-logging
 
-# api:
-#   image: ghcr.io/YOU/tower-api:${TOWER_VERSION:-latest}
-#   restart: unless-stopped
-#   env_file: [.env]
-#   networks: [edge, internal]
-#   depends_on:
-#     postgres: { condition: service_healthy }
-#     redis:    { condition: service_healthy }
-#   healthcheck:
-#     test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-#     interval: 30s
-#     timeout: 5s
-#     retries: 3
-#     start_period: 20s
-#   logging: *default-logging
+  # api:
+  #   image: ghcr.io/YOU/tower-api:${TOWER_VERSION:-latest}
+  #   restart: unless-stopped
+  #   env_file: [.env]
+  #   networks: [edge, internal]
+  #   depends_on:
+  #     postgres: { condition: service_healthy }
+  #     redis:    { condition: service_healthy }
+  #   healthcheck:
+  #     test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 20s
+  #   logging: *default-logging
 
-# worker:
-#   image: ghcr.io/YOU/tower-worker:${TOWER_VERSION:-latest}
-#   restart: unless-stopped
-#   env_file: [.env]
-#   networks: [internal]
-#   depends_on:
-#     postgres: { condition: service_healthy }
-#     redis:    { condition: service_healthy }
-#   logging: *default-logging
+  # worker:
+  #   image: ghcr.io/YOU/tower-worker:${TOWER_VERSION:-latest}
+  #   restart: unless-stopped
+  #   env_file: [.env]
+  #   networks: [internal]
+  #   depends_on:
+  #     postgres: { condition: service_healthy }
+  #     redis:    { condition: service_healthy }
+  #   logging: *default-logging
 
-# postgres:
-#   image: postgres:17-alpine
-#   restart: unless-stopped
-#   environment:
-#     POSTGRES_USER: ${POSTGRES_USER}
-#     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-#     POSTGRES_DB: ${POSTGRES_DB}
-#     POSTGRES_INITDB_ARGS: "--data-checksums"
-#     TZ: UTC
-#     PGTZ: UTC
-#   volumes:
-#     - pgdata:/var/lib/postgresql/data
-#     - ./infrastructure/postgres/postgres.conf:/etc/postgresql/postgresql.conf:ro
-#   command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
-#   healthcheck:
-#     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-#     interval: 10s
-#     timeout: 5s
-#     retries: 5
-#     start_period: 30s
-#   networks: [internal]
-#   logging: *default-logging
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infrastructure/postgres/postgres.conf:/etc/postgresql/postgresql.conf:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [internal]
+    logging: *default-logging
 
-# redis:
-#   image: redis:7-alpine
-#   restart: unless-stopped
-#   command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
-#   volumes:
-#     - redisdata:/data
-#   healthcheck:
-#     test: ["CMD", "redis-cli", "ping"]
-#     interval: 10s
-#     timeout: 3s
-#     retries: 5
-#   networks: [internal]
-#   logging: *default-logging
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--maxmemory",
+        "256mb",
+        "--maxmemory-policy",
+        "noeviction",
+      ]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [internal]
+    logging: *default-logging
 
 volumes:
   pgdata:
