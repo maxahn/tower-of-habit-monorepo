@@ -16,34 +16,40 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     networks: [edge]
-    #   depends_on: [api]
+    depends_on: [api]
     logging: *default-logging
 
-  # api:
-  #   image: ghcr.io/YOU/tower-api:${TOWER_VERSION:-latest}
-  #   restart: unless-stopped
-  #   env_file: [.env]
-  #   networks: [edge, internal]
-  #   depends_on:
-  #     postgres: { condition: service_healthy }
-  #     redis:    { condition: service_healthy }
-  #   healthcheck:
-  #     test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-  #     interval: 30s
-  #     timeout: 5s
-  #     retries: 3
-  #     start_period: 20s
-  #   logging: *default-logging
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: tower-api:${TOWER_VERSION:-latest}
+    restart: unless-stopped
+    env_file: ["${ENV_FILE:-.env}"]
+    networks: [edge, internal]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging: *default-logging
 
-  # worker:
-  #   image: ghcr.io/YOU/tower-worker:${TOWER_VERSION:-latest}
-  #   restart: unless-stopped
-  #   env_file: [.env]
-  #   networks: [internal]
-  #   depends_on:
-  #     postgres: { condition: service_healthy }
-  #     redis:    { condition: service_healthy }
-  #   logging: *default-logging
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    image: tower-worker:${TOWER_VERSION:-latest}
+    restart: unless-stopped
+    env_file: ["${ENV_FILE:-.env}"]
+    networks: [internal]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    logging: *default-logging
 
   postgres:
     image: postgres:17-alpine
@@ -81,6 +87,8 @@ services:
         "--maxmemory-policy",
         "noeviction",
       ]
+    ports:
+      - "127.0.0.1:6379:6379" # dev only: lets host-run `pnpm dev:worker`/`dev:api` reach redis
     volumes:
       - redisdata:/data
     healthcheck:

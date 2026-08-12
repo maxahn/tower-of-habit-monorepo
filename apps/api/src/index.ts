@@ -6,6 +6,8 @@ console.log(`TEST_IMPORT=${TEST_IMPORT} successfully imported from shared`);
 
 const app = new Hono();
 
+app.get("/healthz", (c) => c.body(null, 204));
+
 app.get("/evaluate", (c) => {
   const input = c.req.query("input");
   return c.json({ result: `input: ${input}` });

@@ -16,7 +16,11 @@
     "lint": "eslint .",
     "db:migrate": "pnpm --filter @tower-of-habit/db migrate",
     "services:up": "docker compose up -d",
-    "services:down": "docker compose down"
+    "services:down": "docker compose down",
+    "services:up:dev": "ENV_FILE=.env.local docker compose --env-file .env.local up -d",
+    "services:down:dev": "ENV_FILE=.env.local docker compose --env-file .env.local down",
+    "services:up:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging up -d",
+    "services:down:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging down"
   },
   "devDependencies": {
     "eslint": "^10.8.1",
