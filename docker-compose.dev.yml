@@ -1,0 +1,23 @@
+# Dev-only host port mappings, e.g. so host-run `pnpm dev:api`/`dev:worker`
+# and `drizzle-kit migrate`/`studio` can reach the containers. Not auto-loaded
+# by `docker compose up` — only applied via `pnpm services:up:dev`.
+#
+# `internal` (see docker-compose.yml) has `internal: true`, which stops Docker
+# from setting up the NAT/DNAT rules that back published ports — `ports:` on a
+# purely-internal-network container is silently a no-op. `dev_host_access` is a
+# second, ordinary (non-internal) network attached to postgres/redis only in
+# this dev overlay, purely so their published ports actually bind on the host.
+# It isn't added to api/worker/caddy, so the isolation `internal: true`
+# provides for the plain/staging stacks is unaffected there.
+services:
+  postgres:
+    networks: [internal, dev_host_access]
+    ports:
+      - "127.0.0.1:5432:5432"
+  redis:
+    networks: [internal, dev_host_access]
+    ports:
+      - "127.0.0.1:6379:6379"
+
+networks:
+  dev_host_access:

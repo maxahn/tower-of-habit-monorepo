@@ -87,8 +87,6 @@ services:
         "--maxmemory-policy",
         "noeviction",
       ]
-    ports:
-      - "127.0.0.1:6379:6379" # dev only: lets host-run `pnpm dev:worker`/`dev:api` reach redis
     volumes:
       - redisdata:/data
     healthcheck:
