@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "db:generate": "pnpm --filter @tower-of-habit/db generate",
     "db:migrate": "pnpm --filter @tower-of-habit/db migrate",
-    "services:up": "docker compose up -d --env-file .env.local",
+    "services:up": "ENV_FILE=.env.local docker compose --env-file .env.local up -d",
     "services:down": "ENV_FILE=.env.local docker compose down",
     "dev:up": "ENV_FILE=.env.local docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.dev.yml --env-file .env.local up -d",
     "dev:down": "ENV_FILE=.env.local docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.dev.yml --env-file .env.local down",

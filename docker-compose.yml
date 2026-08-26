@@ -45,6 +45,10 @@ services:
     image: tower-worker:${TOWER_VERSION:-latest}
     restart: unless-stopped
     env_file: ["${ENV_FILE:-.env}"]
+    environment:
+      # Override the env file's host-oriented value — inside this network
+      # redis is reachable by service name, not the port published to the host.
+      REDIS_URL: redis://redis:6379
     networks: [internal]
     depends_on:
       postgres: { condition: service_healthy }
