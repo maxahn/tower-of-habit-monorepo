@@ -1,8 +1,8 @@
-import tseslint from "typescript-eslint";
+import { config, configs } from "typescript-eslint";
 
-export default tseslint.config(
+export default config(
   { ignores: ["**/dist/**", "**/.expo/**", "**/node_modules/**"] },
-  ...tseslint.configs.recommended,
+  ...configs.recommended,
   // The mobile firewall.
   {
     files: ["apps/mobile/**/*.{ts,tsx}"],
@@ -82,6 +82,12 @@ export default tseslint.config(
           message: "new Date() reads the system clock. Pass the instant in.",
         },
       ],
+    },
+  },
+  {
+    files: ["**/metro.config.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
     },
   },
 );

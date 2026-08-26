@@ -8,9 +8,6 @@
   },
   "scripts": {
     "build": "pnpm -r --filter './packages/**' build",
-    "dev:api": "pnpm --filter @tower-of-habit/api dev",
-    "dev:worker": "pnpm --filter @tower-of-habit/worker dev",
-    "dev:mobile": "pnpm --filter @tower-of-habit/mobile start",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
@@ -20,13 +17,17 @@
     "services:down": "ENV_FILE=.env.local docker compose down",
     "dev:up": "ENV_FILE=.env.local docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.dev.yml --env-file .env.local up -d",
     "dev:down": "ENV_FILE=.env.local docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.dev.yml --env-file .env.local down",
+    "dev:worker": "ENV_FILE=.env.local docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.local up -d postgres redis && pnpm --filter @tower-of-habit/worker dev",
+    "dev:api": "ENV_FILE=.env.local docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.local up -d postgres redis && pnpm --filter @tower-of-habit/api dev",
+    "dev:mobile": "ENV_FILE=.env.local docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.local up -d postgres redis && pnpm --filter @tower-of-habit/mobile dev",
     "services:up:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging up -d",
-    "services:down:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging down",
-    "dev:worker:up": "ENV_FILE=.env.local docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.local up -d postgres redis && pnpm --filter @tower-of-habit/worker dev",
-    "dev:api:up": "ENV_FILE=.env.local docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.local up -d postgres redis && pnpm --filter @tower-of-habit/api dev"
+    "services:down:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging down"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.68.0",
+    "@typescript-eslint/parser": "^8.68.0",
     "eslint": "^10.8.1",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.68.0"
   }
 }
