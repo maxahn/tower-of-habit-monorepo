@@ -7,7 +7,9 @@
     "build": "tsup src/index.ts --format esm --target node22 --clean",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@tower-of-habit/db": "workspace:*",

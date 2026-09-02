@@ -1,4 +1,5 @@
 import { config, configs } from "typescript-eslint";
+import eslintConfigPrettier from "eslint-config-prettier";
 
 export default config(
   { ignores: ["**/dist/**", "**/.expo/**", "**/node_modules/**"] },
@@ -90,4 +91,5 @@ export default config(
       "@typescript-eslint/no-require-imports": "off",
     },
   },
+  eslintConfigPrettier,
 );

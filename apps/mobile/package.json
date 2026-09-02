@@ -22,7 +22,9 @@
     "web": "expo start --web",
     "build:dev": "eas build --profile dev",
     "build:staging": "eas build --profile staging",
-    "build:production": "eas build --profile production"
+    "build:production": "eas build --profile production",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "private": true
 }
