@@ -23,3 +23,10 @@
 ### Quality checks
 
 - `pnpm build`, `pnpm test`, `pnpm typecheck`, `pnpm lint`.
+
+### Adding packages
+
+- `pnpm -F <package-name> add <dependency>` — adds a dependency to a specific package within the monorepo.
+- `pnpm -F <package-name> remove <dependency>` — removes a dependency from a specific package within the monorepo.
+- `pnpm add -D <package-name>` — adds a dev dependency to the root of the monorepo.
+- `pnpm add <package-name>` — adds a dependency to the root of the monorepo.
