@@ -2,6 +2,28 @@
 
 ## Development
 
+### Setup
+
+**Prerequisites:**
+
+- Node 24.x (check `.nvmrc`)
+- pnpm 9.x or later
+
+**First-time setup:**
+
+```bash
+nvm use              # Uses .nvmrc
+pnpm install         # Installs all workspaces
+husky install        # Enables pre-commit hooks
+
+### Dev Scripts
+
+pnpm dev             # Runs dev in all workspaces in parallel
+pnpm -F backend dev  # Run backend only
+pnpm -F client dev   # Run client only
+pnpm lint            # Lint all workspaces
+pnpm format          # Format all files
+
 ### Services (Docker)
 
 - `pnpm services:up:dev` / `services:down:dev` — start/stop Postgres, Redis, Caddy, api, and worker using `.env.local`. This is the only variant that publishes Postgres (`127.0.0.1:5432`) and Redis (`127.0.0.1:6379`) to the host, since `dev:api`/`dev:worker`/`db:migrate` run on the host and need to reach the containers.
@@ -30,3 +52,4 @@
 - `pnpm -F <package-name> remove <dependency>` — removes a dependency from a specific package within the monorepo.
 - `pnpm add -D <package-name>` — adds a dev dependency to the root of the monorepo.
 - `pnpm add <package-name>` — adds a dependency to the root of the monorepo.
+```
