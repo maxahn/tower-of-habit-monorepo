@@ -10,7 +10,9 @@
     "./schema": "./src/schema.ts"
   },
   "scripts": {
-    "migrate": "drizzle-kit migrate",
+    "migrate:dev": "drizzle-kit migrate",
+    "migrate:test": "ENV_FILE=.env.test drizzle-kit migrate",
+    "migrate:deploy": "drizzle-kit migrate",
     "generate": "drizzle-kit generate",
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
