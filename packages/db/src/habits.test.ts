@@ -1,7 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
-import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   ALLOWED_TRANSITIONS,
   createHabit,
@@ -11,54 +9,16 @@ import {
   transitionHabit,
   updateHabit,
 } from './habits.js';
-import * as schema from './schema.js';
 import { habits, users, type HabitLifecycle } from './schema.js';
-
-const sql = postgres(process.env.DATABASE_URL!);
-// Cast: habits.ts types its param as the app's db; same schema, same casing.
-const db = drizzle(sql, { schema, casing: 'snake_case' }) as unknown as Parameters<
-  typeof createHabit
->[0];
+import { db, pgError, useTestOwner } from './test-utils.js';
 
 const LIFECYCLES: HabitLifecycle[] = ['draft', 'active', 'paused', 'archived'];
 
-let ownerId: string;
-
-beforeEach(async () => {
-  const [u] = await db
-    .insert(users)
-    .values({
-      email: `${crypto.randomUUID()}@test.local`,
-      passwordHash: 'x',
-      displayName: 'Tester',
-    })
-    .returning();
-  ownerId = u!.id;
-});
-
-// Cascade removes the user's habits too.
-afterEach(async () => {
-  await db.delete(users).where(eq(users.id, ownerId));
-});
-
-afterAll(async () => {
-  await sql.end();
-});
-
-/** Postgres error code lives on the cause in drizzle's wrapped errors. */
-async function pgError(p: Promise<unknown>) {
-  try {
-    await p;
-  } catch (e) {
-    const err = (e as { cause?: unknown }).cause ?? e;
-    return err as { code?: string; constraint_name?: string };
-  }
-  throw new Error('expected a Postgres error, but the promise resolved');
-}
+const owner = useTestOwner();
 
 describe('habits CRUD', () => {
   it('inserts with spec defaults', async () => {
-    const h = await createHabit(db, { ownerId, name: 'Read', type: 'binary' });
+    const h = await createHabit(db, { ownerId: owner(), name: 'Read', type: 'binary' });
     expect(h).toMatchObject({
       periodUnit: 'day',
       periodLength: 1,
@@ -72,14 +32,17 @@ describe('habits CRUD', () => {
   });
 
   it('updates fields and bumps updatedAt', async () => {
-    const h = await createHabit(db, { ownerId, name: 'Run', type: 'numeric', unit: 'km' });
+    const h = await createHabit(db, { ownerId: owner(), name: 'Run', type: 'numeric', unit: 'km' });
+    // $onUpdate stamps with the Node clock, while the insert default is the
+    // DB's now(); compare like with like.
+    const before = Date.now();
     const u = await updateHabit(db, h.id, { name: 'Jog', unit: 'miles' });
     expect(u).toMatchObject({ name: 'Jog', unit: 'miles' });
-    expect(u.updatedAt.getTime()).toBeGreaterThanOrEqual(h.updatedAt.getTime());
+    expect(u.updatedAt.getTime()).toBeGreaterThanOrEqual(before);
   });
 
   it('update ignores lifecycle even if smuggled in untyped', async () => {
-    const h = await createHabit(db, { ownerId, name: 'Read', type: 'binary' });
+    const h = await createHabit(db, { ownerId: owner(), name: 'Read', type: 'binary' });
     const u = await updateHabit(db, h.id, { lifecycle: 'archived', name: 'X' } as never);
     expect(u.lifecycle).toBe('draft');
     expect(u.name).toBe('X');
@@ -92,7 +55,7 @@ describe('habits CRUD', () => {
   });
 
   it('deletes', async () => {
-    const h = await createHabit(db, { ownerId, name: 'Read', type: 'binary' });
+    const h = await createHabit(db, { ownerId: owner(), name: 'Read', type: 'binary' });
     await deleteHabit(db, h.id);
     expect(await db.select().from(habits).where(eq(habits.id, h.id))).toHaveLength(0);
   });
@@ -100,28 +63,37 @@ describe('habits CRUD', () => {
 
 describe('habits constraints', () => {
   it('requires unit for numeric habits', async () => {
-    const e = await pgError(createHabit(db, { ownerId, name: 'Run', type: 'numeric' }));
+    const e = await pgError(createHabit(db, { ownerId: owner(), name: 'Run', type: 'numeric' }));
     expect(e).toMatchObject({ code: '23514', constraint_name: 'habits_unit_iff_numeric' });
   });
 
-  it.each(['binary', 'tiered'] as const)('forbids unit on %s habits', async (type) => {
-    const e = await pgError(createHabit(db, { ownerId, name: 'x', type, unit: 'minutes' }));
+  it.each([
+    { type: 'binary' as const },
+    { type: 'tiered' as const, tiers: [{ tierIndex: 0, label: 'Base' }] },
+  ])('forbids unit on $type habits', async (kind) => {
+    const e = await pgError(
+      createHabit(db, { ownerId: owner(), name: 'x', unit: 'minutes', ...kind })
+    );
     expect(e).toMatchObject({ code: '23514', constraint_name: 'habits_unit_iff_numeric' });
   });
 
   it('forbids clearing unit on a numeric habit via update', async () => {
-    const h = await createHabit(db, { ownerId, name: 'Run', type: 'numeric', unit: 'km' });
+    const h = await createHabit(db, { ownerId: owner(), name: 'Run', type: 'numeric', unit: 'km' });
     const e = await pgError(updateHabit(db, h.id, { unit: null }));
     expect(e).toMatchObject({ constraint_name: 'habits_unit_iff_numeric' });
   });
 
   it.each([0, -1])('rejects quota %i', async (quota) => {
-    const e = await pgError(createHabit(db, { ownerId, name: 'x', type: 'binary', quota }));
+    const e = await pgError(
+      createHabit(db, { ownerId: owner(), name: 'x', type: 'binary', quota })
+    );
     expect(e).toMatchObject({ code: '23514', constraint_name: 'habits_quota_positive' });
   });
 
   it.each([0, -1])('rejects periodLength %i', async (periodLength) => {
-    const e = await pgError(createHabit(db, { ownerId, name: 'x', type: 'binary', periodLength }));
+    const e = await pgError(
+      createHabit(db, { ownerId: owner(), name: 'x', type: 'binary', periodLength })
+    );
     expect(e).toMatchObject({ code: '23514', constraint_name: 'habits_period_length_positive' });
   });
 
@@ -133,8 +105,8 @@ describe('habits constraints', () => {
   });
 
   it('cascades on user delete', async () => {
-    const h = await createHabit(db, { ownerId, name: 'x', type: 'binary' });
-    await db.delete(users).where(eq(users.id, ownerId));
+    const h = await createHabit(db, { ownerId: owner(), name: 'x', type: 'binary' });
+    await db.delete(users).where(eq(users.id, owner()));
     expect(await db.select().from(habits).where(eq(habits.id, h.id))).toHaveLength(0);
   });
 
@@ -143,7 +115,7 @@ describe('habits constraints', () => {
 
 describe('habit lifecycle transitions', () => {
   async function habitIn(state: HabitLifecycle) {
-    const h = await createHabit(db, { ownerId, name: 'x', type: 'binary' });
+    const h = await createHabit(db, { ownerId: owner(), name: 'x', type: 'binary' });
     if (state === 'draft') return h;
     if (state === 'active') return transitionHabit(db, h.id, 'active');
     if (state === 'paused') {

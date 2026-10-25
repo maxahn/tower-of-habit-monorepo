@@ -1,16 +1,22 @@
 import { and, eq } from 'drizzle-orm';
 import type { db as appDb } from './client.js';
-import { habits, type HabitLifecycle } from './schema.js';
+import { BASE_TIER_INDEX, TierInvariantError, type NewHabitTier } from './habitTiers.js';
+import { habits, habitTiers, type HabitLifecycle } from './schema.js';
 
 type Db = typeof appDb;
 export type Habit = typeof habits.$inferSelect;
-export type NewHabit = Omit<
+type HabitFields = Omit<
   typeof habits.$inferInsert,
-  'id' | 'lifecycle' | 'startedAt' | 'archivedAt' | 'createdAt' | 'updatedAt'
+  'id' | 'type' | 'lifecycle' | 'startedAt' | 'archivedAt' | 'createdAt' | 'updatedAt'
 >;
-// Lifecycle and its timestamps change only through transitionHabit, and
-// ownership is immutable.
-export type HabitPatch = Partial<Omit<NewHabit, 'ownerId'>>;
+// A tiered habit is created together with its tiers (which must include
+// tier 0); other types take none.
+export type NewHabit =
+  | (HabitFields & { type: 'binary' | 'numeric'; tiers?: never })
+  | (HabitFields & { type: 'tiered'; tiers: readonly NewHabitTier[] });
+// Lifecycle and its timestamps change only through transitionHabit. Ownership
+// and type are immutable (a type change would break the tier invariant).
+export type HabitPatch = Partial<Omit<HabitFields, 'ownerId'>>;
 
 export const ALLOWED_TRANSITIONS: Record<HabitLifecycle, readonly HabitLifecycle[]> = {
   draft: ['active', 'archived'],
@@ -37,8 +43,24 @@ export class HabitNotFoundError extends Error {
 }
 
 export async function createHabit(db: Db, input: NewHabit): Promise<Habit> {
-  const [row] = await db.insert(habits).values(input).returning();
-  return row!;
+  const { tiers, ...fields } = input;
+  if (input.type === 'tiered') {
+    if (!tiers?.some((t) => t.tierIndex === BASE_TIER_INDEX)) {
+      throw new TierInvariantError('missing_base_tier');
+    }
+  } else if (tiers?.length) {
+    throw new TierInvariantError('not_tiered');
+  }
+  if (!tiers?.length) {
+    const [row] = await db.insert(habits).values(fields).returning();
+    return row!;
+  }
+  // One transaction, so a failed tier insert leaves no tierless tiered habit.
+  return db.transaction(async (tx) => {
+    const [row] = await tx.insert(habits).values(fields).returning();
+    await tx.insert(habitTiers).values(tiers.map((t) => ({ ...t, habitId: row!.id })));
+    return row!;
+  });
 }
 
 export async function getHabit(db: Db, id: string): Promise<Habit | undefined> {
@@ -49,6 +71,7 @@ export async function getHabit(db: Db, id: string): Promise<Habit | undefined> {
 export async function updateHabit(db: Db, id: string, patch: HabitPatch): Promise<Habit> {
   // Runtime guard: the type forbids these keys, but callers may pass untyped data.
   const {
+    type,
     lifecycle,
     startedAt,
     archivedAt,
@@ -56,7 +79,7 @@ export async function updateHabit(db: Db, id: string, patch: HabitPatch): Promis
     id: _id,
     ...safe
   } = patch as Record<string, unknown>;
-  void [lifecycle, startedAt, archivedAt, ownerId, _id];
+  void [type, lifecycle, startedAt, archivedAt, ownerId, _id];
   const [row] = await db.update(habits).set(safe).where(eq(habits.id, id)).returning();
   if (!row) throw new HabitNotFoundError(id);
   return row;

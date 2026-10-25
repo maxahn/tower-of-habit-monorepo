@@ -15,6 +15,13 @@
       "when": 1792954203771,
       "tag": "0001_married_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792962146661,
+      "tag": "0002_gorgeous_changeling",
+      "breakpoints": true
     }
   ]
 }
