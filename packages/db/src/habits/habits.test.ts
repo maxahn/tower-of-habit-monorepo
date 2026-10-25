@@ -9,8 +9,9 @@ import {
   transitionHabit,
   updateHabit,
 } from './habits.js';
-import { habits, users, type HabitLifecycle } from './schema.js';
-import { db, pgError, useTestOwner } from './test-utils.js';
+import { users } from '../users/schema.js';
+import { habits, type HabitLifecycle } from './schema.js';
+import { db, pgError, useTestOwner } from '../test-utils.js';
 
 const LIFECYCLES: HabitLifecycle[] = ['draft', 'active', 'paused', 'archived'];
 

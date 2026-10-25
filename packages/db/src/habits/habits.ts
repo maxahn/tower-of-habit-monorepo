@@ -1,7 +1,8 @@
 import { and, eq } from 'drizzle-orm';
-import type { db as appDb } from './client.js';
-import { BASE_TIER_INDEX, TierInvariantError, type NewHabitTier } from './habitTiers.js';
-import { habits, habitTiers, type HabitLifecycle } from './schema.js';
+import type { db as appDb } from '../client.js';
+import { BASE_TIER_INDEX, TierInvariantError, type NewHabitTier } from './tiers/tiers.js';
+import { habits, type HabitLifecycle } from './schema.js';
+import { habitTiers } from './tiers/schema.js';
 
 type Db = typeof appDb;
 export type Habit = typeof habits.$inferSelect;

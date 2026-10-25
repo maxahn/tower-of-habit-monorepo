@@ -1,6 +1,7 @@
 import { and, asc, eq, ne, notExists } from 'drizzle-orm';
-import type { db as appDb } from './client.js';
-import { habits, habitTiers } from './schema.js';
+import type { db as appDb } from '../../client.js';
+import { habits } from '../schema.js';
+import { habitTiers } from './schema.js';
 
 type Db = typeof appDb;
 export type HabitTier = typeof habitTiers.$inferSelect;

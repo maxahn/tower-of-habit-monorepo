@@ -9,10 +9,11 @@ import {
   TierInvariantError,
   updateTier,
   type NewHabitTier,
-} from './habitTiers.js';
-import { createHabit, deleteHabit, updateHabit } from './habits.js';
-import { habits, habitTiers } from './schema.js';
-import { db, pgError, useTestOwner } from './test-utils.js';
+} from './tiers.js';
+import { createHabit, deleteHabit, updateHabit } from '../habits.js';
+import { habits } from '../schema.js';
+import { habitTiers } from './schema.js';
+import { db, pgError, useTestOwner } from '../../test-utils.js';
 
 const owner = useTestOwner();
 

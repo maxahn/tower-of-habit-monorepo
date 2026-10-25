@@ -1,4 +1,4 @@
 export * from './schema.js';
 export * from './client.js';
-export * from './habits.js';
-export * from './habitTiers.js';
+export * from './habits/habits.js';
+export * from './habits/tiers/tiers.js';
