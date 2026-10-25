@@ -8,3 +8,4 @@
 export * from './users/schema.js';
 export * from './habits/schema.js';
 export * from './habits/tiers/schema.js';
+export * from './towers/schema.js';
