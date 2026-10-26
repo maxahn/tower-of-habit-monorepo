@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeEach } from 'vitest';
 import type { db as appDb } from './client.js';
+import { asPgError, type PgError } from './pg-errors.js';
 import * as schema from './schema.js';
 import { users } from './schema.js';
 
@@ -35,13 +36,12 @@ export function useTestOwner(): () => string {
   return () => ownerId;
 }
 
-/** Postgres error code lives on the cause in drizzle's wrapped errors. */
-export async function pgError(p: Promise<unknown>) {
+/** Asserts a promise rejects with a Postgres error, and returns it for matching. */
+export async function pgError(p: Promise<unknown>): Promise<PgError> {
   try {
     await p;
   } catch (e) {
-    const err = (e as { cause?: unknown }).cause ?? e;
-    return err as { code?: string; constraint_name?: string; column_name?: string };
+    return asPgError(e);
   }
   throw new Error('expected a Postgres error, but the promise resolved');
 }

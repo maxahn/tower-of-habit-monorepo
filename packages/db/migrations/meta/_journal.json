@@ -50,6 +50,13 @@
       "when": 1792967161439,
       "tag": "0006_cute_spyke",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792978981421,
+      "tag": "0007_damp_thunderbolt_ross",
+      "breakpoints": true
     }
   ]
 }
