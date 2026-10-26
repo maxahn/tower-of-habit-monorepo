@@ -70,6 +70,12 @@ export async function getTower(db: Db, id: string): Promise<Tower | undefined> {
   return row;
 }
 
+/**
+ * Known gap: changing deadlineTime, timezone or graceWindowMinutes does NOT
+ * reach tower_periods rows already materialised. Their deadline_at and
+ * evaluate_at were resolved at creation, so pending periods keep the old
+ * instants until they are evaluated.
+ */
 export async function updateTower(db: Db, id: string, patch: TowerPatch): Promise<Tower> {
   // Runtime guard: the type forbids these keys, but callers may pass untyped data.
   const {

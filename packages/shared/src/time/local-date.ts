@@ -16,6 +16,9 @@ export type LocalDate = string;
 
 export const MINUTES_PER_DAY = 1440;
 
+const MS_PER_MINUTE = 60_000;
+export const MS_PER_DAY = 86_400_000;
+
 /** DR-001 default. 0 reproduces the hard-cliff behaviour exactly. */
 export const DEFAULT_GRACE_WINDOW_MINUTES = 120;
 
@@ -29,7 +32,14 @@ export const SOLO_DEADLINE_TIME = '24:00';
 
 export class InvalidLocalDateInputError extends Error {
   constructor(
-    readonly field: 'loggedAt' | 'timeZone' | 'deadlineTime' | 'graceMinutes' | 'date',
+    readonly field:
+      | 'loggedAt'
+      | 'timeZone'
+      | 'deadlineTime'
+      | 'graceMinutes'
+      | 'date'
+      | 'periodLength'
+      | 'weekResetDay',
     readonly value: unknown
   ) {
     super(`Invalid ${field} for local-date resolution: ${JSON.stringify(value)}`);
@@ -127,17 +137,52 @@ export function civilInZone(
   return { date, minutesIntoDay: Number(hour) * 60 + Number(minute) };
 }
 
-/** Pure civil arithmetic. Never shifts an instant, so DST can't perturb it. */
-export function previousDay(date: LocalDate): LocalDate {
+/**
+ * The epoch milliseconds a civil date-and-minute WOULD have if the wall clock
+ * were UTC.
+ *
+ * A coordinate, not an instant. It is only ever differenced against another
+ * civilMs, or corrected by a zone offset probed out of Intl (wall-clock.ts).
+ * Never hand one to a caller as a timestamp.
+ */
+export function civilMs(date: LocalDate, minutesIntoDay = 0): number {
   const m = ISO_DATE_PARTS.exec(date);
   if (!m) throw new InvalidLocalDateInputError('date', date);
   const d = new Date(Date.UTC(2000, 0, 1));
   // setUTCFullYear rather than Date.UTC(y, ...): Date.UTC maps years 0..99 to
-  // 19xx. Day 0 of month M is the last day of M-1, so day - 1 rolls months and
-  // leap years correctly (2028-03-01 -> 2028-02-29).
-  d.setUTCFullYear(Number(m[1]), Number(m[2]) - 1, Number(m[3]) - 1);
+  // 19xx. Day 0 of month M is the last day of M-1, so overflow and underflow
+  // roll months and leap years correctly (2028-03-01 - 1 -> 2028-02-29).
+  d.setUTCFullYear(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return d.getTime() + minutesIntoDay * MS_PER_MINUTE;
+}
+
+function formatCivil(ms: number): LocalDate {
+  const d = new Date(ms);
   const pad = (n: number, width = 2) => String(n).padStart(width, '0');
   return `${pad(d.getUTCFullYear(), 4)}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+/** Pure civil arithmetic in UTC coordinates, where no day is ever 23 or 25 hours. */
+export function addDays(date: LocalDate, days: number): LocalDate {
+  return formatCivil(civilMs(date) + days * MS_PER_DAY);
+}
+
+/** Whole civil days from `from` to `to`; negative when `to` precedes `from`. */
+export function daysBetween(from: LocalDate, to: LocalDate): number {
+  return Math.round((civilMs(to) - civilMs(from)) / MS_PER_DAY);
+}
+
+/**
+ * 0 = Sunday .. 6 = Saturday, matching Date#getUTCDay and the encoding
+ * towers.week_reset_day uses (towers_week_reset_day_range).
+ */
+export function dayOfWeek(date: LocalDate): number {
+  return new Date(civilMs(date)).getUTCDay();
+}
+
+/** Pure civil arithmetic. Never shifts an instant, so DST can't perturb it. */
+export function previousDay(date: LocalDate): LocalDate {
+  return addDays(date, -1);
 }
 
 /**

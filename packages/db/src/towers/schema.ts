@@ -92,6 +92,12 @@ export const towers = pgTable(
       'towers_week_reset_day_iff_week',
       sql`(${table.periodUnit} = 'week') = (${table.weekResetDay} IS NOT NULL)`
     ),
+    // 0 = Sunday .. 6 = Saturday, matching Date#getUTCDay (dayOfWeek in
+    // @tower-of-habit/shared).
+    check(
+      'towers_week_reset_day_range',
+      sql`${table.weekResetDay} IS NULL OR ${table.weekResetDay} BETWEEN 0 AND 6`
+    ),
     check('towers_height_nonnegative', sql`${table.height} >= 0`),
     check('towers_current_streak_nonnegative', sql`${table.currentStreak} >= 0`),
     check('towers_grace_window_range', sql`${table.graceWindowMinutes} BETWEEN 0 AND 360`),

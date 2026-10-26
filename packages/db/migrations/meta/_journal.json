@@ -57,6 +57,13 @@
       "when": 1792978981421,
       "tag": "0007_damp_thunderbolt_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793051794936,
+      "tag": "0008_nostalgic_quicksilver",
+      "breakpoints": true
     }
   ]
 }
