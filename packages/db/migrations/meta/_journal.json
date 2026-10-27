@@ -71,6 +71,13 @@
       "when": 1793052758987,
       "tag": "0009_ancient_rafael_vega",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793085641466,
+      "tag": "0010_old_tana_nile",
+      "breakpoints": true
     }
   ]
 }

@@ -13,3 +13,5 @@ export * from './towers/schema.js';
 export * from './towers/memberships/schema.js';
 export * from './towers/periods/schema.js';
 export * from './towers/blocks/schema.js';
+export * from './users/push-tokens/schema.js';
+export * from './notifications/schema.js';
