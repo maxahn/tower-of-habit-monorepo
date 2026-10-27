@@ -3,6 +3,7 @@
 export * from './time/local-date.js';
 export * from './time/wall-clock.js';
 export * from './time/period-window.js';
+export * from './schemas.js';
 
 // Workspace-wiring scaffolding, still imported by apps/api and apps/mobile.
 // Remove it together with those two call sites, not before.
