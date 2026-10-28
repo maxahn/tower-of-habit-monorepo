@@ -13,11 +13,11 @@ services:
   postgres:
     networks: [internal, dev_host_access]
     ports:
-      - "127.0.0.1:5432:5432"
+      - '127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432'
   redis:
     networks: [internal, dev_host_access]
     ports:
-      - "127.0.0.1:6379:6379"
+      - '127.0.0.1:6379:6379'
 
 networks:
   dev_host_access:

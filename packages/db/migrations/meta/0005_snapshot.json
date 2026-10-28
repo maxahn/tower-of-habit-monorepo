@@ -1,0 +1,507 @@
+{
+  "id": "b04ee80c-36e5-41e6-84bf-5a702c416e6c",
+  "prevId": "93d3a6b1-8294-45d6-972c-7378ddea39bd",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": ["email"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "users_email_length": {
+          "name": "users_email_length",
+          "value": "length(\"users\".\"email\") <= 320"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.habits": {
+      "name": "habits",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "habit_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit": {
+          "name": "unit",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "period_unit": {
+          "name": "period_unit",
+          "type": "period_unit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'day'"
+        },
+        "period_length": {
+          "name": "period_length",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "quota": {
+          "name": "quota",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "lifecycle": {
+          "name": "lifecycle",
+          "type": "habit_lifecycle",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "habits_owner_id_idx": {
+          "name": "habits_owner_id_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "habits_owner_id_users_id_fk": {
+          "name": "habits_owner_id_users_id_fk",
+          "tableFrom": "habits",
+          "tableTo": "users",
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "habits_unit_iff_numeric": {
+          "name": "habits_unit_iff_numeric",
+          "value": "(\"habits\".\"type\" = 'numeric') = (\"habits\".\"unit\" IS NOT NULL)"
+        },
+        "habits_quota_positive": {
+          "name": "habits_quota_positive",
+          "value": "\"habits\".\"quota\" >= 1"
+        },
+        "habits_period_length_positive": {
+          "name": "habits_period_length_positive",
+          "value": "\"habits\".\"period_length\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.habit_tiers": {
+      "name": "habit_tiers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "habit_id": {
+          "name": "habit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tier_index": {
+          "name": "tier_index",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "threshold_value": {
+          "name": "threshold_value",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "habit_tiers_habit_id_habits_id_fk": {
+          "name": "habit_tiers_habit_id_habits_id_fk",
+          "tableFrom": "habit_tiers",
+          "tableTo": "habits",
+          "columnsFrom": ["habit_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "habit_tiers_habit_id_tier_index_unique": {
+          "name": "habit_tiers_habit_id_tier_index_unique",
+          "nullsNotDistinct": false,
+          "columns": ["habit_id", "tier_index"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "habit_tiers_tier_index_nonnegative": {
+          "name": "habit_tiers_tier_index_nonnegative",
+          "value": "\"habit_tiers\".\"tier_index\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.towers": {
+      "name": "towers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "host_id": {
+          "name": "host_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period_unit": {
+          "name": "period_unit",
+          "type": "period_unit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'day'"
+        },
+        "period_length": {
+          "name": "period_length",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "quota": {
+          "name": "quota",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "deadline_time": {
+          "name": "deadline_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "week_reset_day": {
+          "name": "week_reset_day",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "join_code": {
+          "name": "join_code",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wobble_lead_minutes": {
+          "name": "wobble_lead_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 120
+        },
+        "nudge_lead_minutes": {
+          "name": "nudge_lead_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 240
+        },
+        "grace_window_minutes": {
+          "name": "grace_window_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 120
+        },
+        "lifecycle": {
+          "name": "lifecycle",
+          "type": "tower_lifecycle",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "height": {
+          "name": "height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "current_streak": {
+          "name": "current_streak",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "towers_host_id_idx": {
+          "name": "towers_host_id_idx",
+          "columns": [
+            {
+              "expression": "host_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "towers_host_id_users_id_fk": {
+          "name": "towers_host_id_users_id_fk",
+          "tableFrom": "towers",
+          "tableTo": "users",
+          "columnsFrom": ["host_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "towers_join_code_unique": {
+          "name": "towers_join_code_unique",
+          "nullsNotDistinct": false,
+          "columns": ["join_code"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "towers_quota_range": {
+          "name": "towers_quota_range",
+          "value": "\"towers\".\"quota\" >= 1 AND \"towers\".\"quota\" <= \"towers\".\"period_length\""
+        },
+        "towers_wobble_lead_range": {
+          "name": "towers_wobble_lead_range",
+          "value": "\"towers\".\"wobble_lead_minutes\" >= 0 AND \"towers\".\"wobble_lead_minutes\" < 1440"
+        },
+        "towers_nudge_lead_range": {
+          "name": "towers_nudge_lead_range",
+          "value": "\"towers\".\"nudge_lead_minutes\" < 1440"
+        },
+        "towers_nudge_before_wobble": {
+          "name": "towers_nudge_before_wobble",
+          "value": "\"towers\".\"nudge_lead_minutes\" > \"towers\".\"wobble_lead_minutes\""
+        },
+        "towers_week_reset_day_iff_week": {
+          "name": "towers_week_reset_day_iff_week",
+          "value": "(\"towers\".\"period_unit\" = 'week') = (\"towers\".\"week_reset_day\" IS NOT NULL)"
+        },
+        "towers_height_nonnegative": {
+          "name": "towers_height_nonnegative",
+          "value": "\"towers\".\"height\" >= 0"
+        },
+        "towers_current_streak_nonnegative": {
+          "name": "towers_current_streak_nonnegative",
+          "value": "\"towers\".\"current_streak\" >= 0"
+        },
+        "towers_grace_window_range": {
+          "name": "towers_grace_window_range",
+          "value": "\"towers\".\"grace_window_minutes\" BETWEEN 0 AND 360"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.habit_lifecycle": {
+      "name": "habit_lifecycle",
+      "schema": "public",
+      "values": ["draft", "active", "paused", "archived"]
+    },
+    "public.habit_type": {
+      "name": "habit_type",
+      "schema": "public",
+      "values": ["binary", "numeric", "tiered"]
+    },
+    "public.period_unit": {
+      "name": "period_unit",
+      "schema": "public",
+      "values": ["day", "week"]
+    },
+    "public.tower_lifecycle": {
+      "name": "tower_lifecycle",
+      "schema": "public",
+      "values": ["draft", "active", "paused", "archived"]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

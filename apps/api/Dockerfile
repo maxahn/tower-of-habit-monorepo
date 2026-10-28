@@ -28,5 +28,7 @@ COPY --from=build /app/packages/shared/package.json ./packages/shared/package.js
 COPY --from=build /app/packages/db/src ./packages/db/src
 COPY --from=build /app/packages/db/package.json ./packages/db/package.json
 COPY --from=build /app/packages/db/node_modules ./packages/db/node_modules
+COPY --from=build /app/packages/db/drizzle.config.ts ./packages/db/drizzle.config.ts
+COPY --from=build /app/packages/db/migrations ./packages/db/migrations
 EXPOSE 3000
 CMD ["node", "apps/api/dist/index.js"]

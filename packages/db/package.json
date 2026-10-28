@@ -10,10 +10,13 @@
     "./schema": "./src/schema.ts"
   },
   "scripts": {
-    "migrate": "drizzle-kit migrate",
+    "migrate:dev": "drizzle-kit migrate",
+    "migrate:test": "ENV_FILE=.env.test drizzle-kit migrate",
+    "migrate:deploy": "drizzle-kit migrate",
     "generate": "drizzle-kit generate",
     "studio": "drizzle-kit studio",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tower-of-habit/shared": "workspace:*",
@@ -23,6 +26,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "drizzle-kit": "^0.31.0",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -1,0 +1,1481 @@
+{
+  "id": "f2267ccf-0ec6-4cf7-8179-8c34c3c07b73",
+  "prevId": "0ef9e3e5-1ff8-4417-9e73-9079f7bca53d",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_email_unique": {
+          "name": "users_email_unique",
+          "nullsNotDistinct": false,
+          "columns": ["email"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "users_email_length": {
+          "name": "users_email_length",
+          "value": "length(\"users\".\"email\") <= 320"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.habits": {
+      "name": "habits",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "habit_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unit": {
+          "name": "unit",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "period_unit": {
+          "name": "period_unit",
+          "type": "period_unit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'day'"
+        },
+        "period_length": {
+          "name": "period_length",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "quota": {
+          "name": "quota",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "lifecycle": {
+          "name": "lifecycle",
+          "type": "habit_lifecycle",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "habits_owner_id_idx": {
+          "name": "habits_owner_id_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "habits_owner_id_users_id_fk": {
+          "name": "habits_owner_id_users_id_fk",
+          "tableFrom": "habits",
+          "tableTo": "users",
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "habits_unit_iff_numeric": {
+          "name": "habits_unit_iff_numeric",
+          "value": "(\"habits\".\"type\" = 'numeric') = (\"habits\".\"unit\" IS NOT NULL)"
+        },
+        "habits_quota_positive": {
+          "name": "habits_quota_positive",
+          "value": "\"habits\".\"quota\" >= 1"
+        },
+        "habits_period_length_positive": {
+          "name": "habits_period_length_positive",
+          "value": "\"habits\".\"period_length\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.habit_tiers": {
+      "name": "habit_tiers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "habit_id": {
+          "name": "habit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tier_index": {
+          "name": "tier_index",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "threshold_value": {
+          "name": "threshold_value",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "habit_tiers_habit_id_habits_id_fk": {
+          "name": "habit_tiers_habit_id_habits_id_fk",
+          "tableFrom": "habit_tiers",
+          "tableTo": "habits",
+          "columnsFrom": ["habit_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "habit_tiers_habit_id_tier_index_unique": {
+          "name": "habit_tiers_habit_id_tier_index_unique",
+          "nullsNotDistinct": false,
+          "columns": ["habit_id", "tier_index"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "habit_tiers_tier_index_nonnegative": {
+          "name": "habit_tiers_tier_index_nonnegative",
+          "value": "\"habit_tiers\".\"tier_index\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.entries": {
+      "name": "entries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "habit_id": {
+          "name": "habit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "local_date": {
+          "name": "local_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tier_reached": {
+          "name": "tier_reached",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "numeric_value": {
+          "name": "numeric_value",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "logged_at": {
+          "name": "logged_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "counts_toward_quota": {
+          "name": "counts_toward_quota",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "client_entry_id": {
+          "name": "client_entry_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "one_qualifying_entry_per_day": {
+          "name": "one_qualifying_entry_per_day",
+          "columns": [
+            {
+              "expression": "habit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "local_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"entries\".\"counts_toward_quota\"",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "entries_client_entry_id_unique": {
+          "name": "entries_client_entry_id_unique",
+          "columns": [
+            {
+              "expression": "client_entry_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "entries_habit_id_local_date_idx": {
+          "name": "entries_habit_id_local_date_idx",
+          "columns": [
+            {
+              "expression": "habit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "local_date",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "entries_habit_id_habits_id_fk": {
+          "name": "entries_habit_id_habits_id_fk",
+          "tableFrom": "entries",
+          "tableTo": "habits",
+          "columnsFrom": ["habit_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "entries_tier_reached_nonnegative": {
+          "name": "entries_tier_reached_nonnegative",
+          "value": "\"entries\".\"tier_reached\" >= 0"
+        },
+        "entries_numeric_value_finite": {
+          "name": "entries_numeric_value_finite",
+          "value": "\"entries\".\"numeric_value\" IS NULL OR \"entries\".\"numeric_value\" BETWEEN -1000000000 AND 1000000000"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.towers": {
+      "name": "towers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "host_id": {
+          "name": "host_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period_unit": {
+          "name": "period_unit",
+          "type": "period_unit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'day'"
+        },
+        "period_length": {
+          "name": "period_length",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "quota": {
+          "name": "quota",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "deadline_time": {
+          "name": "deadline_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "week_reset_day": {
+          "name": "week_reset_day",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "join_code": {
+          "name": "join_code",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "wobble_lead_minutes": {
+          "name": "wobble_lead_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 120
+        },
+        "nudge_lead_minutes": {
+          "name": "nudge_lead_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 240
+        },
+        "grace_window_minutes": {
+          "name": "grace_window_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 120
+        },
+        "lifecycle": {
+          "name": "lifecycle",
+          "type": "tower_lifecycle",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "height": {
+          "name": "height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "current_streak": {
+          "name": "current_streak",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "towers_host_id_idx": {
+          "name": "towers_host_id_idx",
+          "columns": [
+            {
+              "expression": "host_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "towers_host_id_users_id_fk": {
+          "name": "towers_host_id_users_id_fk",
+          "tableFrom": "towers",
+          "tableTo": "users",
+          "columnsFrom": ["host_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "towers_join_code_unique": {
+          "name": "towers_join_code_unique",
+          "nullsNotDistinct": false,
+          "columns": ["join_code"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "towers_quota_range": {
+          "name": "towers_quota_range",
+          "value": "\"towers\".\"quota\" >= 1 AND \"towers\".\"quota\" <= \"towers\".\"period_length\""
+        },
+        "towers_wobble_lead_range": {
+          "name": "towers_wobble_lead_range",
+          "value": "\"towers\".\"wobble_lead_minutes\" >= 0 AND \"towers\".\"wobble_lead_minutes\" < 1440"
+        },
+        "towers_nudge_lead_range": {
+          "name": "towers_nudge_lead_range",
+          "value": "\"towers\".\"nudge_lead_minutes\" < 1440"
+        },
+        "towers_nudge_before_wobble": {
+          "name": "towers_nudge_before_wobble",
+          "value": "\"towers\".\"nudge_lead_minutes\" > \"towers\".\"wobble_lead_minutes\""
+        },
+        "towers_week_reset_day_iff_week": {
+          "name": "towers_week_reset_day_iff_week",
+          "value": "(\"towers\".\"period_unit\" = 'week') = (\"towers\".\"week_reset_day\" IS NOT NULL)"
+        },
+        "towers_week_reset_day_range": {
+          "name": "towers_week_reset_day_range",
+          "value": "\"towers\".\"week_reset_day\" IS NULL OR \"towers\".\"week_reset_day\" BETWEEN 0 AND 6"
+        },
+        "towers_height_nonnegative": {
+          "name": "towers_height_nonnegative",
+          "value": "\"towers\".\"height\" >= 0"
+        },
+        "towers_current_streak_nonnegative": {
+          "name": "towers_current_streak_nonnegative",
+          "value": "\"towers\".\"current_streak\" >= 0"
+        },
+        "towers_grace_window_range": {
+          "name": "towers_grace_window_range",
+          "value": "\"towers\".\"grace_window_minutes\" BETWEEN 0 AND 360"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.memberships": {
+      "name": "memberships",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tower_id": {
+          "name": "tower_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "habit_id": {
+          "name": "habit_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "membership_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "consecutive_missed_periods": {
+          "name": "consecutive_missed_periods",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_qualifying_date": {
+          "name": "last_qualifying_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dormant_since": {
+          "name": "dormant_since",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dormancy_reason": {
+          "name": "dormancy_reason",
+          "type": "dormancy_reason",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "voluntary_return_date": {
+          "name": "voluntary_return_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "joined_at": {
+          "name": "joined_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "one_active_tower_per_habit": {
+          "name": "one_active_tower_per_habit",
+          "columns": [
+            {
+              "expression": "habit_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"memberships\".\"state\" != 'removed'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "memberships_user_id_idx": {
+          "name": "memberships_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "memberships_tower_id_towers_id_fk": {
+          "name": "memberships_tower_id_towers_id_fk",
+          "tableFrom": "memberships",
+          "tableTo": "towers",
+          "columnsFrom": ["tower_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "memberships_user_id_users_id_fk": {
+          "name": "memberships_user_id_users_id_fk",
+          "tableFrom": "memberships",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "memberships_habit_id_habits_id_fk": {
+          "name": "memberships_habit_id_habits_id_fk",
+          "tableFrom": "memberships",
+          "tableTo": "habits",
+          "columnsFrom": ["habit_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "memberships_tower_id_user_id_unique": {
+          "name": "memberships_tower_id_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["tower_id", "user_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "memberships_missed_periods_nonnegative": {
+          "name": "memberships_missed_periods_nonnegative",
+          "value": "\"memberships\".\"consecutive_missed_periods\" >= 0"
+        },
+        "memberships_dormancy_iff_dormant": {
+          "name": "memberships_dormancy_iff_dormant",
+          "value": "(\"memberships\".\"state\" = 'dormant') = (\"memberships\".\"dormant_since\" IS NOT NULL AND \"memberships\".\"dormancy_reason\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.tower_periods": {
+      "name": "tower_periods",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tower_id": {
+          "name": "tower_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period_start": {
+          "name": "period_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "period_end": {
+          "name": "period_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deadline_at": {
+          "name": "deadline_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "evaluate_at": {
+          "name": "evaluate_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "period_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "period_outcome",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "evaluated_at": {
+          "name": "evaluated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "freebie_source": {
+          "name": "freebie_source",
+          "type": "freebie_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "freebie_granted_by": {
+          "name": "freebie_granted_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "periods_due": {
+          "name": "periods_due",
+          "columns": [
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "evaluate_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tower_periods\".\"state\" = 'pending'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "periods_stale_claims": {
+          "name": "periods_stale_claims",
+          "columns": [
+            {
+              "expression": "claimed_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tower_periods\".\"state\" = 'evaluating'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tower_periods_freebie_granted_by_idx": {
+          "name": "tower_periods_freebie_granted_by_idx",
+          "columns": [
+            {
+              "expression": "freebie_granted_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"tower_periods\".\"freebie_granted_by\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tower_periods_tower_id_towers_id_fk": {
+          "name": "tower_periods_tower_id_towers_id_fk",
+          "tableFrom": "tower_periods",
+          "tableTo": "towers",
+          "columnsFrom": ["tower_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tower_periods_freebie_granted_by_users_id_fk": {
+          "name": "tower_periods_freebie_granted_by_users_id_fk",
+          "tableFrom": "tower_periods",
+          "tableTo": "users",
+          "columnsFrom": ["freebie_granted_by"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "tower_periods_tower_id_period_start_unique": {
+          "name": "tower_periods_tower_id_period_start_unique",
+          "nullsNotDistinct": false,
+          "columns": ["tower_id", "period_start"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "tower_periods_end_after_start": {
+          "name": "tower_periods_end_after_start",
+          "value": "\"tower_periods\".\"period_end\" >= \"tower_periods\".\"period_start\""
+        },
+        "tower_periods_evaluate_after_deadline": {
+          "name": "tower_periods_evaluate_after_deadline",
+          "value": "\"tower_periods\".\"evaluate_at\" >= \"tower_periods\".\"deadline_at\""
+        },
+        "tower_periods_outcome_iff_evaluated": {
+          "name": "tower_periods_outcome_iff_evaluated",
+          "value": "(\"tower_periods\".\"state\" = 'evaluated') = (\"tower_periods\".\"outcome\" IS NOT NULL) AND (\"tower_periods\".\"state\" = 'evaluated') = (\"tower_periods\".\"evaluated_at\" IS NOT NULL)"
+        },
+        "tower_periods_claimed_unless_pending": {
+          "name": "tower_periods_claimed_unless_pending",
+          "value": "\"tower_periods\".\"state\" = 'pending' OR \"tower_periods\".\"claimed_at\" IS NOT NULL"
+        },
+        "tower_periods_attempts_nonnegative": {
+          "name": "tower_periods_attempts_nonnegative",
+          "value": "\"tower_periods\".\"attempts\" >= 0"
+        },
+        "tower_periods_freebie_fields_iff_freebie": {
+          "name": "tower_periods_freebie_fields_iff_freebie",
+          "value": "(\"tower_periods\".\"outcome\" IS NOT DISTINCT FROM 'freebie') = (\"tower_periods\".\"freebie_source\" IS NOT NULL)"
+        },
+        "tower_periods_freebie_granted_by_requires_source": {
+          "name": "tower_periods_freebie_granted_by_requires_source",
+          "value": "\"tower_periods\".\"freebie_granted_by\" IS NULL OR \"tower_periods\".\"freebie_source\" IS NOT NULL"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.base_blocks": {
+      "name": "base_blocks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tower_id": {
+          "name": "tower_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordinal": {
+          "name": "ordinal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "run_start_date": {
+          "name": "run_start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "run_end_date": {
+          "name": "run_end_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_height": {
+          "name": "block_height",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "roster": {
+          "name": "roster",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "base_blocks_tower_id_towers_id_fk": {
+          "name": "base_blocks_tower_id_towers_id_fk",
+          "tableFrom": "base_blocks",
+          "tableTo": "towers",
+          "columnsFrom": ["tower_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "base_blocks_tower_id_ordinal_unique": {
+          "name": "base_blocks_tower_id_ordinal_unique",
+          "nullsNotDistinct": false,
+          "columns": ["tower_id", "ordinal"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "base_blocks_ordinal_positive": {
+          "name": "base_blocks_ordinal_positive",
+          "value": "\"base_blocks\".\"ordinal\" >= 1"
+        },
+        "base_blocks_run_end_after_start": {
+          "name": "base_blocks_run_end_after_start",
+          "value": "\"base_blocks\".\"run_end_date\" >= \"base_blocks\".\"run_start_date\""
+        },
+        "base_blocks_block_height_positive": {
+          "name": "base_blocks_block_height_positive",
+          "value": "\"base_blocks\".\"block_height\" >= 1"
+        },
+        "base_blocks_block_height_within_run": {
+          "name": "base_blocks_block_height_within_run",
+          "value": "\"base_blocks\".\"block_height\" <= (\"base_blocks\".\"run_end_date\" - \"base_blocks\".\"run_start_date\") + 1"
+        },
+        "base_blocks_roster_nonempty_array": {
+          "name": "base_blocks_roster_nonempty_array",
+          "value": "jsonb_typeof(\"base_blocks\".\"roster\") = 'array' AND \"base_blocks\".\"roster\" <> '[]'::jsonb"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.push_tokens": {
+      "name": "push_tokens",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "platform": {
+          "name": "platform",
+          "type": "push_platform",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "invalidated_at": {
+          "name": "invalidated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "push_tokens_user_id_idx": {
+          "name": "push_tokens_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "push_tokens_user_id_users_id_fk": {
+          "name": "push_tokens_user_id_users_id_fk",
+          "tableFrom": "push_tokens",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "push_tokens_token_unique": {
+          "name": "push_tokens_token_unique",
+          "nullsNotDistinct": false,
+          "columns": ["token"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "push_tokens_token_length": {
+          "name": "push_tokens_token_length",
+          "value": "length(\"push_tokens\".\"token\") BETWEEN 1 AND 512"
+        },
+        "push_tokens_token_trimmed": {
+          "name": "push_tokens_token_trimmed",
+          "value": "\"push_tokens\".\"token\" !~ '^\\s|\\s$'"
+        },
+        "push_tokens_last_seen_not_before_created": {
+          "name": "push_tokens_last_seen_not_before_created",
+          "value": "\"push_tokens\".\"last_seen_at\" >= \"push_tokens\".\"created_at\""
+        },
+        "push_tokens_invalidated_not_before_created": {
+          "name": "push_tokens_invalidated_not_before_created",
+          "value": "\"push_tokens\".\"invalidated_at\" IS NULL OR \"push_tokens\".\"invalidated_at\" >= \"push_tokens\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.notifications": {
+      "name": "notifications",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tower_id": {
+          "name": "tower_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "notification_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dedupe_key": {
+          "name": "dedupe_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "scheduled_for": {
+          "name": "scheduled_for",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "notification_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "notifications_due": {
+          "name": "notifications_due",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "scheduled_for",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"notifications\".\"status\" = 'pending'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notifications_user_id_idx": {
+          "name": "notifications_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notifications_tower_id_idx": {
+          "name": "notifications_tower_id_idx",
+          "columns": [
+            {
+              "expression": "tower_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "notifications_user_id_users_id_fk": {
+          "name": "notifications_user_id_users_id_fk",
+          "tableFrom": "notifications",
+          "tableTo": "users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notifications_tower_id_towers_id_fk": {
+          "name": "notifications_tower_id_towers_id_fk",
+          "tableFrom": "notifications",
+          "tableTo": "towers",
+          "columnsFrom": ["tower_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "notifications_dedupe_key_unique": {
+          "name": "notifications_dedupe_key_unique",
+          "nullsNotDistinct": false,
+          "columns": ["dedupe_key"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "notifications_dedupe_key_length": {
+          "name": "notifications_dedupe_key_length",
+          "value": "length(\"notifications\".\"dedupe_key\") BETWEEN 1 AND 200"
+        },
+        "notifications_sent_at_iff_sent": {
+          "name": "notifications_sent_at_iff_sent",
+          "value": "(\"notifications\".\"status\" = 'sent') = (\"notifications\".\"sent_at\" IS NOT NULL)"
+        },
+        "notifications_error_iff_failed": {
+          "name": "notifications_error_iff_failed",
+          "value": "(\"notifications\".\"status\" = 'failed') = (\"notifications\".\"error\" IS NOT NULL)"
+        },
+        "notifications_error_length": {
+          "name": "notifications_error_length",
+          "value": "\"notifications\".\"error\" IS NULL OR length(\"notifications\".\"error\") BETWEEN 1 AND 2000"
+        },
+        "notifications_attempts_nonnegative": {
+          "name": "notifications_attempts_nonnegative",
+          "value": "\"notifications\".\"attempts\" >= 0"
+        },
+        "notifications_attempts_recorded_when_attempted": {
+          "name": "notifications_attempts_recorded_when_attempted",
+          "value": "\"notifications\".\"status\" NOT IN ('sent', 'failed') OR \"notifications\".\"attempts\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.habit_lifecycle": {
+      "name": "habit_lifecycle",
+      "schema": "public",
+      "values": ["draft", "active", "paused", "archived"]
+    },
+    "public.habit_type": {
+      "name": "habit_type",
+      "schema": "public",
+      "values": ["binary", "numeric", "tiered"]
+    },
+    "public.period_unit": {
+      "name": "period_unit",
+      "schema": "public",
+      "values": ["day", "week"]
+    },
+    "public.tower_lifecycle": {
+      "name": "tower_lifecycle",
+      "schema": "public",
+      "values": ["draft", "active", "paused", "archived"]
+    },
+    "public.dormancy_reason": {
+      "name": "dormancy_reason",
+      "schema": "public",
+      "values": ["consecutive_miss", "backstop", "voluntary"]
+    },
+    "public.membership_state": {
+      "name": "membership_state",
+      "schema": "public",
+      "values": ["active", "at_risk", "dormant", "removed"]
+    },
+    "public.freebie_source": {
+      "name": "freebie_source",
+      "schema": "public",
+      "values": ["earned", "host_granted", "system"]
+    },
+    "public.period_outcome": {
+      "name": "period_outcome",
+      "schema": "public",
+      "values": ["survived", "collapsed", "hibernated", "freebie"]
+    },
+    "public.period_state": {
+      "name": "period_state",
+      "schema": "public",
+      "values": ["pending", "evaluating", "evaluated"]
+    },
+    "public.push_platform": {
+      "name": "push_platform",
+      "schema": "public",
+      "values": ["ios", "android"]
+    },
+    "public.notification_status": {
+      "name": "notification_status",
+      "schema": "public",
+      "values": ["pending", "sent", "failed", "skipped"]
+    },
+    "public.notification_type": {
+      "name": "notification_type",
+      "schema": "public",
+      "values": [
+        "nudge",
+        "wobble",
+        "collapse",
+        "dormant",
+        "returned",
+        "member_joined",
+        "tower_started",
+        "tower_archived",
+        "block_completed",
+        "host_transferred"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

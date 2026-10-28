@@ -2,15 +2,15 @@ name: tower
 
 x-logging: &default-logging
   driver: json-file
-  options: { max-size: "10m", max-file: "3" }
+  options: { max-size: '10m', max-file: '3' }
 
 services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./infrastructure/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -25,13 +25,19 @@ services:
       dockerfile: apps/api/Dockerfile
     image: tower-api:${TOWER_VERSION:-latest}
     restart: unless-stopped
-    env_file: ["${ENV_FILE:-.env}"]
+    env_file: ['${ENV_FILE:-.env}']
     networks: [edge, internal]
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -44,7 +50,7 @@ services:
       dockerfile: apps/worker/Dockerfile
     image: tower-worker:${TOWER_VERSION:-latest}
     restart: unless-stopped
-    env_file: ["${ENV_FILE:-.env}"]
+    env_file: ['${ENV_FILE:-.env}']
     environment:
       # Override the env file's host-oriented value — inside this network
       # redis is reachable by service name, not the port published to the host.
@@ -62,15 +68,16 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_INITDB_ARGS: "--data-checksums"
+      POSTGRES_INITDB_ARGS: '--data-checksums'
       TZ: UTC
       PGTZ: UTC
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./infrastructure/postgres/postgres.conf:/etc/postgresql/postgresql.conf:ro
-    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+      - ./infrastructure/postgres/init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh:ro
+    command: ['postgres', '-c', 'config_file=/etc/postgresql/postgresql.conf']
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -83,18 +90,18 @@ services:
     restart: unless-stopped
     command:
       [
-        "redis-server",
-        "--appendonly",
-        "yes",
-        "--maxmemory",
-        "256mb",
-        "--maxmemory-policy",
-        "noeviction",
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory',
+        '256mb',
+        '--maxmemory-policy',
+        'noeviction',
       ]
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
