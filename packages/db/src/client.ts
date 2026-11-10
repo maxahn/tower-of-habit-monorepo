@@ -24,7 +24,7 @@ export const db = drizzle(client, { schema, casing: 'snake_case' });
  * transaction object is structurally missing `$client`, so a service typed
  * `typeof db` cannot be called inside db.transaction(...) at all. That is fine
  * for a service that opens its own transaction internally and never hands `tx`
- * onward (habits.ts, blocks.ts), which is why nothing needed this sooner. It is
+ * onward (habits.ts), which is why nothing needed this sooner. It is
  * NOT fine for a service the caller must be able to enrol in a transaction it
  * already owns: the evaluator writes the period transition, the tower counters,
  * the base block and the notification rows together, and ensureNotification's

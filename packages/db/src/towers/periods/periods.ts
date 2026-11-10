@@ -226,10 +226,12 @@ export async function claimDuePeriods(
   return claimed.sort((a, b) => a.evaluateAt.getTime() - b.evaluateAt.getTime());
 }
 
+/** `now` stamps evaluatedAt / claimedAt. Passed in, never read from the system clock. */
 export async function transitionPeriod(
   db: Db,
   id: string,
-  t: PeriodTransition
+  t: PeriodTransition,
+  now: Date
 ): Promise<TowerPeriod> {
   const current = await getPeriod(db, id);
   if (!current) throw new PeriodNotFoundError(id);
@@ -243,11 +245,11 @@ export async function transitionPeriod(
       // Outcome and evaluated_at are set iff evaluated
       // (tower_periods_outcome_iff_evaluated).
       ...(t.to === 'evaluated'
-        ? { outcome: t.outcome, evaluatedAt: new Date() }
+        ? { outcome: t.outcome, evaluatedAt: now }
         : { outcome: null, evaluatedAt: null }),
       // Releasing to 'pending' keeps claimed_at: when the failed attempt began.
       ...(t.to === 'evaluating'
-        ? { claimedAt: new Date(), attempts: sql`${towerPeriods.attempts} + 1` }
+        ? { claimedAt: now, attempts: sql`${towerPeriods.attempts} + 1` }
         : {}),
     })
     // Conditioning on the observed `from` makes a concurrent transition lose

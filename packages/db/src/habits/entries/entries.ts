@@ -26,12 +26,13 @@ export const FALLBACK_TIMEZONE = 'UTC';
 export type LogEntryInput = {
   habitId: string;
   /**
-   * TRUSTED, server-side parameter: it defaults to the server clock, and only
-   * tests and backfills pass it. The API layer must NOT forward a client
-   * instant — that would hand the client control of the derived local_date,
-   * which is exactly what "local_date is derived, not client-supplied" forbids.
+   * TRUSTED, server-side parameter: the caller's `now` (the API's request
+   * instant, or a test's fixed clock). Required, so domain code never reaches
+   * for the system clock. The API layer must NOT forward a client instant —
+   * that would hand the client control of the derived local_date, which is
+   * exactly what "local_date is derived, not client-supplied" forbids.
    */
-  loggedAt?: Date;
+  loggedAt: Date;
   tierReached?: number;
   numericValue?: number;
   /**
@@ -187,7 +188,7 @@ function valuesFor(input: LogEntryInput, localDate: string, countsTowardQuota: b
     habitId: input.habitId,
     localDate,
     countsTowardQuota,
-    loggedAt: input.loggedAt!,
+    loggedAt: input.loggedAt,
     ...(input.tierReached !== undefined ? { tierReached: input.tierReached } : {}),
     ...(input.numericValue !== undefined ? { numericValue: input.numericValue } : {}),
     ...(input.clientEntryId !== undefined ? { clientEntryId: input.clientEntryId } : {}),
@@ -223,7 +224,7 @@ async function retriedEntry(
  * SERIALIZABLE would turn a clean 23505 into a 40001 to retry.
  */
 export async function logEntry(db: Db, input: LogEntryInput): Promise<Entry> {
-  const loggedAt = input.loggedAt ?? new Date();
+  const { loggedAt } = input;
   const ctx = await resolveLoggingContext(db, input.habitId, loggedAt, input.timezone);
   assertEntryShape(input.habitId, ctx.habitType, input);
 
@@ -233,7 +234,7 @@ export async function logEntry(db: Db, input: LogEntryInput): Promise<Entry> {
   try {
     const [row] = await db
       .insert(entries)
-      .values(valuesFor({ ...input, loggedAt }, localDate, true))
+      .values(valuesFor(input, localDate, true))
       .returning();
     return row!;
   } catch (e) {
@@ -262,7 +263,7 @@ export async function logEntry(db: Db, input: LogEntryInput): Promise<Entry> {
  * belongs to, undercounting that date's SUM and orphaning the row on the next.
  */
 export async function addSupplementalEntry(db: Db, input: LogEntryInput): Promise<Entry> {
-  const loggedAt = input.loggedAt ?? new Date();
+  const { loggedAt } = input;
   const ctx = await resolveLoggingContext(db, input.habitId, loggedAt, input.timezone);
   assertEntryShape(input.habitId, ctx.habitType, input);
 
@@ -272,7 +273,7 @@ export async function addSupplementalEntry(db: Db, input: LogEntryInput): Promis
   try {
     const [row] = await db
       .insert(entries)
-      .values(valuesFor({ ...input, loggedAt }, localDate, false))
+      .values(valuesFor(input, localDate, false))
       .returning();
     return row!;
   } catch (e) {
