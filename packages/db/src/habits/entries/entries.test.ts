@@ -296,11 +296,10 @@ describe('logEntry — tower path', () => {
     expect(e.localDate).toBe('2026-10-25');
   });
 
-  it('defaults loggedAt to the server clock rather than trusting a caller', async () => {
+  it('stores the loggedAt it was given, the same instant local_date came from', async () => {
     const { habit: h } = await inTower();
-    const before = Date.now();
-    const e = await logEntry(db, { habitId: h.id });
-    expect(e.loggedAt.getTime()).toBeGreaterThanOrEqual(before - 1000);
+    const e = await logEntry(db, { habitId: h.id, loggedAt: AT_NOON_OCT25 });
+    expect(e.loggedAt).toEqual(AT_NOON_OCT25);
   });
 });
 
@@ -343,7 +342,7 @@ describe('logEntry — standalone habit path', () => {
   // membership leaves the habit solo again.
   it('returns to the solo fallback once the membership is removed', async () => {
     const { habit: h, membership: m } = await inTower();
-    await transitionMembership(db, m.id, { to: 'removed' });
+    await transitionMembership(db, m.id, { to: 'removed' }, AT_NOON_OCT25);
     expect(await resolveLoggingContext(db, h.id, AT_0030_OCT25)).toMatchObject({
       timeZone: 'UTC',
       deadlineTime: SOLO_DEADLINE_TIME,
@@ -354,14 +353,20 @@ describe('logEntry — standalone habit path', () => {
 describe('logEntry — shape validation', () => {
   it('rejects a numeric value on a binary habit', async () => {
     const h = await habit('binary');
-    const err = await logEntry(db, { habitId: h.id, numericValue: 5 }).catch((e: unknown) => e);
+    const err = await logEntry(db, {
+      habitId: h.id,
+      loggedAt: AT_NOON_OCT25,
+      numericValue: 5,
+    }).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(EntryShapeError);
     expect(err).toMatchObject({ reason: 'numeric_value_not_allowed' });
   });
 
   it('requires a numeric value on a numeric habit', async () => {
     const h = await habit('numeric');
-    const err = await logEntry(db, { habitId: h.id }).catch((e: unknown) => e);
+    const err = await logEntry(db, { habitId: h.id, loggedAt: AT_NOON_OCT25 }).catch(
+      (e: unknown) => e
+    );
     expect(err).toMatchObject({ reason: 'numeric_value_required' });
   });
 
@@ -369,6 +374,7 @@ describe('logEntry — shape validation', () => {
     const h = await habit(type);
     const err = await logEntry(db, {
       habitId: h.id,
+      loggedAt: AT_NOON_OCT25,
       tierReached: 2,
       ...(type === 'numeric' ? { numericValue: 5 } : {}),
     }).catch((e: unknown) => e);
@@ -379,14 +385,19 @@ describe('logEntry — shape validation', () => {
   // is numeric, so tier records and personal bests can read it back.
   it('accepts a numeric value on a tiered habit', async () => {
     const h = await habit('tiered');
-    const e = await logEntry(db, { habitId: h.id, tierReached: 1, numericValue: 42 });
+    const e = await logEntry(db, {
+      habitId: h.id,
+      loggedAt: AT_NOON_OCT25,
+      tierReached: 1,
+      numericValue: 42,
+    });
     expect(e).toMatchObject({ tierReached: 1, numericValue: 42 });
   });
 
   it('throws HabitNotFoundError for a missing habit', async () => {
-    await expect(logEntry(db, { habitId: crypto.randomUUID() })).rejects.toBeInstanceOf(
-      HabitNotFoundError
-    );
+    await expect(
+      logEntry(db, { habitId: crypto.randomUUID(), loggedAt: AT_NOON_OCT25 })
+    ).rejects.toBeInstanceOf(HabitNotFoundError);
   });
 });
 

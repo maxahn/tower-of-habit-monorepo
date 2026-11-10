@@ -90,13 +90,18 @@ export async function deleteHabit(db: Db, id: string): Promise<void> {
   await db.delete(habits).where(eq(habits.id, id));
 }
 
-export async function transitionHabit(db: Db, id: string, to: HabitLifecycle): Promise<Habit> {
+/** `now` stamps startedAt / archivedAt. Passed in, never read from the system clock. */
+export async function transitionHabit(
+  db: Db,
+  id: string,
+  to: HabitLifecycle,
+  now: Date
+): Promise<Habit> {
   const current = await getHabit(db, id);
   if (!current) throw new HabitNotFoundError(id);
   const from = current.lifecycle;
   if (!ALLOWED_TRANSITIONS[from].includes(to)) throw new IllegalTransitionError(from, to);
 
-  const now = new Date();
   // Conditioning on the observed `from` makes a concurrent transition lose
   // cleanly (zero rows) instead of overwriting.
   const [row] = await db

@@ -15,6 +15,9 @@ import { db, pgError, useTestOwner } from '../test-utils.js';
 
 const LIFECYCLES: HabitLifecycle[] = ['draft', 'active', 'paused', 'archived'];
 
+// The instant transitions stamp. Fixed, so assertions can name it.
+const NOW = new Date('2026-10-25T18:00:00Z');
+
 const owner = useTestOwner();
 
 describe('habits CRUD', () => {
@@ -118,12 +121,12 @@ describe('habit lifecycle transitions', () => {
   async function habitIn(state: HabitLifecycle) {
     const h = await createHabit(db, { ownerId: owner(), name: 'x', type: 'binary' });
     if (state === 'draft') return h;
-    if (state === 'active') return transitionHabit(db, h.id, 'active');
+    if (state === 'active') return transitionHabit(db, h.id, 'active', NOW);
     if (state === 'paused') {
-      await transitionHabit(db, h.id, 'active');
-      return transitionHabit(db, h.id, 'paused');
+      await transitionHabit(db, h.id, 'active', NOW);
+      return transitionHabit(db, h.id, 'paused', NOW);
     }
-    return transitionHabit(db, h.id, 'archived');
+    return transitionHabit(db, h.id, 'archived', NOW);
   }
 
   const cases = LIFECYCLES.flatMap((from) =>
@@ -132,32 +135,32 @@ describe('habit lifecycle transitions', () => {
 
   it.each(cases.filter((c) => c.legal))('allows $from -> $to', async ({ from, to }) => {
     const h = await habitIn(from);
-    expect((await transitionHabit(db, h.id, to)).lifecycle).toBe(to);
+    expect((await transitionHabit(db, h.id, to, NOW)).lifecycle).toBe(to);
   });
 
   it.each(cases.filter((c) => !c.legal))('rejects $from -> $to', async ({ from, to }) => {
     const h = await habitIn(from);
-    await expect(transitionHabit(db, h.id, to)).rejects.toBeInstanceOf(IllegalTransitionError);
+    await expect(transitionHabit(db, h.id, to, NOW)).rejects.toBeInstanceOf(IllegalTransitionError);
     const [row] = await db.select().from(habits).where(eq(habits.id, h.id));
     expect(row!.lifecycle).toBe(from);
   });
 
   it('sets startedAt on first activation only', async () => {
     const h = await habitIn('active');
-    expect(h.startedAt).toBeInstanceOf(Date);
-    await transitionHabit(db, h.id, 'paused');
-    const resumed = await transitionHabit(db, h.id, 'active');
+    expect(h.startedAt).toEqual(NOW);
+    await transitionHabit(db, h.id, 'paused', NOW);
+    const resumed = await transitionHabit(db, h.id, 'active', NOW);
     expect(resumed.startedAt).toEqual(h.startedAt);
   });
 
   it('sets archivedAt on archive', async () => {
     const h = await habitIn('active');
     expect(h.archivedAt).toBeNull();
-    expect((await transitionHabit(db, h.id, 'archived')).archivedAt).toBeInstanceOf(Date);
+    expect((await transitionHabit(db, h.id, 'archived', NOW)).archivedAt).toEqual(NOW);
   });
 
   it('throws on a missing habit', async () => {
-    await expect(transitionHabit(db, crypto.randomUUID(), 'active')).rejects.toBeInstanceOf(
+    await expect(transitionHabit(db, crypto.randomUUID(), 'active', NOW)).rejects.toBeInstanceOf(
       HabitNotFoundError
     );
   });
@@ -165,8 +168,8 @@ describe('habit lifecycle transitions', () => {
   it('a concurrent transition loses cleanly', async () => {
     const h = await habitIn('active');
     const results = await Promise.allSettled([
-      transitionHabit(db, h.id, 'paused'),
-      transitionHabit(db, h.id, 'archived'),
+      transitionHabit(db, h.id, 'paused', NOW),
+      transitionHabit(db, h.id, 'archived', NOW),
     ]);
     // Both are legal from active, so either order is valid; the end state
     // must be consistent with exactly one winner or archived-after-paused.

@@ -22,6 +22,9 @@ import { db, pgError, useTestOwner } from '../../test-utils.js';
 
 const STATES: MembershipState[] = ['active', 'at_risk', 'dormant', 'removed'];
 
+// The instant transitions stamp. Fixed, so assertions can name it.
+const NOW = new Date('2026-10-25T18:00:00Z');
+
 const owner = useTestOwner();
 
 // Deleting the owner's towers cascades to memberships, which would otherwise
@@ -152,7 +155,7 @@ describe('memberships constraints', () => {
     'one_active_tower_per_habit still counts a %s membership',
     async (state) => {
       const m = await membership();
-      await transitionMembership(db, m.id, to(state));
+      await transitionMembership(db, m.id, to(state), NOW);
       const t2 = await tower();
       const e = await pgError(
         createMembership(db, { towerId: t2.id, userId: owner(), habitId: m.habitId })
@@ -163,7 +166,7 @@ describe('memberships constraints', () => {
 
   it('one_active_tower_per_habit frees the habit once the membership is removed', async () => {
     const m = await membership();
-    await transitionMembership(db, m.id, { to: 'removed' });
+    await transitionMembership(db, m.id, { to: 'removed' }, NOW);
     const t2 = await tower();
     const m2 = await createMembership(db, { towerId: t2.id, userId: owner(), habitId: m.habitId });
     expect(m2.state).toBe('active');
@@ -238,7 +241,7 @@ describe('membership state transitions', () => {
   async function membershipIn(state: MembershipState) {
     const m = await membership();
     if (state === 'active') return m;
-    return transitionMembership(db, m.id, to(state));
+    return transitionMembership(db, m.id, to(state), NOW);
   }
 
   const cases = STATES.flatMap((from) =>
@@ -247,7 +250,7 @@ describe('membership state transitions', () => {
 
   it.each(cases.filter((c) => c.legal))('allows $from -> $to', async ({ from, to: target }) => {
     const m = await membershipIn(from);
-    expect((await transitionMembership(db, m.id, to(target))).state).toBe(target);
+    expect((await transitionMembership(db, m.id, to(target), NOW)).state).toBe(target);
   });
 
   it.each(cases.filter((c) => !c.legal))('rejects $from -> $to', async ({ from, to: target }) => {
@@ -255,7 +258,7 @@ describe('membership state transitions', () => {
     expect(() => assertMembershipTransition(from, target)).toThrow(
       IllegalMembershipTransitionError
     );
-    await expect(transitionMembership(db, m.id, to(target))).rejects.toBeInstanceOf(
+    await expect(transitionMembership(db, m.id, to(target), NOW)).rejects.toBeInstanceOf(
       IllegalMembershipTransitionError
     );
     expect(await stateOf(m.id)).toBe(from);
@@ -263,7 +266,7 @@ describe('membership state transitions', () => {
 
   it('going dormant stamps dormantSince and the reason', async () => {
     const m = await membership();
-    const d = await transitionMembership(db, m.id, { to: 'dormant', reason: 'voluntary' });
+    const d = await transitionMembership(db, m.id, { to: 'dormant', reason: 'voluntary' }, NOW);
     expect(d.dormantSince).toBeInstanceOf(Date);
     expect(d.dormancyReason).toBe('voluntary');
   });
@@ -271,8 +274,8 @@ describe('membership state transitions', () => {
   it('returning to active clears dormancy and resets the miss counter', async () => {
     const m = await membership();
     await updateMembership(db, m.id, { consecutiveMissedPeriods: 2 });
-    await transitionMembership(db, m.id, { to: 'dormant', reason: 'consecutive_miss' });
-    const back = await transitionMembership(db, m.id, { to: 'active' });
+    await transitionMembership(db, m.id, { to: 'dormant', reason: 'consecutive_miss' }, NOW);
+    const back = await transitionMembership(db, m.id, { to: 'active' }, NOW);
     expect(back).toMatchObject({
       state: 'active',
       dormantSince: null,
@@ -284,28 +287,28 @@ describe('membership state transitions', () => {
   it('at_risk keeps the miss counter', async () => {
     const m = await membership();
     await updateMembership(db, m.id, { consecutiveMissedPeriods: 1 });
-    expect((await transitionMembership(db, m.id, { to: 'at_risk' })).consecutiveMissedPeriods).toBe(
-      1
-    );
+    expect(
+      (await transitionMembership(db, m.id, { to: 'at_risk' }, NOW)).consecutiveMissedPeriods
+    ).toBe(1);
   });
 
   it('removing a dormant membership clears dormancy fields', async () => {
     const m = await membershipIn('dormant');
-    const r = await transitionMembership(db, m.id, { to: 'removed' });
+    const r = await transitionMembership(db, m.id, { to: 'removed' }, NOW);
     expect(r).toMatchObject({ state: 'removed', dormantSince: null, dormancyReason: null });
   });
 
   it('throws on a missing membership', async () => {
     await expect(
-      transitionMembership(db, crypto.randomUUID(), { to: 'at_risk' })
+      transitionMembership(db, crypto.randomUUID(), { to: 'at_risk' }, NOW)
     ).rejects.toBeInstanceOf(MembershipNotFoundError);
   });
 
   it('a concurrent transition loses cleanly', async () => {
     const m = await membership();
     const results = await Promise.allSettled([
-      transitionMembership(db, m.id, { to: 'at_risk' }),
-      transitionMembership(db, m.id, { to: 'removed' }),
+      transitionMembership(db, m.id, { to: 'at_risk' }, NOW),
+      transitionMembership(db, m.id, { to: 'removed' }, NOW),
     ]);
     expect(results.some((r) => r.status === 'fulfilled')).toBe(true);
     // Either one winner, or at_risk then removed (legal from at_risk).

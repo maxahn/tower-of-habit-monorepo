@@ -98,10 +98,12 @@ export async function deleteMembership(db: Db, id: string): Promise<void> {
   await db.delete(memberships).where(eq(memberships.id, id));
 }
 
+/** `now` stamps dormantSince. Passed in, never read from the system clock. */
 export async function transitionMembership(
   db: Db,
   id: string,
-  t: MembershipTransition
+  t: MembershipTransition,
+  now: Date
 ): Promise<Membership> {
   const current = await getMembership(db, id);
   if (!current) throw new MembershipNotFoundError(id);
@@ -115,7 +117,7 @@ export async function transitionMembership(
     .set({
       state: t.to,
       ...(t.to === 'dormant'
-        ? { dormantSince: new Date(), dormancyReason: t.reason }
+        ? { dormantSince: now, dormancyReason: t.reason }
         : { dormantSince: null, dormancyReason: null }),
       ...(t.to === 'active' ? { consecutiveMissedPeriods: 0 } : {}),
     })
