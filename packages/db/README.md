@@ -35,6 +35,16 @@ Builders: `towerRunningFor(days, opts)`, `towerWithBaseBlocks(n, opts)`, `standa
 
 Period outcomes, tower height, membership state and base blocks come from `deriveTowerState`, which is **provisional**. It encodes the §5/§6 rules as currently written, until the evaluator (3.x) and recompute (1.12) take over as the source of truth.
 
+### Recompute: the oracle and the repair tool (1.12)
+
+`towers.height`, `towers.current_streak` and the base-block boundaries are denormalised and evaluator-owned. `verifyTower(db, towerId)` re-derives all three from the tower's `tower_periods` outcomes, ignoring the stored values, and reports every divergence. The pure version, `verifyTowerState(periods, stored)`, is in `@tower-of-habit/shared/evaluator`. Every Phase 3 test should end with:
+
+```ts
+expect((await verifyTower(db, towerId)).divergences).toEqual([]);
+```
+
+`repairTower(db, towerId)` rewrites `height` and `current_streak` from the recompute under a row lock. Block divergences are **reported, never written**: `base_blocks` is append-only, so fixing a stack is a human decision. Recompute trusts the stored period outcomes. Whether each outcome was right is for the evaluator's own tests.
+
 ### Dev seed
 
 ```bash
