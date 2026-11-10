@@ -27,6 +27,7 @@ pnpm format          # Format all files
 ### Services (Docker)
 
 - `pnpm dev:up` / `dev:down` — start/stop Postgres, Redis, Caddy, api, and worker using `.env.dev`. This is the only variant that publishes Postgres (`127.0.0.1:5433` → container `5432`; override with `POSTGRES_HOST_PORT`) and Redis (`127.0.0.1:6379`) to the host, since `dev:api`/`dev:worker`/`migrate:dev` run on the host and need to reach the containers.
+- `pnpm db:admin` — starts pgAdmin (and Postgres) at http://localhost:5050 (override with `PGADMIN_HOST_PORT`). Also started by `dev:up`. The `tower (dev)` server is pre-registered; enter `POSTGRES_PASSWORD` on first connect and tick "Save password".
 - `pnpm services:up` / `services:down` — plain stack; no Postgres/Redis host ports.
 - `pnpm services:up:staging` / `services:down:staging` — same as plain, using `.env.staging`.
 
