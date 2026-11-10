@@ -26,7 +26,6 @@ pnpm -F backend dev # Run backend only
 pnpm -F client dev # Run client only
 pnpm lint # Lint all workspaces
 pnpm format # Format all files
-and I'm most definitely probably not the only kid who had this kind of story. I'm sure there are so many rural places where both their banks will be ATB
 
 ### Services (Docker)
 
