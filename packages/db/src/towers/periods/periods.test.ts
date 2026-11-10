@@ -331,7 +331,7 @@ describe('lease and reclaim', () => {
     const t = await tower();
     const p = await due(t.id, '2026-03-01');
     await claimDuePeriods(db, NOW);
-    await transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'survived' });
+    await transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'survived' }, NOW);
     expect(await claimDuePeriods(db, plusMinutes(NOW, 60))).toEqual([]);
   });
 
@@ -339,7 +339,7 @@ describe('lease and reclaim', () => {
     const t = await tower();
     const p = await due(t.id, '2026-03-01');
     await claimDuePeriods(db, NOW);
-    const released = await transitionPeriod(db, p.id, { to: 'pending' });
+    const released = await transitionPeriod(db, p.id, { to: 'pending' }, NOW);
     // claimed_at survives the release: when the failed attempt began.
     expect(released).toMatchObject({ state: 'pending', claimedAt: NOW, attempts: 1 });
     expect(await claimDuePeriods(db, plusMinutes(NOW, 1))).toMatchObject([
@@ -649,6 +649,8 @@ describe('tower_periods constraints', () => {
 });
 
 describe('period transitions', () => {
+  // The instant transitions stamp. Fixed, so assertions can name it.
+  const NOW = at('2026-03-05T00:00:00.000Z');
   const STATES: PeriodState[] = ['pending', 'evaluating', 'evaluated'];
   const cases = STATES.flatMap((from) =>
     STATES.map((to) => ({ from, to, legal: ALLOWED_PERIOD_TRANSITIONS[from].includes(to) }))
@@ -662,21 +664,21 @@ describe('period transitions', () => {
     const t = await tower();
     const p = await createPeriod(db, period(t.id));
     if (state === 'pending') return p;
-    await transitionPeriod(db, p.id, { to: 'evaluating' });
+    await transitionPeriod(db, p.id, { to: 'evaluating' }, NOW);
     if (state === 'evaluating') return (await getPeriod(db, p.id))!;
-    return transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'survived' });
+    return transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'survived' }, NOW);
   }
 
   it.each(cases.filter((c) => c.legal))('allows $from -> $to', async ({ from, to }) => {
     const p = await inState(from);
-    const next = await transitionPeriod(db, p.id, transition(to));
+    const next = await transitionPeriod(db, p.id, transition(to), NOW);
     expect(next.state).toBe(to);
   });
 
   it.each(cases.filter((c) => !c.legal))('rejects $from -> $to', async ({ from, to }) => {
     expect(() => assertPeriodTransition(from, to)).toThrow(IllegalPeriodTransitionError);
     const p = await inState(from);
-    await expect(transitionPeriod(db, p.id, transition(to))).rejects.toBeInstanceOf(
+    await expect(transitionPeriod(db, p.id, transition(to), NOW)).rejects.toBeInstanceOf(
       IllegalPeriodTransitionError
     );
     expect((await getPeriod(db, p.id))!.state).toBe(from);
@@ -684,16 +686,16 @@ describe('period transitions', () => {
 
   it('sets outcome and evaluated_at on evaluated', async () => {
     const p = await inState('evaluating');
-    const done = await transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'collapsed' });
+    const done = await transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'collapsed' }, NOW);
     expect(done.outcome).toBe('collapsed');
-    expect(done.evaluatedAt).toBeInstanceOf(Date);
+    expect(done.evaluatedAt).toEqual(NOW);
   });
 
   it('a concurrent transition loses cleanly rather than overwriting', async () => {
     const p = await inState('evaluating');
     const results = await Promise.allSettled([
-      transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'survived' }),
-      transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'collapsed' }),
+      transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'survived' }, NOW),
+      transitionPeriod(db, p.id, { to: 'evaluated', outcome: 'collapsed' }, NOW),
     ]);
     const won = results.filter((r) => r.status === 'fulfilled');
     expect(won).toHaveLength(1);
@@ -704,7 +706,7 @@ describe('period transitions', () => {
 
   it('throws for a missing period', async () => {
     await expect(
-      transitionPeriod(db, crypto.randomUUID(), { to: 'evaluating' })
+      transitionPeriod(db, crypto.randomUUID(), { to: 'evaluating' }, NOW)
     ).rejects.toBeInstanceOf(PeriodNotFoundError);
   });
 

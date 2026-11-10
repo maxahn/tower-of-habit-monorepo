@@ -1,11 +1,10 @@
 import { asc, desc, eq, sql } from 'drizzle-orm';
 import { parseBlockRoster, type RosterIssue } from '@tower-of-habit/shared';
-import type { db as appDb } from '../../client.js';
+import type { Db } from '../../client.js';
 import { towers } from '../schema.js';
 import { TowerNotFoundError } from '../towers.js';
 import { baseBlocks } from './schema.js';
 
-type Db = typeof appDb;
 export type BaseBlock = typeof baseBlocks.$inferSelect;
 // ordinal is allocated server-side (see appendBaseBlock); id and createdAt come
 // from defaults. There is deliberately no BaseBlockPatch and no

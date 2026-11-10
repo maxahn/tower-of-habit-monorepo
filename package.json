@@ -16,6 +16,7 @@
     "db:generate": "pnpm --filter @tower-of-habit/db generate",
     "migrate:dev": "pnpm --filter @tower-of-habit/db migrate:dev",
     "migrate:test": "pnpm --filter @tower-of-habit/db migrate:test",
+    "seed:dev": "pnpm --filter @tower-of-habit/db seed:dev",
     "migrate:deploy:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging run --rm --no-deps api pnpm --filter @tower-of-habit/db migrate:deploy",
     "services:up": "ENV_FILE=.env.dev docker compose --env-file .env.dev up -d",
     "services:down": "ENV_FILE=.env.dev docker compose down",
