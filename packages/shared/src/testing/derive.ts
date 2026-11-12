@@ -1,21 +1,22 @@
 import type { BlockRosterMember } from '../schemas/index.js';
 import type { LocalDate } from '../time/local-date.js';
+import { MIN_BLOCK_DAYS } from '../evaluator/recompute.js';
 import type { BlockRecord, MembershipRecord, ScenarioPlan } from './plan.js';
 
-/**
- * PROVISIONAL. The fewest qualifying days a run needs to leave a base block
- * (§5's "~3-day floor", owned by 3.9).
- */
-export const MIN_BLOCK_DAYS = 3;
+// Owned by the evaluator; re-exported so existing testing imports keep working.
+export { MIN_BLOCK_DAYS };
 
 /**
  * PROVISIONAL projection of the evaluator-owned state from a plan's inputs
  * (members, periods, entries), so a scenario can be persisted looking as if
  * the evaluator had run over it.
  *
- * NOT THE SOURCE OF TRUTH. The 3.x evaluator is, and the 1.12 recompute is its
- * oracle; once they exist, they replace this function and scenarios should
- * assert agreement with them rather than with this. Every rule below is the
+ * NOT THE SOURCE OF TRUTH. The 3.x evaluator is, and the 1.12 recompute
+ * (verifyTowerState in @tower-of-habit/shared/evaluator) is its oracle. Until
+ * the evaluator lands this stays the fixture, and scenario tests assert that
+ * recompute agrees with it. Keep the two INDEPENDENT: if this called recompute
+ * for height and blocks, that agreement would hold by construction and test
+ * nothing. Every rule below is the
  * reading of the schema comments as they stand, in one place, so a correction
  * is a one-file change:
  *
