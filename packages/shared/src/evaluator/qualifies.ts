@@ -41,9 +41,17 @@ export class HabitConfigError extends Error {
   }
 }
 
-// STUB: implementation lands in the feat commit for 2.3.
 export function qualifies(habit: HabitConfig, entry: EntryDraft): boolean {
-  void habit;
-  void entry;
-  throw new Error('qualifies: not implemented');
+  switch (habit.type) {
+    case 'binary':
+      return true;
+    case 'numeric': {
+      // Config is checked before the entry, so a bad config throws whatever the value.
+      const threshold = habit.tiers.find((t) => t.tierIndex === 0)?.thresholdValue;
+      if (threshold == null) throw new HabitConfigError('missing_base_threshold', 'numeric');
+      return entry.numericValue != null && entry.numericValue >= threshold;
+    }
+    case 'tiered':
+      return entry.tierReached != null && entry.tierReached >= 0;
+  }
 }

@@ -60,10 +60,10 @@ Last generated with `pnpm coverage:readme`. Coverage counts code that ran during
 
 <!-- coverage:start -->
 
-| Package | Statements | Branches | Functions | Lines | Tests                               |
-| ------- | ---------: | -------: | --------: | ----: | ----------------------------------- |
-| shared  |      98.5% |    96.7% |    100.0% | 98.5% | 50 failed, 774 passed, 1 todo (825) |
-| db      |      92.0% |    94.7% |     90.6% | 92.0% | 473 passed (473)                    |
+| Package | Statements | Branches | Functions | Lines | Tests                    |
+| ------- | ---------: | -------: | --------: | ----: | ------------------------ |
+| shared  |      98.6% |    97.2% |    100.0% | 98.6% | 878 passed, 1 todo (879) |
+| db      |      92.0% |    94.7% |     90.6% | 92.0% | 473 passed (473)         |
 
 <!-- coverage:end -->
 
