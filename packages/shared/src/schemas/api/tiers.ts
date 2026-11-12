@@ -1,35 +1,25 @@
-import type { z } from 'zod';
-import { notImplemented } from '../todo.js';
+import { z } from 'zod';
+import { displayText, nonNegativeInt, uuid } from './common.js';
 
 /*
  * Habit tier bodies. Mirrors NewHabitTier / HabitTierPatch / HabitTier in
- * @tower-of-habit/db (habits/tiers/tiers.ts). habitId comes from the route.
- *
- * TODO(2.1): implement, then replace the hand-written types with z.infer.
- * Rules (tests: ./tiers.test.ts):
- *   - strict: habitId (and any unknown key) rejected;
- *   - tierIndex: integer >= 0 (tier 0 is the base tier);
- *   - label: 1..ROSTER_DISPLAY_NAME_MAX chars;
- *   - thresholdValue: finite number or null (no NaN/Infinity, no strings);
- *   - update: all optional, `{}` accepted, same field rules;
- *   - response adds id and habitId (uuids).
+ * @tower-of-habit/db (habits/tiers/tiers.ts). habitId comes from the route,
+ * so request bodies are strict and reject it.
  */
 
-export type CreateHabitTierRequest = {
-  tierIndex: number;
-  label: string;
-  thresholdValue: number | null;
+const tierFields = {
+  // habit_tiers_tier_index_nonnegative. Tier 0 is the base tier.
+  tierIndex: nonNegativeInt,
+  label: displayText,
+  // Finite only: z.number() already rejects NaN and ±Infinity.
+  thresholdValue: z.number().nullable(),
 };
 
-export type UpdateHabitTierRequest = Partial<CreateHabitTierRequest>;
+export const createHabitTierRequestSchema = z.strictObject(tierFields);
+export type CreateHabitTierRequest = z.infer<typeof createHabitTierRequestSchema>;
 
-export type HabitTierResponse = CreateHabitTierRequest & { id: string; habitId: string };
+export const updateHabitTierRequestSchema = createHabitTierRequestSchema.partial();
+export type UpdateHabitTierRequest = z.infer<typeof updateHabitTierRequestSchema>;
 
-export const createHabitTierRequestSchema = notImplemented<z.ZodType<CreateHabitTierRequest>>(
-  'createHabitTierRequestSchema'
-);
-export const updateHabitTierRequestSchema = notImplemented<z.ZodType<UpdateHabitTierRequest>>(
-  'updateHabitTierRequestSchema'
-);
-export const habitTierResponseSchema =
-  notImplemented<z.ZodType<HabitTierResponse>>('habitTierResponseSchema');
+export const habitTierResponseSchema = z.object({ id: uuid, habitId: uuid, ...tierFields });
+export type HabitTierResponse = z.infer<typeof habitTierResponseSchema>;

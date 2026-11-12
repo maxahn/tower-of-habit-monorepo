@@ -1,0 +1,15 @@
+{
+  // Declarations only: workspace consumers run the TypeScript sources directly
+  // (package.json "exports" points at src). dist/ is the checked public
+  // surface — test/package-surface.test.ts scans it for `any`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/testing/**"]
+}

@@ -1,37 +1,33 @@
-import type { z } from 'zod';
-import type { LocalDate } from '../../time/local-date.js';
-import type { DormancyReason, MembershipState } from '../enums.js';
-import { notImplemented } from '../todo.js';
+import { z } from 'zod';
+import { dormancyReasonSchema, membershipStateSchema } from '../enums.js';
+import { localDate, nonNegativeInt, timestamp, uuid } from './common.js';
 
 /*
  * Membership response. Mirrors Membership in @tower-of-habit/db
- * (towers/memberships/schema.ts). Joining is joinTowerRequestSchema (towers.ts);
- * state changes are server-driven, so there is no request body here.
- *
- * TODO(2.1): implement, then replace the hand-written type with z.infer.
- * Rules (tests: ./memberships.test.ts):
- *   - state: membershipStateSchema; dormancyReason: dormancyReasonSchema | null;
- *   - consecutiveMissedPeriods: integer >= 0;
- *   - lastQualifyingDate / voluntaryReturnDate: YYYY-MM-DD or null;
- *   - dormantSince / joinedAt: ISO-8601 with offset;
- *   - memberships_dormancy_iff_dormant: state === 'dormant' exactly when
- *     dormantSince AND dormancyReason are both non-null (a refine).
+ * (towers/memberships/schema.ts). Joining is joinTowerRequestSchema; state
+ * changes are server-driven, so there is no request body here.
  */
 
-export type MembershipResponse = {
-  id: string;
-  towerId: string;
-  userId: string;
-  habitId: string;
-  state: MembershipState;
-  consecutiveMissedPeriods: number;
-  lastQualifyingDate: LocalDate | null;
-  dormantSince: string | null;
-  dormancyReason: DormancyReason | null;
-  voluntaryReturnDate: LocalDate | null;
-  joinedAt: string;
-};
-
-export const membershipResponseSchema = notImplemented<z.ZodType<MembershipResponse>>(
-  'membershipResponseSchema'
-);
+export const membershipResponseSchema = z
+  .object({
+    id: uuid,
+    towerId: uuid,
+    userId: uuid,
+    habitId: uuid,
+    state: membershipStateSchema,
+    consecutiveMissedPeriods: nonNegativeInt,
+    lastQualifyingDate: localDate.nullable(),
+    dormantSince: timestamp.nullable(),
+    dormancyReason: dormancyReasonSchema.nullable(),
+    voluntaryReturnDate: localDate.nullable(),
+    joinedAt: timestamp,
+  })
+  // memberships_dormancy_iff_dormant
+  .refine(
+    (m) => (m.state === 'dormant') === (m.dormantSince !== null && m.dormancyReason !== null),
+    {
+      message: 'dormantSince and dormancyReason are set exactly when state is dormant',
+      path: ['state'],
+    }
+  );
+export type MembershipResponse = z.infer<typeof membershipResponseSchema>;

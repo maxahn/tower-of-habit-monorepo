@@ -11,7 +11,7 @@
     "./testing": "./src/testing/index.ts"
   },
   "scripts": {
-    "build": "node -e \"console.error('TODO(2.1): emit declarations: tsc -p tsconfig.build.json (declaration + emitDeclarationOnly, rootDir src, outDir dist, exclude **/*.test.ts and src/testing)'); process.exit(1)\"",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit && tsc --noEmit -p test",
     "test": "vitest run"
   },

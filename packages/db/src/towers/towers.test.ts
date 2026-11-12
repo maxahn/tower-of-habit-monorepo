@@ -1,3 +1,4 @@
+import { DEFAULT_NUDGE_LEAD_MINUTES, DEFAULT_WOBBLE_LEAD_MINUTES } from '@tower-of-habit/shared';
 import { eq } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -62,6 +63,15 @@ describe('isValidTimeZone', () => {
   it.each(['PST', 'EST', 'MST', '', 'Not/AZone', '+05:00'])('rejects %j', (tz) =>
     expect(isValidTimeZone(tz)).toBe(false)
   );
+});
+
+// The ROSTER_DISPLAY_NAME_MAX precedent: createTowerRequestSchema checks nudge
+// against wobble after applying these defaults, so they must match the columns.
+describe('lead-time defaults', () => {
+  it('agree with @tower-of-habit/shared', () => {
+    expect(towers.wobbleLeadMinutes.default).toBe(DEFAULT_WOBBLE_LEAD_MINUTES);
+    expect(towers.nudgeLeadMinutes.default).toBe(DEFAULT_NUDGE_LEAD_MINUTES);
+  });
 });
 
 describe('generateJoinCode', () => {

@@ -1,59 +1,69 @@
-import type { z } from 'zod';
-import type { LocalDate } from '../../time/local-date.js';
-import type { FreebieSource, PeriodOutcome, PeriodStatus } from '../enums.js';
-import type { BlockRoster } from '../roster.js';
-import { notImplemented } from '../todo.js';
+import { z } from 'zod';
+import { freebieSourceSchema, periodOutcomeSchema, periodStatusSchema } from '../enums.js';
+import { blockRosterSchema } from '../roster.js';
+import { localDate, nonNegativeInt, positiveInt, timestamp, uuid } from './common.js';
 
 /*
  * Read-only tower history: periods and base blocks. Mirrors TowerPeriod
  * (towers/periods/schema.ts) and BaseBlock (towers/blocks/schema.ts).
- *
- * TODO(2.1): implement, then replace the hand-written types with z.infer.
- * Rules (tests: ./periods-blocks.test.ts):
- *   period
- *   - state: periodStatusSchema; outcome: periodOutcomeSchema | null;
- *     freebieSource: freebieSourceSchema | null;
- *   - periodStart / periodEnd: YYYY-MM-DD; timestamps ISO-8601 with offset;
- *   - attempts: integer >= 0;
- *   - tower_periods_outcome_iff_evaluated: outcome non-null exactly when
- *     state === 'evaluated';
- *   - tower_periods_freebie_fields_iff_freebie: freebieSource non-null exactly
- *     when outcome === 'freebie';
- *   block
- *   - ordinal, blockHeight: integers >= 1; run dates YYYY-MM-DD;
- *   - roster: REUSE blockRosterSchema from ../roster.ts (strict, non-empty).
  */
 
-export type TowerPeriodResponse = {
-  id: string;
-  towerId: string;
-  periodStart: LocalDate;
-  periodEnd: LocalDate;
-  deadlineAt: string;
-  evaluateAt: string;
-  state: PeriodStatus;
-  outcome: PeriodOutcome | null;
-  evaluatedAt: string | null;
-  claimedAt: string | null;
-  attempts: number;
-  freebieSource: FreebieSource | null;
-  freebieGrantedBy: string | null;
-  createdAt: string;
-};
+export const towerPeriodResponseSchema = z
+  .object({
+    id: uuid,
+    towerId: uuid,
+    periodStart: localDate,
+    periodEnd: localDate,
+    deadlineAt: timestamp,
+    evaluateAt: timestamp,
+    state: periodStatusSchema,
+    outcome: periodOutcomeSchema.nullable(),
+    evaluatedAt: timestamp.nullable(),
+    claimedAt: timestamp.nullable(),
+    attempts: nonNegativeInt,
+    freebieSource: freebieSourceSchema.nullable(),
+    freebieGrantedBy: uuid.nullable(),
+    createdAt: timestamp,
+  })
+  .superRefine((p, ctx) => {
+    // tower_periods_outcome_iff_evaluated
+    const evaluated = p.state === 'evaluated';
+    if (evaluated !== (p.outcome !== null) || evaluated !== (p.evaluatedAt !== null)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'outcome and evaluatedAt are set exactly when state is evaluated',
+        path: ['outcome'],
+      });
+    }
+    // tower_periods_freebie_fields_iff_freebie
+    if ((p.outcome === 'freebie') !== (p.freebieSource !== null)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'freebieSource is set exactly when outcome is freebie',
+        path: ['freebieSource'],
+      });
+    }
+    // tower_periods_freebie_granted_by_requires_source
+    if (p.freebieGrantedBy !== null && p.freebieSource === null) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'freebieGrantedBy requires a freebieSource',
+        path: ['freebieGrantedBy'],
+      });
+    }
+  });
+export type TowerPeriodResponse = z.infer<typeof towerPeriodResponseSchema>;
 
-export type BaseBlockResponse = {
-  id: string;
-  towerId: string;
-  ordinal: number;
-  runStartDate: LocalDate;
-  runEndDate: LocalDate;
-  blockHeight: number;
-  roster: BlockRoster;
-  createdAt: string;
-};
-
-export const towerPeriodResponseSchema = notImplemented<z.ZodType<TowerPeriodResponse>>(
-  'towerPeriodResponseSchema'
-);
-export const baseBlockResponseSchema =
-  notImplemented<z.ZodType<BaseBlockResponse>>('baseBlockResponseSchema');
+export const baseBlockResponseSchema = z.object({
+  id: uuid,
+  towerId: uuid,
+  // base_blocks_ordinal_positive / base_blocks_block_height_positive
+  ordinal: positiveInt,
+  runStartDate: localDate,
+  runEndDate: localDate,
+  blockHeight: positiveInt,
+  // The same strict, non-empty validator the db layer uses on read (§5).
+  roster: blockRosterSchema,
+  createdAt: timestamp,
+});
+export type BaseBlockResponse = z.infer<typeof baseBlockResponseSchema>;

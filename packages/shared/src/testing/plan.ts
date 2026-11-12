@@ -1,4 +1,11 @@
-import type { BlockRoster } from '../schemas/index.js';
+import type {
+  BlockRoster,
+  DormancyReason,
+  HabitType,
+  MembershipState,
+  PeriodOutcome,
+  PeriodStatus,
+} from '../schemas/index.js';
 import type { LocalDate } from '../time/local-date.js';
 
 /**
@@ -16,11 +23,14 @@ import type { LocalDate } from '../time/local-date.js';
  * point: see derive.ts.
  */
 
-export type HabitType = 'binary' | 'numeric' | 'tiered';
-export type MembershipState = 'active' | 'at_risk' | 'dormant' | 'removed';
-export type DormancyReason = 'consecutive_miss' | 'backstop' | 'voluntary';
-export type PeriodState = 'pending' | 'evaluating' | 'evaluated';
-export type PeriodOutcome = 'survived' | 'collapsed' | 'hibernated' | 'freebie';
+// The domain unions, re-exported under the names the builders already use.
+export type {
+  DormancyReason,
+  HabitType,
+  MembershipState,
+  PeriodOutcome,
+} from '../schemas/index.js';
+export type PeriodState = PeriodStatus;
 
 export type UserRecord = {
   id: string;

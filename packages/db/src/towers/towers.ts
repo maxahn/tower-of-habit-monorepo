@@ -1,3 +1,4 @@
+import { isValidTimeZone, JOIN_CODE_ALPHABET, JOIN_CODE_LENGTH } from '@tower-of-habit/shared';
 import { eq } from 'drizzle-orm';
 import type { db as appDb } from '../client.js';
 import { towers } from './schema.js';
@@ -27,27 +28,9 @@ export class TowerNotFoundError extends Error {
   }
 }
 
-/**
- * True for IANA identifiers the runtime's ICU knows, e.g. "America/Edmonton".
- *
- * ICU alone isn't enough: it also accepts abbreviations like "PST" (silently
- * mapped to America/Los_Angeles), so require the Area/Location shape. Not
- * Intl.supportedValuesOf('timeZone') either: that lists ICU-canonical names
- * only and rejects valid IANA names browsers send, e.g. "Asia/Kolkata".
- */
-export function isValidTimeZone(tz: string): boolean {
-  if (tz !== 'UTC' && !tz.includes('/')) return false;
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// No 0/O/1/I/L, so codes survive being read aloud or retyped.
-const JOIN_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
-const JOIN_CODE_LENGTH = 8;
+// The rule lives in @tower-of-habit/shared so the API schemas apply the same
+// one; re-exported here so existing db callers keep their import.
+export { isValidTimeZone };
 
 export function generateJoinCode(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(JOIN_CODE_LENGTH));
