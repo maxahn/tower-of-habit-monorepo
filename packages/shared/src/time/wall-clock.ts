@@ -34,8 +34,20 @@ import {
  * is a promise about the clock they are looking at, and delaying a collapse is
  * better than retracting one. It agrees with Temporal's 'compatible' on the gap
  * and differs from it only on ambiguity.
+ *
+ * 'forward' is the period-schedule policy (2.2, computePeriodWindow), chosen so
+ * a period never gets unexpectedly LONGER:
+ *
+ *   fall-back, 01:30 happens twice   'forward' -> the FIRST 01:30, so the
+ *                                    deadline doesn't drift into the extra hour
+ *   spring gap, 02:30 never happens  'forward' -> 03:00, the transition instant
+ *                                    itself: the next valid wall clock, which
+ *                                    shortens the period by 30 minutes rather
+ *                                    than lengthening it
+ *
+ * Opt-in only. 'later' stays the default for tower_periods (db periods.ts).
  */
-export type WallClockPolicy = 'later' | 'earlier';
+export type WallClockPolicy = 'later' | 'earlier' | 'forward';
 
 export type WallClockKind =
   | 'exact' // one instant
@@ -85,6 +97,9 @@ export function resolveWallClock(
   );
 
   const kind: WallClockKind = hits.length === 1 ? 'exact' : hits.length === 2 ? 'ambiguous' : 'gap';
+  // TODO(2.2): 'forward' on a gap must return the transition instant (the first
+  // instant whose wall clock is >= the target), i.e. latest - gap width. Until
+  // then it falls through to `earliest`: right for ambiguity, wrong for gaps.
   const chosen = kind === 'exact' ? hits[0]! : policy === 'later' ? latest : earliest;
   return { instant: new Date(chosen), kind };
 }

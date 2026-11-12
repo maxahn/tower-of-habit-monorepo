@@ -127,3 +127,68 @@ export function resolvePeriodWindow(
     }),
   };
 }
+
+/**
+ * A tower's schedule-relevant columns. Field names match TowerResponse
+ * (schemas/api/towers.ts), so a tower row or response can be passed as-is.
+ * The 2.2 spec calls periodUnit "cadence" and deadlineTime "deadlineLocalTime".
+ */
+export type PeriodScheduleConfig = {
+  periodUnit: 'day' | 'week';
+  timezone: string;
+  /** 'HH:MM', or the Postgres read-back form 'HH:MM:SS'. */
+  deadlineTime: string;
+  graceWindowMinutes: number;
+  wobbleLeadMinutes: number;
+  nudgeLeadMinutes: number;
+  /** 0 = Sunday .. 6 = Saturday. Non-null iff periodUnit is 'week'. */
+  weekResetDay: number | null;
+};
+
+/**
+ * The 2.2 spec's PeriodWindow, renamed so it doesn't collide with the
+ * Date-based PeriodWindow above. Instants are ISO strings (toISOString).
+ */
+export type PeriodSchedule = {
+  /** Tower-local civil date. */
+  periodStart: LocalDate;
+  /** Tower-local civil date, inclusive. */
+  periodEnd: LocalDate;
+  nudgeAt: string;
+  wobbleAt: string;
+  deadlineAt: string;
+  evaluateAt: string;
+};
+
+/**
+ * The period that starts on `periodStart`, and the four instants governing it.
+ *
+ *   periodEnd   daily: periodStart. Weekly [v2, unreachable until then]: the
+ *               day before the next weekResetDay (a start ON the reset day
+ *               spans the full 7 days).
+ *   deadlineAt  periodEnd at deadlineTime in the TOWER's zone, resolved with
+ *               the 'forward' policy (gap -> transition instant, ambiguous ->
+ *               first occurrence), so a period never gets unexpectedly longer.
+ *   evaluateAt  deadlineAt + graceWindowMinutes
+ *   wobbleAt    deadlineAt - wobbleLeadMinutes
+ *   nudgeAt     deadlineAt - nudgeLeadMinutes, floored at periodStart 00:00
+ *               local (itself resolved 'forward': Santiago's midnight can be a
+ *               gap). Not floored: wobbleAt, so an early deadline can put the
+ *               nudge after the wobble. Spec as written; see the test.
+ *
+ * Every offset is a REAL interval on the resolved instant, never wall-clock
+ * arithmetic: same reasoning as periodInstants.
+ *
+ * D3: the tower's zone owns "today". Members far from it get a deadline at an
+ * odd local hour; the lobby UI surfaces that, the model doesn't solve it.
+ *
+ * Pure: reads no clock.
+ */
+export function computePeriodWindow(
+  tower: PeriodScheduleConfig,
+  periodStart: LocalDate
+): PeriodSchedule {
+  void tower;
+  void periodStart;
+  throw new Error('computePeriodWindow: not implemented (2.2)');
+}

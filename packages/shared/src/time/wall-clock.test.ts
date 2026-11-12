@@ -75,6 +75,40 @@ describe('resolveWallClock', () => {
     });
   });
 
+  // 'forward' (2.2): gap -> the transition instant, the next wall clock that
+  // exists; ambiguous -> the first occurrence. Never lengthens a period.
+  it.each([
+    // 02:30 never happens: 03:00 MDT, not 03:30 ('later') or 01:30 ('earlier').
+    { tz: EDM, date: '2026-03-08', time: '02:30', kind: 'gap', utc: '2026-03-08T09:00:00.000Z' },
+    // 01:30 happens twice: the first, MDT.
+    {
+      tz: EDM,
+      date: '2026-11-01',
+      time: '01:30',
+      kind: 'ambiguous',
+      utc: '2026-11-01T07:30:00.000Z',
+    },
+    // Gap starts exactly at the target: transition and 'later' coincide.
+    {
+      tz: 'America/Santiago',
+      date: '2026-09-05',
+      time: '24:00',
+      kind: 'gap',
+      utc: '2026-09-06T04:00:00.000Z',
+    },
+    // 30-minute shift, 02:00 -> 02:30: 02:15 resolves to 02:30 +11 = 15:30Z.
+    {
+      tz: 'Australia/Lord_Howe',
+      date: '2026-10-04',
+      time: '02:15',
+      kind: 'gap',
+      utc: '2026-10-03T15:30:00.000Z',
+    },
+    { tz: EDM, date: '2026-03-07', time: '22:00', kind: 'exact', utc: '2026-03-08T05:00:00.000Z' },
+  ] as const)("'forward': $tz $date $time ($kind) is $utc", ({ tz, date, time, kind, utc }) => {
+    expect(resolveWallClock(date, time, tz, 'forward')).toEqual({ instant: new Date(utc), kind });
+  });
+
   it("defaults to 'later'", () => {
     expect(wallClockToInstant('2026-11-01', '01:30', EDM).toISOString()).toBe(
       '2026-11-01T08:30:00.000Z'
