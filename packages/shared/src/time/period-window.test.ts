@@ -152,6 +152,7 @@ describe('periodInstants', () => {
     expect(i.evaluateAt.getTime() - i.deadlineAt.getTime()).toBe(120 * 60_000);
   });
 
+  // TODO(tzdata-2026c)[denver]: no fall-back in Edmonton from 2026-11-01; see packages/shared/src/time/TZDATA.md.
   it('never evaluates late on a fall-back night', () => {
     const i = periodInstants({
       periodEnd: '2026-11-01',
@@ -217,6 +218,7 @@ describe('resolvePeriodWindow', () => {
     });
   });
 
+  // TODO(tzdata-2026c)[denver]: 2026-11-01 01:30 is no longer ambiguous in Edmonton; see packages/shared/src/time/TZDATA.md.
   it('passes the policy through', () => {
     const w = resolvePeriodWindow({
       ...daily,
@@ -233,6 +235,9 @@ describe('resolvePeriodWindow', () => {
 // ---------------------------------------------------------------------------
 // 2.2 computePeriodWindow
 //
+// TODO(tzdata-2026c)[denver]: Edmonton has no 2027 transitions under tzdata >= 2026c. Swap
+// the Edmonton rows (and the weekly block) to America/Denver, which has these
+// exact instants, and add an Edmonton no-DST control row; see packages/shared/src/time/TZDATA.md.
 // Edmonton 2027: MST -> MDT at 2027-03-14T09:00Z (02:00-02:59 never happens);
 // MDT -> MST at 2027-11-07T08:00Z (01:00-01:59 happens twice).
 // Chatham 2027: +13:45 -> +12:45 at 2027-04-03T14:00Z (02:45-03:44 twice);
@@ -437,6 +442,7 @@ describe('computePeriodWindow — zone table (daily)', () => {
 });
 
 describe('computePeriodWindow — weekly cadence [v2]', () => {
+  // TODO(tzdata-2026c)[denver]: no Edmonton spring-forward in 2027; see packages/shared/src/time/TZDATA.md.
   // Weeks reset on Monday. 2027-03-08 is a Monday; 2027-03-14 is the
   // Edmonton spring-forward Sunday.
   const weekly: PeriodScheduleConfig = {

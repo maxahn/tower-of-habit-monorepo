@@ -87,6 +87,8 @@ async function main(): Promise<void> {
       name: 'Read',
       unit: 'minutes',
       loggedDays: 5,
+      // Still valid after tzdata 2026c (Alberta permanent UTC-6); see
+      // packages/shared/src/time/TZDATA.md.
       timezone: 'America/Edmonton',
     })
   );

@@ -31,6 +31,10 @@ const EDM = 'America/Edmonton';
 // Edmonton 2026: MST -> MDT at 2026-03-08T09:00Z (local 02:00 -> 03:00, so
 // 02:00-02:59 never happens); MDT -> MST at 2026-11-01T08:00Z (local
 // 02:00 -> 01:00, so 01:00-01:59 happens twice).
+// TODO(tzdata-2026c)[denver]: Edmonton doesn't fall back on FALL_BACK under tzdata
+// >= 2026c (Alberta permanent UTC-6). Point the FALL_BACK cases at
+// America/Denver, which falls back at the same instant; SPRING_FORWARD still
+// holds for Edmonton; see packages/shared/src/time/TZDATA.md.
 const SPRING_FORWARD = '2026-03-08';
 const FALL_BACK = '2026-11-01';
 

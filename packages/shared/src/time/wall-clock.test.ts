@@ -6,6 +6,9 @@ const EDM = 'America/Edmonton';
 // Edmonton 2026: MST -> MDT at 2026-03-08T09:00Z (local 02:00 -> 03:00, so
 // 02:00-02:59 never happens); MDT -> MST at 2026-11-01T08:00Z (local
 // 02:00 -> 01:00, so 01:00-01:59 happens twice).
+// TODO(tzdata-2026c): under tzdata >= 2026c that fall-back never happens (Alberta stays
+// UTC-6). Rows tagged [denver] move to America/Denver unchanged; [offset]
+// rows get the -06 instant; see packages/shared/src/time/TZDATA.md.
 
 describe('resolveWallClock', () => {
   it.each([
@@ -13,6 +16,7 @@ describe('resolveWallClock', () => {
     { tz: EDM, date: '2026-03-08', time: '01:00', utc: '2026-03-08T08:00:00.000Z' },
     { tz: EDM, date: '2026-03-08', time: '22:00', utc: '2026-03-09T04:00:00.000Z' },
     { tz: EDM, date: '2026-11-01', time: '00:30', utc: '2026-11-01T06:30:00.000Z' },
+    // TODO(tzdata-2026c)[offset]: becomes 2026-11-02T04:00:00.000Z.
     { tz: EDM, date: '2026-11-01', time: '22:00', utc: '2026-11-02T05:00:00.000Z' },
     // Postgres `time` read-back form.
     { tz: EDM, date: '2026-03-07', time: '22:00:00', utc: '2026-03-08T05:00:00.000Z' },
@@ -41,6 +45,7 @@ describe('resolveWallClock', () => {
       earlier: '2026-03-08T08:30:00.000Z',
     },
     // Fall-back: 01:30 happens twice, MDT then MST.
+    // TODO(tzdata-2026c)[denver]
     {
       tz: EDM,
       date: '2026-11-01',
@@ -81,6 +86,7 @@ describe('resolveWallClock', () => {
     // 02:30 never happens: 03:00 MDT, not 03:30 ('later') or 01:30 ('earlier').
     { tz: EDM, date: '2026-03-08', time: '02:30', kind: 'gap', utc: '2026-03-08T09:00:00.000Z' },
     // 01:30 happens twice: the first, MDT.
+    // TODO(tzdata-2026c)[denver]
     {
       tz: EDM,
       date: '2026-11-01',
@@ -109,6 +115,7 @@ describe('resolveWallClock', () => {
     expect(resolveWallClock(date, time, tz, 'forward')).toEqual({ instant: new Date(utc), kind });
   });
 
+  // TODO(tzdata-2026c)[denver]: needs an ambiguous clock to tell 'later' apart.
   it("defaults to 'later'", () => {
     expect(wallClockToInstant('2026-11-01', '01:30', EDM).toISOString()).toBe(
       '2026-11-01T08:30:00.000Z'
