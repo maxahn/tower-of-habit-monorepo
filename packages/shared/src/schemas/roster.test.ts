@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blockRosterMemberSchema, parseBlockRoster, ROSTER_DISPLAY_NAME_MAX } from './schemas.js';
+import { blockRosterMemberSchema, parseBlockRoster, ROSTER_DISPLAY_NAME_MAX } from './roster.js';
 
 /** The spec's example member, verbatim. */
 const SAM = {

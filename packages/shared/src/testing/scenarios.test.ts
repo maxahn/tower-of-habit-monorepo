@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseBlockRoster } from '../schemas.js';
+import { parseBlockRoster } from '../schemas/index.js';
 import { daysBetween } from '../time/local-date.js';
 import { testClock } from './clock.js';
 import { factories } from './factories.js';

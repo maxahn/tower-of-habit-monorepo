@@ -11,13 +11,15 @@
     "./testing": "./src/testing/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "build": "node -e \"console.error('TODO(2.1): emit declarations: tsc -p tsconfig.build.json (declaration + emitDeclarationOnly, rootDir src, outDir dist, exclude **/*.test.ts and src/testing)'); process.exit(1)\"",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
     "test": "vitest run"
   },
   "dependencies": {
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

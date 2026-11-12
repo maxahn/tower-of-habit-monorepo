@@ -1,4 +1,4 @@
-import type { BlockRoster } from '../schemas.js';
+import type { BlockRoster } from '../schemas/index.js';
 import type { LocalDate } from '../time/local-date.js';
 
 /**
