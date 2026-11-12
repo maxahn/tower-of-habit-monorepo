@@ -90,6 +90,8 @@ describe('towerRunningFor', () => {
     expect(s.tower!.height).toBe(3);
   });
 
+  // TODO(tzdata-2026c)[denver]: pass timezone: 'America/Denver' (same expected values);
+  // FACTORY_TIMEZONE Edmonton no longer falls back; see packages/shared/src/time/TZDATA.md.
   it('resolves deadlines across the 2026-11-01 fall-back', () => {
     // 12:00 MST (-07:00) on Nov 3: days Oct 30 .. Nov 3.
     const s = towerRunningFor(5, { now: new Date('2026-11-03T19:00:00Z') });
@@ -213,6 +215,7 @@ describe('testClock', () => {
     clock.now.setTime(0);
     expect(clock.now).toEqual(NOW);
     expect(clock.advance({ days: 1, minutes: 30 })).toEqual(new Date('2026-10-28T18:30:00Z'));
+    // TODO(tzdata-2026c)[offset]: Edmonton becomes 2026-11-02T04:00Z (or use America/Denver).
     expect(clock.toLocal('2026-11-01', '22:00', 'America/Edmonton')).toEqual(
       new Date('2026-11-02T05:00:00Z')
     );

@@ -41,6 +41,13 @@ export type PeriodInstants = {
 
 export type PeriodWindow = PeriodBounds & PeriodInstants;
 
+/** 0 = Sunday .. 6 = Saturday (towers_week_reset_day_range). */
+function assertWeekResetDay(value: number | null): asserts value is number {
+  if (value === null || !Number.isInteger(value) || value < 0 || value > 6) {
+    throw new InvalidLocalDateInputError('weekResetDay', value);
+  }
+}
+
 /**
  * The period containing `on`.
  *
@@ -58,14 +65,7 @@ export function periodBoundsFor(config: PeriodConfig, on: LocalDate): PeriodBoun
   let origin = anchorDate;
   let span = periodLength;
   if (periodUnit === 'week') {
-    if (
-      weekResetDay === null ||
-      !Number.isInteger(weekResetDay) ||
-      weekResetDay < 0 ||
-      weekResetDay > 6
-    ) {
-      throw new InvalidLocalDateInputError('weekResetDay', weekResetDay);
-    }
+    assertWeekResetDay(weekResetDay);
     const back = (dayOfWeek(anchorDate) - weekResetDay + DAYS_PER_WEEK) % DAYS_PER_WEEK;
     origin = addDays(anchorDate, -back);
     span = periodLength * DAYS_PER_WEEK;
@@ -126,4 +126,117 @@ export function resolvePeriodWindow(
       ...(args.policy !== undefined ? { policy: args.policy } : {}),
     }),
   };
+}
+
+/**
+ * A tower's schedule-relevant columns. Field names match TowerResponse
+ * (schemas/api/towers.ts), so a tower row or response can be passed as-is.
+ * The 2.2 spec calls periodUnit "cadence" and deadlineTime "deadlineLocalTime".
+ */
+export type PeriodScheduleConfig = {
+  periodUnit: 'day' | 'week';
+  timezone: string;
+  /** 'HH:MM', or the Postgres read-back form 'HH:MM:SS'. */
+  deadlineTime: string;
+  graceWindowMinutes: number;
+  wobbleLeadMinutes: number;
+  nudgeLeadMinutes: number;
+  /** 0 = Sunday .. 6 = Saturday. Non-null iff periodUnit is 'week'. */
+  weekResetDay: number | null;
+};
+
+/**
+ * The 2.2 spec's PeriodWindow, renamed so it doesn't collide with the
+ * Date-based PeriodWindow above. Instants are ISO strings (toISOString).
+ */
+export type PeriodSchedule = {
+  /** Tower-local civil date. */
+  periodStart: LocalDate;
+  /** Tower-local civil date, inclusive. */
+  periodEnd: LocalDate;
+  nudgeAt: string;
+  wobbleAt: string;
+  deadlineAt: string;
+  evaluateAt: string;
+};
+
+/**
+ * The period that starts on `periodStart`, and the four instants governing it.
+ *
+ *   periodEnd   daily: periodStart. Weekly [v2, unreachable until then]: the
+ *               day before the next weekResetDay (a start ON the reset day
+ *               spans the full 7 days).
+ *   deadlineAt  periodEnd at deadlineTime in the TOWER's zone, resolved with
+ *               the 'forward' policy (gap -> transition instant, ambiguous ->
+ *               first occurrence), so a period never gets unexpectedly longer.
+ *   evaluateAt  deadlineAt + graceWindowMinutes
+ *   wobbleAt    deadlineAt - wobbleLeadMinutes
+ *   nudgeAt     deadlineAt - nudgeLeadMinutes
+ *
+ * Both leads are floored at periodStart 00:00 local (itself resolved 'forward':
+ * Santiago's midnight can be a gap), so nothing fires in the previous period.
+ * And the nudge never follows the wobble (towers_nudge_before_wobble: the
+ * private nudge precedes the broadcast), so the invariant is
+ *
+ *   nudgeAt <= wobbleAt <= deadlineAt <= evaluateAt
+ *
+ * When an early deadline floors both, they coincide at local midnight: the
+ * closest to "nudge first" that stays inside the period. The clamp to wobbleAt
+ * is a no-op for any config the db accepts; it holds the order by construction.
+ *
+ * Every offset is a REAL interval on the resolved instant, never wall-clock
+ * arithmetic: same reasoning as periodInstants.
+ *
+ * D3: the tower's zone owns "today". Members far from it get a deadline at an
+ * odd local hour; the lobby UI surfaces that, the model doesn't solve it.
+ *
+ * Pure: reads no clock.
+ */
+export function computePeriodWindow(
+  tower: PeriodScheduleConfig,
+  periodStart: LocalDate
+): PeriodSchedule {
+  const grace = nonNegativeMinutes('graceMinutes', tower.graceWindowMinutes);
+  const wobble = nonNegativeMinutes('wobbleLeadMinutes', tower.wobbleLeadMinutes);
+  const nudge = nonNegativeMinutes('nudgeLeadMinutes', tower.nudgeLeadMinutes);
+
+  let periodEnd = addDays(periodStart, 0); // validates periodStart
+  if (tower.periodUnit === 'week') {
+    assertWeekResetDay(tower.weekResetDay);
+    // Days to the NEXT reset day, strictly after periodStart: a start on the
+    // reset day itself spans the full week, so 0 becomes 7.
+    const toNextReset =
+      (tower.weekResetDay - dayOfWeek(periodStart) + DAYS_PER_WEEK) % DAYS_PER_WEEK ||
+      DAYS_PER_WEEK;
+    periodEnd = addDays(periodStart, toNextReset - 1);
+  }
+
+  const deadline = resolveWallClock(
+    periodEnd,
+    tower.deadlineTime,
+    tower.timezone,
+    'forward'
+  ).instant.getTime();
+  const floor = resolveWallClock(periodStart, '00:00', tower.timezone, 'forward').instant.getTime();
+
+  const wobbleAt = Math.max(deadline - wobble * MS_PER_MINUTE, floor);
+  const nudgeAt = Math.min(Math.max(deadline - nudge * MS_PER_MINUTE, floor), wobbleAt);
+
+  const iso = (ms: number) => new Date(ms).toISOString();
+  return {
+    periodStart,
+    periodEnd,
+    nudgeAt: iso(nudgeAt),
+    wobbleAt: iso(wobbleAt),
+    deadlineAt: iso(deadline),
+    evaluateAt: iso(deadline + grace * MS_PER_MINUTE),
+  };
+}
+
+function nonNegativeMinutes(
+  field: 'graceMinutes' | 'wobbleLeadMinutes' | 'nudgeLeadMinutes',
+  value: number
+): number {
+  if (!Number.isInteger(value) || value < 0) throw new InvalidLocalDateInputError(field, value);
+  return value;
 }

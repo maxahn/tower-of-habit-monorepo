@@ -21,6 +21,8 @@ import type {
  * asserts the two agree.
  */
 export const FACTORY_DEADLINE_TIME = '22:00';
+// Stays Edmonton through tzdata 2026c (Alberta permanent UTC-6): the zone is
+// still valid, only its rules changed. See src/time/TZDATA.md.
 export const FACTORY_TIMEZONE = 'America/Edmonton';
 /** Not a real hash. Seed and test users can't log in until auth lands. */
 export const FACTORY_PASSWORD_HASH = 'factory-not-a-real-hash';

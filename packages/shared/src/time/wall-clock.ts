@@ -19,6 +19,8 @@ import {
   type LocalDate,
 } from './local-date.js';
 
+const MS_PER_MINUTE = 60_000;
+
 /**
  * Which instant to pick when a wall clock is not exactly one instant.
  *
@@ -34,8 +36,20 @@ import {
  * is a promise about the clock they are looking at, and delaying a collapse is
  * better than retracting one. It agrees with Temporal's 'compatible' on the gap
  * and differs from it only on ambiguity.
+ *
+ * 'forward' is the period-schedule policy (2.2, computePeriodWindow), chosen so
+ * a period never gets unexpectedly LONGER:
+ *
+ *   fall-back, 01:30 happens twice   'forward' -> the FIRST 01:30, so the
+ *                                    deadline doesn't drift into the extra hour
+ *   spring gap, 02:30 never happens  'forward' -> 03:00, the transition instant
+ *                                    itself: the next valid wall clock, which
+ *                                    shortens the period by 30 minutes rather
+ *                                    than lengthening it
+ *
+ * Opt-in only. 'later' stays the default for tower_periods (db periods.ts).
  */
-export type WallClockPolicy = 'later' | 'earlier';
+export type WallClockPolicy = 'later' | 'earlier' | 'forward';
 
 export type WallClockKind =
   | 'exact' // one instant
@@ -85,8 +99,34 @@ export function resolveWallClock(
   );
 
   const kind: WallClockKind = hits.length === 1 ? 'exact' : hits.length === 2 ? 'ambiguous' : 'gap';
-  const chosen = kind === 'exact' ? hits[0]! : policy === 'later' ? latest : earliest;
+  let chosen: number;
+  if (kind === 'exact') chosen = hits[0]!;
+  else if (policy === 'later') chosen = latest;
+  else if (policy === 'forward' && kind === 'gap')
+    chosen = transitionInstant(earliest, latest, timeZone);
+  else chosen = earliest; // 'earlier', and 'forward' on an ambiguous clock
   return { instant: new Date(chosen), kind };
+}
+
+/**
+ * The instant a spring-forward transition happens: the first instant in
+ * (lo, hi] whose offset is already hi's.
+ *
+ * Inside a gap, lo = target - offsetAfter still reads the OLD offset and
+ * hi = target - offsetBefore reads the NEW one, so the transition lies between
+ * them (hi itself when the gap starts exactly at the target, as Santiago's
+ * midnight does). Found by probing, never by offset arithmetic, same as above.
+ * Offsets are whole minutes, so a minute-granular search is exact; a gap is at
+ * most an hour wide, so this is ~6 probes.
+ */
+function transitionInstant(lo: number, hi: number, timeZone: string): number {
+  const after = offsetMsAt(hi, timeZone);
+  while (hi - lo > MS_PER_MINUTE) {
+    const mid = lo + Math.floor((hi - lo) / (2 * MS_PER_MINUTE)) * MS_PER_MINUTE;
+    if (offsetMsAt(mid, timeZone) === after) hi = mid;
+    else lo = mid;
+  }
+  return hi;
 }
 
 /** resolveWallClock, for callers that don't care which of the three cases it was. */

@@ -202,6 +202,8 @@ describe('resolveLocalDate — DST boundaries', () => {
     expect(resolve('2026-03-08T09:00:00Z')).toBe('2026-03-08'); // 03:00 MDT, minute 180
   });
 
+  // TODO(tzdata-2026c)[denver]: Edmonton doesn't fall back on 2026-11-01 under tzdata
+  // >= 2026c; America/Denver does, at the same instant; see packages/shared/src/time/TZDATA.md.
   it('fall back: both passes through 01:30 resolve the same way', () => {
     // 2026-11-01, 02:00 MDT falls back to 01:00 MST, so 01:30 happens twice.
     // Both read as wall-clock minute 90, which is the point: a deadline is a
