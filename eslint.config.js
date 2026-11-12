@@ -69,6 +69,24 @@ export default config(
       ],
     },
   },
+  // Packaging tests (build output, consumer compile) shell out and read files,
+  // so they get Node built-ins back. They still may not touch the database.
+  {
+    files: ['packages/shared/test/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@tower-of-habit/db', 'pg', 'postgres', 'drizzle-orm', '@prisma/*'],
+              message: 'No database access in @tower-of-habit/shared, tests included.',
+            },
+          ],
+        },
+      ],
+    },
+  },
   // The deterministic clock (1.11): domain code takes `now` as a parameter so
   // time-travel tests (3.16) never mock the system clock. Tests, the test db
   // handle and schema files ($onUpdate bookkeeping) are exempt; so is the dev

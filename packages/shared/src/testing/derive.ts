@@ -1,4 +1,4 @@
-import type { BlockRosterMember } from '../schemas.js';
+import type { BlockRosterMember } from '../schemas/index.js';
 import type { LocalDate } from '../time/local-date.js';
 import { MIN_BLOCK_DAYS } from '../evaluator/recompute.js';
 import type { BlockRecord, MembershipRecord, ScenarioPlan } from './plan.js';

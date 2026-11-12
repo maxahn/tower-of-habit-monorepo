@@ -11,13 +11,15 @@
     "./testing": "./src/testing/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
     "test": "vitest run"
   },
   "dependencies": {
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/node": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
