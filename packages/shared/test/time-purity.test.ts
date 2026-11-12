@@ -12,3 +12,15 @@ describe('src/time reads no clock', () => {
     expect(src).not.toMatch(/performance\.now\s*\(/);
   });
 });
+
+// 2.3: qualifies must return the same result for the same input regardless of
+// ambient state, so the same scan, plus randomness.
+describe('src/evaluator/qualifies.ts reads no clock or randomness', () => {
+  it('qualifies.ts', () => {
+    const src = readFileSync(new URL('../src/evaluator/qualifies.ts', import.meta.url), 'utf8');
+    expect(src).not.toMatch(/Date\.now\s*\(/);
+    expect(src).not.toMatch(/new Date\(\s*\)/);
+    expect(src).not.toMatch(/performance\.now\s*\(/);
+    expect(src).not.toMatch(/Math\.random\s*\(/);
+  });
+});
