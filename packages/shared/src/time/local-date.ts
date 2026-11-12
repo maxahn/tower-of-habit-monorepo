@@ -39,7 +39,9 @@ export class InvalidLocalDateInputError extends Error {
       | 'graceMinutes'
       | 'date'
       | 'periodLength'
-      | 'weekResetDay',
+      | 'weekResetDay'
+      | 'wobbleLeadMinutes'
+      | 'nudgeLeadMinutes',
     readonly value: unknown
   ) {
     super(`Invalid ${field} for local-date resolution: ${JSON.stringify(value)}`);

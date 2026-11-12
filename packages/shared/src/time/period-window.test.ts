@@ -325,17 +325,16 @@ describe('computePeriodWindow — zone table (daily)', () => {
       // 01:30 happens twice: the FIRST (MDT, 07:30Z), not the second (08:30Z).
       // evaluateAt is 09:30Z, not 10:30Z.
       //
-      // Spec edge: wobbleAt (05:30Z = 23:30 the day before) is NOT floored, but
-      // nudgeAt is floored to local midnight (06:00Z), so here the nudge comes
-      // AFTER the wobble. Asserted as the spec is written; revisit if the
-      // nudge-before-wobble rule (towers_nudge_before_wobble) must hold here too.
+      // Both leads would land the night before (wobble 05:30Z = 23:30, nudge
+      // 03:30Z), so both are floored to local midnight (06:00Z, MDT) and
+      // coincide: the nudge never comes after the wobble.
       name: 'Edmonton fall-back ambiguous: 01:30 -> first occurrence (MDT)',
       tz: 'America/Edmonton',
       start: '2027-11-07',
       time: '01:30',
       expected: {
         nudgeAt: '2027-11-07T06:00:00.000Z',
-        wobbleAt: '2027-11-07T05:30:00.000Z',
+        wobbleAt: '2027-11-07T06:00:00.000Z',
         deadlineAt: '2027-11-07T07:30:00.000Z',
         evaluateAt: '2027-11-07T09:30:00.000Z',
       },
@@ -421,9 +420,19 @@ describe('computePeriodWindow — zone table (daily)', () => {
     );
     const deadline = ms(w.deadlineAt);
     expect(ms(w.evaluateAt) - deadline).toBe(tower.graceWindowMinutes * MIN);
-    expect(deadline - ms(w.wobbleAt)).toBe(tower.wobbleLeadMinutes * MIN);
     const floor = wallClockToInstant(start, '00:00', tz, 'forward').getTime();
+    expect(ms(w.wobbleAt)).toBe(Math.max(deadline - tower.wobbleLeadMinutes * MIN, floor));
     expect(ms(w.nudgeAt)).toBe(Math.max(deadline - tower.nudgeLeadMinutes * MIN, floor));
+  });
+
+  it.each(rows)('$name: nudge <= wobble <= deadline <= evaluate', ({ tz, start, time }) => {
+    const w = computePeriodWindow(
+      { ...tower, timezone: tz, deadlineTime: time ?? tower.deadlineTime },
+      start
+    );
+    expect(ms(w.nudgeAt)).toBeLessThanOrEqual(ms(w.wobbleAt));
+    expect(ms(w.wobbleAt)).toBeLessThanOrEqual(ms(w.deadlineAt));
+    expect(ms(w.deadlineAt)).toBeLessThanOrEqual(ms(w.evaluateAt));
   });
 });
 
@@ -477,6 +486,22 @@ describe('computePeriodWindow — weekly cadence [v2]', () => {
 });
 
 describe('computePeriodWindow — nudge floor', () => {
+  it('floors wobbleAt at periodStart 00:00 local too', () => {
+    // 01:00 deadline: wobble (23:00 the day before) and nudge (21:00) both floor.
+    const w = computePeriodWindow({ ...tower, deadlineTime: '01:00' }, '2027-03-14');
+    expect(w.wobbleAt).toBe('2027-03-14T00:00:00.000Z');
+    expect(w.nudgeAt).toBe('2027-03-14T00:00:00.000Z');
+    expect(w.deadlineAt).toBe('2027-03-14T01:00:00.000Z');
+  });
+
+  it('never nudges after the wobble, even with nudgeLead < wobbleLead', () => {
+    // The db rejects this config (towers_nudge_before_wobble); the function
+    // still holds the order rather than trusting it.
+    const w = computePeriodWindow({ ...tower, nudgeLeadMinutes: 60 }, '2027-03-14');
+    expect(w.wobbleAt).toBe('2027-03-14T20:00:00.000Z');
+    expect(w.nudgeAt).toBe(w.wobbleAt);
+  });
+
   it('floors nudgeAt at periodStart 00:00 local for an early deadline', () => {
     // 03:00 MDT = 09:00Z; minus 240 is 05:00Z = 23:00 the day before.
     const w = computePeriodWindow(
