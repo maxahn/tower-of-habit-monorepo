@@ -1,6 +1,7 @@
 import type { DormancyReason, MembershipState } from '../schemas/index.js';
-import type { LocalDate } from '../time/local-date.js';
+import { addDays, civilInZone, daysBetween, type LocalDate } from '../time/local-date.js';
 import type { PeriodSchedule, PeriodScheduleConfig } from '../time/period-window.js';
+import { MIN_BLOCK_DAYS } from './recompute.js';
 
 /**
  * 2.4: decide a period's outcome from the tower, its window and every member's
@@ -109,8 +110,111 @@ export interface EvaluationOutput {
   nextPeriodStart?: string;
 }
 
-// STUB: implementation lands in the feat commit for 2.4.
+export class EvaluationInputError extends Error {
+  constructor(
+    readonly field: string,
+    readonly value: unknown
+  ) {
+    super(`Invalid evaluation input: ${field} = ${JSON.stringify(value)}`);
+    this.name = 'EvaluationInputError';
+  }
+}
+
+/** Parse an ISO instant to epoch ms, rejecting anything Date.parse can't read. */
+function instantMs(field: string, iso: string): number {
+  const ms = Date.parse(iso);
+  if (Number.isNaN(ms)) throw new EvaluationInputError(field, iso);
+  return ms;
+}
+
+/** Live members are inside the quota check; dormant and removed are not. */
+const isLive = (m: MemberPeriodState) => m.state === 'active' || m.state === 'at_risk';
+
 export function evaluatePeriod(input: EvaluationInput): EvaluationOutput {
-  void input;
-  throw new Error('evaluatePeriod: not implemented');
+  const { tower, window: w, members } = input;
+  if (!Number.isInteger(tower.quota) || tower.quota < 1) {
+    throw new EvaluationInputError('tower.quota', tower.quota);
+  }
+  const now = instantMs('now', input.now);
+  const wobbleAt = instantMs('window.wobbleAt', w.wobbleAt);
+  const evaluateAt = instantMs('window.evaluateAt', w.evaluateAt);
+  const decided = now >= evaluateAt;
+
+  const daysRemaining = remainingDays(now, decided, tower.timezone, w);
+  const perMember = members.map((m): MemberOutcome => {
+    const daysNeeded = Math.max(0, tower.quota - m.qualifyingDays);
+    return {
+      membershipId: m.membershipId,
+      standing: standingOf(m, daysNeeded),
+      daysNeeded,
+      daysRemaining,
+      slack: daysRemaining - daysNeeded,
+    };
+  });
+
+  const anyShort = perMember.some((o) => o.standing === 'short');
+  if (anyShort && !decided) {
+    return { periodStatus: now >= wobbleAt ? 'wobbling' : 'open', perMember, transitions: [] };
+  }
+
+  // Terminal: everyone counted met quota (at any now), or the period is decided.
+  const transitions: MembershipTransition[] = [];
+  let collapsed = false;
+  members.forEach((m, i) => {
+    const { standing } = perMember[i]!;
+    const { membershipId, state: from } = m;
+    if (standing === 'met') {
+      if (from === 'at_risk') transitions.push({ membershipId, from, to: 'active' });
+    } else if (standing === 'short') {
+      // §6 ladder. at_risk already means one miss, whatever the counter says.
+      const firstMiss = from === 'active' && m.consecutiveMisses === 0;
+      if (firstMiss) {
+        collapsed = true;
+        transitions.push({ membershipId, from, to: 'at_risk' });
+      } else {
+        transitions.push({ membershipId, from, to: 'dormant', reason: 'consecutive_miss' });
+      }
+    }
+  });
+
+  const out: EvaluationOutput = {
+    periodStatus: collapsed ? 'collapsed' : 'survived',
+    perMember,
+    transitions,
+    nextPeriodStart: addDays(w.periodEnd, 1),
+  };
+  // A collapse closes the run of survived periods before this one.
+  if (collapsed && tower.height >= MIN_BLOCK_DAYS && tower.runStartDate !== null) {
+    out.baseBlock = {
+      runStartDate: tower.runStartDate,
+      runEndDate: addDays(w.periodStart, -1),
+      blockHeight: tower.height,
+    };
+  }
+  return out;
+}
+
+function standingOf(m: MemberPeriodState, daysNeeded: number): MemberStanding {
+  if (!isLive(m)) return 'excluded';
+  if (m.excused) return 'excused';
+  return daysNeeded === 0 ? 'met' : 'short';
+}
+
+/**
+ * Days in which a qualifying entry can still land: from the tower-local "today"
+ * through periodEnd, inclusive. Today is clamped into the period, so a now
+ * before it counts the whole period, and the grace window (which may run past
+ * local midnight, where late logs still date to periodEnd) still counts
+ * periodEnd. Zero once the period is decided. Daily: 1 until evaluateAt.
+ */
+function remainingDays(
+  now: number,
+  decided: boolean,
+  timeZone: string,
+  w: EvaluationWindow
+): number {
+  if (decided) return 0;
+  const today = civilInZone(new Date(now), timeZone).date;
+  const from = today < w.periodStart ? w.periodStart : today > w.periodEnd ? w.periodEnd : today;
+  return daysBetween(from, w.periodEnd) + 1;
 }
