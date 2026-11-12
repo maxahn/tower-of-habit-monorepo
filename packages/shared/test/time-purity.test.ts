@@ -13,11 +13,11 @@ describe('src/time reads no clock', () => {
   });
 });
 
-// 2.3 / 2.4: the evaluator must return the same result for the same input
+// 2.3 / 2.4 / 2.5: the evaluator must return the same result for the same input
 // regardless of ambient state (2.4 takes `now` as input), so the same scan,
 // plus randomness.
 describe('src/evaluator reads no clock or randomness', () => {
-  it.each(['qualifies.ts', 'evaluate.ts'])('%s', (file) => {
+  it.each(['qualifies.ts', 'evaluate.ts', 'dormancy.ts'])('%s', (file) => {
     const src = readFileSync(new URL(`../src/evaluator/${file}`, import.meta.url), 'utf8');
     expect(src).not.toMatch(/Date\.now\s*\(/);
     expect(src).not.toMatch(/new Date\(\s*\)/);

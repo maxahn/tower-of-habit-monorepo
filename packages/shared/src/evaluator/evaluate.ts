@@ -1,7 +1,10 @@
-import type { DormancyReason, MembershipState } from '../schemas/index.js';
+import type { MembershipState } from '../schemas/index.js';
 import { addDays, civilInZone, daysBetween, type LocalDate } from '../time/local-date.js';
 import type { PeriodSchedule, PeriodScheduleConfig } from '../time/period-window.js';
+import { stepMembership, type MembershipTransition } from './dormancy.js';
 import { MIN_BLOCK_DAYS } from './recompute.js';
+
+export type { MembershipTransition } from './dormancy.js';
 
 /**
  * 2.4: decide a period's outcome from the tower, its window and every member's
@@ -75,11 +78,12 @@ export type MemberOutcome = {
   daysRemaining: number;
   /** daysRemaining - daysNeeded. */
   slack: number;
+  /**
+   * consecutive_missed_periods AFTER this period, for the caller to persist.
+   * The input value until the status is terminal.
+   */
+  consecutiveMisses: number;
 };
-
-export type MembershipTransition =
-  | { membershipId: string; from: MembershipState; to: 'dormant'; reason: DormancyReason }
-  | { membershipId: string; from: MembershipState; to: 'active' | 'at_risk' };
 
 /** A base block's boundaries. The roster is 2.6's concern. */
 export type BaseBlockDraft = {
@@ -149,6 +153,7 @@ export function evaluatePeriod(input: EvaluationInput): EvaluationOutput {
       daysNeeded,
       daysRemaining,
       slack: daysRemaining - daysNeeded,
+      consecutiveMisses: m.consecutiveMisses,
     };
   });
 
@@ -161,20 +166,29 @@ export function evaluatePeriod(input: EvaluationInput): EvaluationOutput {
   const transitions: MembershipTransition[] = [];
   let collapsed = false;
   members.forEach((m, i) => {
-    const { standing } = perMember[i]!;
-    const { membershipId, state: from } = m;
-    if (standing === 'met') {
-      if (from === 'at_risk') transitions.push({ membershipId, from, to: 'active' });
-    } else if (standing === 'short') {
-      // §6 ladder. at_risk already means one miss, whatever the counter says.
-      const firstMiss = from === 'active' && m.consecutiveMisses === 0;
-      if (firstMiss) {
-        collapsed = true;
-        transitions.push({ membershipId, from, to: 'at_risk' });
-      } else {
-        transitions.push({ membershipId, from, to: 'dormant', reason: 'consecutive_miss' });
+    const outcome = perMember[i]!;
+    // §6 ladder, via the 2.5 state machine. A period trigger reads only the
+    // state, the reason and the counter; the date fields are for other triggers.
+    const step = stepMembership(
+      {
+        membershipId: m.membershipId,
+        state: m.state,
+        dormancyReason: null,
+        consecutiveMisses: m.consecutiveMisses,
+        lastQualifyingDate: null,
+        joinedOn: w.periodStart,
+        voluntaryReturnDate: null,
+      },
+      {
+        kind: 'period_evaluated',
+        periodStart: w.periodStart,
+        periodEnd: w.periodEnd,
+        standing: outcome.standing,
       }
-    }
+    );
+    outcome.consecutiveMisses = step.consecutiveMisses;
+    if (step.collapses) collapsed = true;
+    if (step.transition) transitions.push(step.transition);
   });
 
   const out: EvaluationOutput = {

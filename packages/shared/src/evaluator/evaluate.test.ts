@@ -120,6 +120,33 @@ const named = (out: EvaluationOutput, standing: MemberStanding): string[] =>
 const sortedTransitions = (out: EvaluationOutput): MembershipTransition[] =>
   [...out.transitions].sort((a, b) => a.membershipId.localeCompare(b.membershipId));
 
+// 2.5 shapes: every period transition takes effect from the next period.
+const toAtRisk = (id: string): MembershipTransition => ({
+  membershipId: id,
+  type: 'at_risk',
+  from: 'active',
+  to: 'at_risk',
+  reason: 'missed_period',
+  effectiveFrom: NEXT_PERIOD_START,
+});
+const toDormant = (id: string): MembershipTransition => ({
+  membershipId: id,
+  type: 'dormant',
+  from: 'at_risk',
+  to: 'dormant',
+  dormancyReason: 'consecutive_miss',
+  reason: 'consecutive_miss',
+  effectiveFrom: NEXT_PERIOD_START,
+});
+const recovered = (id: string): MembershipTransition => ({
+  membershipId: id,
+  type: 'recovered',
+  from: 'at_risk',
+  to: 'active',
+  reason: 'met_quota',
+  effectiveFrom: NEXT_PERIOD_START,
+});
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -328,23 +355,19 @@ describe('§6 ladder', () => {
   it('miss #1: active member short at evaluateAt → at_risk, and the tower collapses', () => {
     const out = evaluate(WINDOW.evaluateAt, [met('a'), short('b')]);
     expect(out.periodStatus).toBe('collapsed');
-    expect(out.transitions).toEqual([{ membershipId: 'b', from: 'active', to: 'at_risk' }]);
+    expect(out.transitions).toEqual([toAtRisk('b')]);
   });
 
   it('miss #2: at_risk member short → dormant (consecutive_miss) INSTEAD of collapsing', () => {
     const out = evaluate(WINDOW.evaluateAt, [met('a'), short('b', atRisk)]);
     expect(out.periodStatus).toBe('survived');
-    expect(out.transitions).toEqual([
-      { membershipId: 'b', from: 'at_risk', to: 'dormant', reason: 'consecutive_miss' },
-    ]);
+    expect(out.transitions).toEqual([toDormant('b')]);
   });
 
   it('miss #2 as the only member → survived, and the member goes dormant', () => {
     const out = evaluate(WINDOW.evaluateAt, [short('a', atRisk)]);
     expect(out.periodStatus).toBe('survived');
-    expect(out.transitions).toEqual([
-      { membershipId: 'a', from: 'at_risk', to: 'dormant', reason: 'consecutive_miss' },
-    ]);
+    expect(out.transitions).toEqual([toDormant('a')]);
   });
 
   it('miss #2 never leaves a base block, however long the run', () => {
@@ -358,10 +381,7 @@ describe('§6 ladder', () => {
   it('miss #1 and miss #2 together → collapsed, with both transitions', () => {
     const out = evaluate(WINDOW.evaluateAt, [short('a'), short('b', atRisk)]);
     expect(out.periodStatus).toBe('collapsed');
-    expect(sortedTransitions(out)).toEqual([
-      { membershipId: 'a', from: 'active', to: 'at_risk' },
-      { membershipId: 'b', from: 'at_risk', to: 'dormant', reason: 'consecutive_miss' },
-    ]);
+    expect(sortedTransitions(out)).toEqual([toAtRisk('a'), toDormant('b')]);
   });
 
   it('a higher consecutiveMisses count on an at_risk member still means dormant', () => {
@@ -369,24 +389,19 @@ describe('§6 ladder', () => {
       short('a', { state: 'at_risk', consecutiveMisses: 4 }),
     ]);
     expect(out.periodStatus).toBe('survived');
-    expect(out.transitions).toEqual([
-      { membershipId: 'a', from: 'at_risk', to: 'dormant', reason: 'consecutive_miss' },
-    ]);
+    expect(out.transitions).toEqual([toDormant('a')]);
   });
 
   it('at_risk member who meets quota → active, on a survived period', () => {
     const out = evaluate(WINDOW.evaluateAt, [met('a'), met('b', atRisk)]);
     expect(out.periodStatus).toBe('survived');
-    expect(out.transitions).toEqual([{ membershipId: 'b', from: 'at_risk', to: 'active' }]);
+    expect(out.transitions).toEqual([recovered('b')]);
   });
 
   it('at_risk member who meets quota → active, even when someone else collapses the tower', () => {
     const out = evaluate(WINDOW.evaluateAt, [met('a', atRisk), short('b')]);
     expect(out.periodStatus).toBe('collapsed');
-    expect(sortedTransitions(out)).toEqual([
-      { membershipId: 'a', from: 'at_risk', to: 'active' },
-      { membershipId: 'b', from: 'active', to: 'at_risk' },
-    ]);
+    expect(sortedTransitions(out)).toEqual([recovered('a'), toAtRisk('b')]);
   });
 
   it('an active member who meets quota gets no transition', () => {
@@ -398,7 +413,53 @@ describe('§6 ladder', () => {
     // Survived is terminal regardless of now, so its transitions are too.
     const out = evaluate(BEFORE_WOBBLE, [met('a', atRisk)]);
     expect(out.periodStatus).toBe('survived');
-    expect(out.transitions).toEqual([{ membershipId: 'a', from: 'at_risk', to: 'active' }]);
+    expect(out.transitions).toEqual([recovered('a')]);
+  });
+
+  it('dormancyReason is present exactly when the transition goes dormant', () => {
+    const out = evaluate(WINDOW.evaluateAt, [short('a'), short('b', atRisk), met('c', atRisk)]);
+    for (const t of out.transitions) {
+      expect('dormancyReason' in t).toBe(t.to === 'dormant');
+    }
+  });
+});
+
+describe('perMember.consecutiveMisses: the new counter, for the caller to persist', () => {
+  const misses = (out: EvaluationOutput): Record<string, number> =>
+    Object.fromEntries(out.perMember.map((m) => [m.membershipId, m.consecutiveMisses]));
+
+  it.each([...PHASES.open, ...PHASES.wobbling])(
+    'unchanged before a terminal status (%s)',
+    (now) => {
+      const out = evaluate(now, [short('a'), short('b', atRisk), met('c', atRisk)]);
+      expect(misses(out)).toEqual({ a: 0, b: 1, c: 1 });
+    }
+  );
+
+  it('terminal: met → 0, short → prior + 1', () => {
+    const out = evaluate(WINDOW.evaluateAt, [
+      met('a'),
+      met('b', atRisk),
+      short('c'),
+      short('d', atRisk),
+      short('e', { state: 'at_risk', consecutiveMisses: 4 }),
+    ]);
+    expect(misses(out)).toEqual({ a: 0, b: 0, c: 1, d: 2, e: 5 });
+  });
+
+  it('terminal: excused, dormant and removed members keep their counter', () => {
+    const out = evaluate(WINDOW.evaluateAt, [
+      met('a'),
+      short('b', { ...atRisk, excused: true }),
+      short('c', dormant),
+      short('d', removed),
+    ]);
+    expect(misses(out)).toEqual({ a: 0, b: 1, c: 2, d: 0 });
+  });
+
+  it('an early survived already carries the reset counter', () => {
+    const out = evaluate(BEFORE_WOBBLE, [met('a', atRisk)]);
+    expect(misses(out)).toEqual({ a: 0 });
   });
 });
 
