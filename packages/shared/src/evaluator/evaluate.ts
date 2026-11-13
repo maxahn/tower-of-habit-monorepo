@@ -23,11 +23,15 @@ export type { MembershipTransition } from './dormancy.js';
  * counted members survives with no transitions: hibernation is the caller's
  * concern.
  *
- * §6 ladder, applied only at a terminal outcome (survived/collapsed):
+ * §6 ladder, applied only at a terminal outcome (survived/collapsed), by the
+ * 2.5 state machine (stepMembership in dormancy.ts):
  *   - miss #1 (consecutiveMisses 0, short): -> at_risk, and the tower collapses;
  *   - miss #2 (consecutiveMisses >= 1, short): -> dormant (consecutive_miss)
  *     INSTEAD of collapsing;
  *   - an at_risk member who meets quota: -> active.
+ * Each transition carries type, reason and effectiveFrom (the next period's
+ * start), and perMember carries the new consecutiveMisses for the caller to
+ * persist.
  *
  * Monotonic in `now`: with members fixed, the status never steps backwards
  * along open < wobbling < {survived | collapsed}, a terminal status never
