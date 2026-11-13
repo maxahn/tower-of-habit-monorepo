@@ -13,14 +13,18 @@ describe('src/time reads no clock', () => {
   });
 });
 
-// 2.3: qualifies must return the same result for the same input regardless of
-// ambient state, so the same scan, plus randomness.
-describe('src/evaluator/qualifies.ts reads no clock or randomness', () => {
-  it('qualifies.ts', () => {
-    const src = readFileSync(new URL('../src/evaluator/qualifies.ts', import.meta.url), 'utf8');
+// 2.3 / 2.4: the evaluator must return the same result for the same input
+// regardless of ambient state (2.4 takes `now` as input), so the same scan,
+// plus randomness.
+describe('src/evaluator reads no clock or randomness', () => {
+  it.each(['qualifies.ts', 'evaluate.ts'])('%s', (file) => {
+    const src = readFileSync(new URL(`../src/evaluator/${file}`, import.meta.url), 'utf8');
     expect(src).not.toMatch(/Date\.now\s*\(/);
     expect(src).not.toMatch(/new Date\(\s*\)/);
     expect(src).not.toMatch(/performance\.now\s*\(/);
     expect(src).not.toMatch(/Math\.random\s*\(/);
+    // A stub that only throws reads no clock either, so the scan must not
+    // pass until the real implementation replaces it.
+    expect(src).not.toMatch(/not implemented/);
   });
 });
