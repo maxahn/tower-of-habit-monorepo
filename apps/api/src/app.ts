@@ -2,9 +2,14 @@ import { Hono, type MiddlewareHandler } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { requestId, type RequestIdVariables } from 'hono/request-id';
+import { buildOpenApiDocument, DOCS_PATH, OPENAPI_PATH } from './docs/openapi.js';
+import { SWAGGER_UI_HTML } from './docs/swagger-ui.js';
 import { catchNonErrors, DomainError, handleError, handleNotFound } from './errors.js';
 import { healthRoutes, type ReadinessChecks } from './health.js';
 import { requestLogger, type Logger } from './logger.js';
+
+// Built once: the spec is static data derived from the zod schemas.
+const OPENAPI_DOCUMENT = buildOpenApiDocument();
 
 /**
  * 2.8: the app shell. A factory, not a module-level app: it never imports
@@ -76,6 +81,12 @@ export function createApp(deps: AppDeps): Hono<AppEnv> {
       checkTimeoutMs: deps.readinessTimeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS,
     })
   );
+
+  // API docs: public and unversioned, like the health routes. Both are pure
+  // (the spec is static data; the UI loads Swagger UI from a CDN), so they are
+  // always served and testable through buildTestApp.
+  app.get(OPENAPI_PATH, (c) => c.json(OPENAPI_DOCUMENT));
+  app.get(DOCS_PATH, (c) => c.html(SWAGGER_UI_HTML));
 
   // Public /v1 routes, mounted before the authenticated router so a request to
   // one of their paths never reaches deps.auth. A path not registered here falls
