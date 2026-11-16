@@ -77,6 +77,9 @@ importers:
       hono:
         specifier: ^4.9.0
         version: 4.13.1
+      ioredis:
+        specifier: ^6.0.0
+        version: 6.0.0(supports-color@8.1.1)
       zod:
         specifier: 'catalog:'
         version: 4.4.3
@@ -84,6 +87,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.7(supports-color@8.1.1)(vitest@3.2.7(@types/node@24.13.3)(jiti@2.6.1)(lightningcss@1.33.0)(supports-color@8.1.1)(terser@5.49.2)(tsx@4.23.11)(yaml@2.9.0))
       tsup:
         specifier: ^8.5.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.26)(supports-color@8.1.1)(tsx@4.23.11)(typescript@5.9.3)(yaml@2.9.0)
