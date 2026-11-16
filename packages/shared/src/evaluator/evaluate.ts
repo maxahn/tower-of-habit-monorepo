@@ -2,7 +2,7 @@ import type { MembershipState } from '../schemas/index.js';
 import { addDays, civilInZone, daysBetween, type LocalDate } from '../time/local-date.js';
 import type { PeriodSchedule, PeriodScheduleConfig } from '../time/period-window.js';
 import { stepMembership, type MembershipTransition } from './dormancy.js';
-import { MIN_BLOCK_DAYS } from './recompute.js';
+import { MIN_BLOCK_DAYS, type BlockBoundaries } from './recompute.js';
 
 export type { MembershipTransition } from './dormancy.js';
 
@@ -89,13 +89,6 @@ export type MemberOutcome = {
   consecutiveMisses: number;
 };
 
-/** A base block's boundaries. The roster is 2.6's concern. */
-export type BaseBlockDraft = {
-  runStartDate: LocalDate;
-  runEndDate: LocalDate;
-  blockHeight: number;
-};
-
 export type EvaluationStatus = 'open' | 'wobbling' | 'survived' | 'collapsed';
 
 export interface EvaluationInput {
@@ -112,8 +105,11 @@ export interface EvaluationOutput {
   perMember: MemberOutcome[];
   /** Empty unless the status is terminal (survived/collapsed). */
   transitions: MembershipTransition[];
-  /** Only on collapsed, and only when tower.height >= MIN_BLOCK_DAYS. */
-  baseBlock?: BaseBlockDraft;
+  /**
+   * Only on collapsed, and only when tower.height >= MIN_BLOCK_DAYS. The
+   * boundaries only; the full payload is buildBaseBlockDraft's (base-block.ts).
+   */
+  baseBlock?: BlockBoundaries;
   /** The day after periodEnd, on terminal statuses only. */
   nextPeriodStart?: string;
 }

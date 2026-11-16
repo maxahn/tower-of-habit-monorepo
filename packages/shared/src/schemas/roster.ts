@@ -52,12 +52,21 @@ export const blockRosterMemberSchema = z
     // 0 for binary and numeric habits, because tier 0 is the base tier
     // (BASE_TIER_INDEX): 0 means "met the commitment", not "did nothing".
     highest_tier: z.int().min(0),
-    // §6 dormancy, as it stood at the end of the run.
+    // §6 dormancy at ANY point in the run, not only at its end: a member who
+    // went dormant mid-run and came back still reads as was_dormant.
     was_dormant: z.boolean(),
+    // Survived periods of the run in which this member held a membership (2.6).
+    // Optional: rows written before 2.6 don't carry it. Under v1 daily rules a
+    // period is one day, so it never exceeds total_days.
+    periods_present: z.int().min(0).optional(),
   })
   .refine((m) => m.qualifying_days <= m.total_days, {
     message: 'qualifying_days cannot exceed total_days',
     path: ['qualifying_days'],
+  })
+  .refine((m) => m.periods_present === undefined || m.periods_present <= m.total_days, {
+    message: 'periods_present cannot exceed total_days',
+    path: ['periods_present'],
   });
 
 /** Non-empty: a block with an empty roster is a block nobody built. */

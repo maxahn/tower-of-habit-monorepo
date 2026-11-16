@@ -43,6 +43,30 @@ describe('blockRosterMemberSchema', () => {
     expect(blockRosterMemberSchema.safeParse({ ...SAM, total_days }).success).toBe(false);
   });
 
+  // 2.6
+  it('accepts periods_present, and still accepts a member without it', () => {
+    expect(blockRosterMemberSchema.parse({ ...SAM, periods_present: 28 })).toEqual({
+      ...SAM,
+      periods_present: 28,
+    });
+    expect(blockRosterMemberSchema.safeParse(SAM).success).toBe(true);
+  });
+
+  it('accepts periods_present 0 and periods_present equal to total_days', () => {
+    expect(blockRosterMemberSchema.safeParse({ ...SAM, periods_present: 0 }).success).toBe(true);
+    expect(blockRosterMemberSchema.safeParse({ ...SAM, periods_present: 30 }).success).toBe(true);
+  });
+
+  it('rejects periods_present above total_days', () => {
+    const r = blockRosterMemberSchema.safeParse({ ...SAM, periods_present: 31 });
+    expect(r.success).toBe(false);
+    expect(r.error!.issues[0]!.path).toEqual(['periods_present']);
+  });
+
+  it.each([-1, 1.5, Number.NaN])('rejects a periods_present of %p', (periods_present) => {
+    expect(blockRosterMemberSchema.safeParse({ ...SAM, periods_present }).success).toBe(false);
+  });
+
   it.each([-1, 0.5])('rejects a highest_tier of %p', (highest_tier) => {
     expect(blockRosterMemberSchema.safeParse({ ...SAM, highest_tier }).success).toBe(false);
   });
