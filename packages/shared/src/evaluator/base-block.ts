@@ -1,5 +1,5 @@
-import type { BlockRoster } from '../schemas/index.js';
-import type { LocalDate } from '../time/local-date.js';
+import type { BlockRoster, BlockRosterMember } from '../schemas/index.js';
+import { daysBetween, type LocalDate } from '../time/local-date.js';
 
 /**
  * 2.6: on collapse, build the base block payload for the run that just closed:
@@ -105,6 +105,84 @@ export class BaseBlockInputError extends Error {
 }
 
 export function buildBaseBlockDraft(input: BaseBlockInput): BaseBlockDraft | null {
-  void input;
-  throw new Error('buildBaseBlockDraft: not implemented');
+  const { ordinal, minBlockDays } = input;
+  // Validated first, so a bad ordinal throws even for a run too short for a block.
+  if (!isPositiveInt(ordinal)) throw new BaseBlockInputError('ordinal', ordinal);
+  if (!isPositiveInt(minBlockDays)) throw new BaseBlockInputError('minBlockDays', minBlockDays);
+
+  const survived = input.runPeriods.filter((p) => p.outcome === 'survived');
+  const heightDays = survived.reduce((n, p) => n + spanDays(p.periodStart, p.periodEnd), 0);
+  // Also covers an empty run: heightDays 0 is below any valid minimum.
+  if (heightDays < minBlockDays) return null;
+
+  // Not sorted in place: the input may be frozen, and is never mutated.
+  let runStartDate = input.runPeriods[0]!.periodStart;
+  let runEndDate = input.runPeriods[0]!.periodEnd;
+  for (const p of input.runPeriods) {
+    if (p.periodStart < runStartDate) runStartDate = p.periodStart;
+    if (p.periodEnd > runEndDate) runEndDate = p.periodEnd;
+  }
+
+  const roster = input.members
+    .flatMap((m) => rosterEntry(m, runStartDate, runEndDate, survived))
+    // Code-unit order, not localeCompare: the order must not depend on locale.
+    // By user_id rather than input order, so the caller's order cannot leak.
+    .sort((a, b) => (a.user_id < b.user_id ? -1 : a.user_id > b.user_id ? 1 : 0));
+  // blockRosterSchema is non-empty: a block nobody built is a caller bug.
+  if (roster.length === 0) throw new BaseBlockInputError('members', input.members.length);
+
+  // Keys spelled out, nothing spread from the input (§5).
+  return {
+    ordinal,
+    runStartDate,
+    runEndDate,
+    heightDays,
+    periodsSurvived: survived.length,
+    roster,
+  };
+}
+
+const isPositiveInt = (n: number) => Number.isInteger(n) && n >= 1;
+
+/** Days in an inclusive span. */
+const spanDays = (from: LocalDate, to: LocalDate) => daysBetween(from, to) + 1;
+
+/** Whether two inclusive spans share a day; a null end is open. */
+const overlaps = (aFrom: LocalDate, aTo: LocalDate | null, bFrom: LocalDate, bTo: LocalDate) =>
+  aFrom <= bTo && (aTo === null || aTo >= bFrom);
+
+/**
+ * The member's roster entry, counted over the run intersected with their
+ * membership; none if they held no membership during the run.
+ */
+function rosterEntry(
+  m: RunMember,
+  runStart: LocalDate,
+  runEnd: LocalDate,
+  survived: readonly RunPeriod[]
+): BlockRosterMember[] {
+  const from = m.joinedOn > runStart ? m.joinedOn : runStart;
+  const to = m.leftOn !== null && m.leftOn < runEnd ? m.leftOn : runEnd;
+  if (from > to) return [];
+
+  // Several qualifying records on one date are one day, at their highest tier.
+  const tierByDate = new Map<LocalDate, number>();
+  for (const q of m.qualifyingDays) {
+    if (q.localDate < from || q.localDate > to) continue;
+    tierByDate.set(q.localDate, Math.max(tierByDate.get(q.localDate) ?? 0, q.tierIndex));
+  }
+
+  // Exactly the schema's keys, nothing spread from the input (§5).
+  return [
+    {
+      user_id: m.userId,
+      display_name: m.displayName,
+      qualifying_days: tierByDate.size,
+      total_days: spanDays(from, to),
+      highest_tier: Math.max(0, ...tierByDate.values()),
+      was_dormant: m.dormantSpans.some((s) => overlaps(s.from, s.to, from, to)),
+      periods_present: survived.filter((p) => overlaps(p.periodStart, p.periodEnd, from, to))
+        .length,
+    },
+  ];
 }
