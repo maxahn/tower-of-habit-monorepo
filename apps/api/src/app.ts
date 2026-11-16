@@ -12,11 +12,16 @@ import { requestLogger, type Logger } from './logger.js';
  * tests build it with fakes and index.ts wires in the real dependencies.
  */
 
-export type AppEnv = { Variables: RequestIdVariables };
+// userId and sessionId are attached by the session auth middleware (2.9) and so
+// are present on every authenticated (/v1) route; the public auth routes below
+// do not read them.
+export type AppEnv = {
+  Variables: RequestIdVariables & { userId: string; sessionId: string };
+};
 
 export type AppDeps = {
   logger: Logger;
-  /** Runs on /v1/* only. Throws DomainError(401) to reject. */
+  /** Runs on the authenticated /v1 routes only. Throws DomainError(401) to reject. */
   auth: MiddlewareHandler<AppEnv>;
   readiness: ReadinessChecks;
   isDraining: () => boolean;
@@ -26,6 +31,12 @@ export type AppDeps = {
   bodyLimitBytes: number;
   /** Per readiness check. Defaults to 1000. */
   readinessTimeoutMs?: number;
+  /**
+   * Registers routes on a /v1 router that runs BEFORE auth, for endpoints that
+   * must be reachable without a session (login code request/verify). Mounted
+   * like the health routes: versioned, but public.
+   */
+  mountPublicRoutes?: (api: Hono<AppEnv>) => void;
   /** Registers routes on the authenticated /v1 router. */
   mountRoutes?: (api: Hono<AppEnv>) => void;
 };
@@ -65,6 +76,16 @@ export function createApp(deps: AppDeps): Hono<AppEnv> {
       checkTimeoutMs: deps.readinessTimeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS,
     })
   );
+
+  // Public /v1 routes, mounted before the authenticated router so a request to
+  // one of their paths never reaches deps.auth. A path not registered here falls
+  // through to the authenticated router below.
+  if (deps.mountPublicRoutes) {
+    const publicApi = new Hono<AppEnv>();
+    publicApi.use(catchNonErrors);
+    deps.mountPublicRoutes(publicApi);
+    app.route(API_PREFIX, publicApi);
+  }
 
   const api = new Hono<AppEnv>();
   api.use(deps.auth);

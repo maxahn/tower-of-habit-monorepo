@@ -221,7 +221,6 @@ describe('memberships constraints', () => {
       .insert(users)
       .values({
         email: `${crypto.randomUUID()}@test.local`,
-        passwordHash: 'x',
         displayName: 'Host',
       })
       .returning();

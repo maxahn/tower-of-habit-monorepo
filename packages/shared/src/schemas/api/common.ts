@@ -10,6 +10,19 @@ import { ROSTER_DISPLAY_NAME_MAX } from '../roster.js';
 
 export const uuid = z.uuid();
 
+/**
+ * An email address, normalised on write: trimmed and lowercased before the
+ * format check, so a whitespace- or case-variant input is accepted and stored
+ * in one canonical form (the spec's "trim, lowercase", and nothing else — no
+ * dot-stripping or plus-tag removal). Bounded at 320 to match
+ * users_email_length. The server layer re-normalises defensively, so this is
+ * idempotent with crypto.normalizeEmail.
+ */
+export const email = z
+  .string()
+  .transform((s) => s.trim().toLowerCase())
+  .pipe(z.email().max(320));
+
 /** YYYY-MM-DD, calendar-checked (rejects 2026-02-30). */
 export const localDate = z.iso.date();
 

@@ -67,7 +67,6 @@ export async function persist(db: Db, plan: ScenarioPlan): Promise<Scenario> {
           plan.users.map((u): typeof users.$inferInsert => ({
             id: u.id,
             email: u.email,
-            passwordHash: u.passwordHash,
             displayName: u.displayName,
           }))
         )

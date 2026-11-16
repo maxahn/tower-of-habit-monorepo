@@ -78,6 +78,13 @@
       "when": 1793085641466,
       "tag": "0010_old_tana_nile",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794862103920,
+      "tag": "0011_auth_otp_and_passwordless_users",
+      "breakpoints": true
     }
   ]
 }

@@ -51,7 +51,6 @@ async function otherUser(): Promise<string> {
     .insert(users)
     .values({
       email: `${crypto.randomUUID()}@test.local`,
-      passwordHash: 'x',
       displayName: 'Other',
     })
     .returning();

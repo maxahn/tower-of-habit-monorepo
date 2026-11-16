@@ -5,6 +5,22 @@ import { users } from './schema.js';
 type Db = typeof appDb;
 export type User = typeof users.$inferSelect;
 
+// Only the columns email-OTP signup sets. timezone has a DB default of 'UTC';
+// displayName is nullable and collected later in onboarding. No passwordHash:
+// authentication is passwordless (2.9).
+export type NewUser = Pick<typeof users.$inferInsert, 'email' | 'timezone'>;
+
+/**
+ * Creates a user from a first successful login. The email must already be
+ * normalized (trim + lowercase); the citext column rejects a case-variant
+ * duplicate as users_email_unique (23505).
+ */
+export async function createUser(db: Db, input: NewUser): Promise<User> {
+  // NOTE(2.9, Pass 1): signature only; the real insert lands in Pass 3.
+  void [db, input];
+  throw new Error('not implemented');
+}
+
 export async function findUserByEmail(db: Db, email: string): Promise<User | undefined> {
   // Explicit ::citext: if the driver sends the parameter as text, `citext =
   // text` resolves to text = text and silently goes case-sensitive.

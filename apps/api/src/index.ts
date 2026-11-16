@@ -1,12 +1,18 @@
 import type { Server } from 'node:http';
 import { serve } from '@hono/node-server';
-import { closeDb, pingDb } from '@tower-of-habit/db';
-import type { MiddlewareHandler } from 'hono';
+import { closeDb, db, pingDb } from '@tower-of-habit/db';
 import { Redis } from 'ioredis';
-import { createApp, type AppEnv } from './app.js';
-import { DomainError } from './errors.js';
+import { createApp } from './app.js';
+import { mountAuthedAuthRoutes, mountPublicAuthRoutes } from './auth/routes.js';
+import { createLogLoginCodeSender } from './auth/sender.js';
+import { createAuthService } from './auth/service.js';
+import { createSessionMiddleware } from './auth/session-middleware.js';
 import { createJsonLogger } from './logger.js';
 import { createGracefulShutdown, installSignalHandlers } from './shutdown.js';
+
+const SECONDS_PER_DAY = 24 * 60 * 60;
+const CODE_TTL_SECONDS = 10 * 60; // 10 minutes
+const SESSION_TTL_SECONDS = 90 * SECONDS_PER_DAY; // 90 days
 
 // Composition root: the only module that touches real Postgres, Redis, env and
 // the process. Everything it wires is unit-tested through createApp.
@@ -31,20 +37,33 @@ const redis = new Redis(env.REDIS_URL ?? 'redis://redis:6379', {
 });
 redis.on('error', (err) => logger.warn({ err }, 'redis connection error'));
 
-// Fail closed until real auth lands: nothing under /v1 is reachable yet.
-const denyAll: MiddlewareHandler<AppEnv> = async () => {
-  throw new DomainError(401, 'unauthorized', 'Missing or invalid credentials');
-};
+// AUTH_CODE_LOG writes the login code to the application log (Phase 2, before
+// real email delivery). Defaulted false, and refused in production: a code in a
+// prod log is a code in everyone's log shipper.
+const authCodeLog = env.AUTH_CODE_LOG === 'true';
+if (env.NODE_ENV === 'production' && authCodeLog) {
+  throw new Error('AUTH_CODE_LOG must not be true when NODE_ENV=production');
+}
+
+const loginCodeSender = createLogLoginCodeSender(logger, { logCode: authCodeLog });
+const authService = createAuthService({
+  db,
+  sender: loginCodeSender,
+  codeTtlSeconds: CODE_TTL_SECONDS,
+  sessionTtlSeconds: SESSION_TTL_SECONDS,
+});
 
 const app = createApp({
   logger,
-  auth: denyAll,
+  auth: createSessionMiddleware(authService),
   readiness: { postgres: pingDb, redis: () => redis.ping() },
   // Called per request, never before the first tick, by which time `shutdown`
   // below is initialised.
   isDraining: () => shutdown.isDraining(),
   corsOrigins,
   bodyLimitBytes,
+  mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService }),
+  mountRoutes: (api) => mountAuthedAuthRoutes(api, { authService }),
 });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {

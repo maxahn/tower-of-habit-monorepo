@@ -15,3 +15,4 @@ export * from './towers/periods/schema.js';
 export * from './towers/blocks/schema.js';
 export * from './users/push-tokens/schema.js';
 export * from './notifications/schema.js';
+export * from './auth/schema.js';
