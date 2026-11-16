@@ -1,18 +1,26 @@
 import type { DormancyReason } from '../schemas/index.js';
 import { addDays, type LocalDate } from '../time/local-date.js';
-import type { PeriodSchedule } from '../time/period-window.js';
-import type { BaseBlockDraft } from '../evaluator/base-block.js';
-import type {
-  EvaluationOutput,
-  EvaluationStatus,
-  MemberPeriodState,
-  MemberStanding,
-  MembershipTransition,
-  TowerConfig,
+import { computePeriodWindow, type PeriodSchedule } from '../time/period-window.js';
+import {
+  buildBaseBlockDraft,
+  type BaseBlockDraft,
+  type RunMember,
+} from '../evaluator/base-block.js';
+import {
+  evaluatePeriod,
+  type EvaluationOutput,
+  type EvaluationStatus,
+  type MemberPeriodState,
+  type MemberStanding,
+  type MembershipTransition,
+  type TowerConfig,
 } from '../evaluator/evaluate.js';
 import { MIN_BLOCK_DAYS, type BlockBoundaries } from '../evaluator/recompute.js';
 import {
   BACKSTOP_DAYS,
+  stepMembership,
+  type DormancyTrigger,
+  type MembershipSnapshot,
   type MembershipTransitionType,
   type TransitionReason,
 } from '../evaluator/dormancy.js';
@@ -124,8 +132,133 @@ export type FixtureResult = {
 };
 
 export function runEvaluatorFixture(fixture: EvaluatorFixture): FixtureResult {
-  void fixture;
-  throw new Error('runEvaluatorFixture: not implemented');
+  const { tower, periodStart } = fixture;
+  const window = computePeriodWindow(tower, periodStart);
+  const now = resolveNow(fixture.now, window);
+
+  // Events step fresh snapshots; the fixture itself is never touched.
+  const snapshots = fixture.members.map((m) => snapshotOf(m, tower, periodStart));
+  const eventTransitions: MembershipTransition[] = [];
+  for (const event of fixture.events ?? []) {
+    if (
+      event.kind === 'qualifying_entry' &&
+      !snapshots.some((s) => s.membershipId === event.membershipId)
+    ) {
+      throw new Error(`runEvaluatorFixture: no member ${event.membershipId} for ${event.kind}`);
+    }
+    snapshots.forEach((s, i) => {
+      if (event.kind === 'qualifying_entry' && s.membershipId !== event.membershipId) return;
+      const { next, transition } = applyEvent(s, event, periodStart);
+      snapshots[i] = next;
+      if (transition) eventTransitions.push(transition);
+    });
+  }
+
+  const evaluatedMembers: MemberPeriodState[] = fixture.members.map((m, i) => ({
+    membershipId: m.membershipId,
+    state: snapshots[i]!.state,
+    qualifyingDays: m.qualifyingDays,
+    excused: m.excused,
+    consecutiveMisses: snapshots[i]!.consecutiveMisses,
+  }));
+
+  const output = evaluatePeriod({ now, tower, window, members: evaluatedMembers });
+
+  const draft =
+    output.periodStatus === 'collapsed' && tower.height >= 1 && tower.runStartDate !== null
+      ? draftFor(tower.runStartDate, tower.height, snapshots)
+      : null;
+
+  return { window, now, eventTransitions, evaluatedMembers, output, draft };
+}
+
+function resolveNow(now: FixtureNow, w: PeriodSchedule): string {
+  const shift = (iso: string, ms: number) => new Date(Date.parse(iso) + ms).toISOString();
+  switch (now) {
+    case 'open':
+      return shift(w.wobbleAt, -1);
+    case 'wobbling':
+      return shift(w.evaluateAt, -1);
+    case 'decided':
+      return w.evaluateAt;
+    default:
+      return now.at;
+  }
+}
+
+function snapshotOf(
+  m: FixtureMember,
+  tower: TowerConfig,
+  periodStart: LocalDate
+): MembershipSnapshot {
+  return {
+    membershipId: m.membershipId,
+    state: m.state,
+    dormancyReason:
+      m.dormancyReason !== undefined
+        ? m.dormancyReason
+        : m.state === 'dormant'
+          ? 'consecutive_miss'
+          : null,
+    consecutiveMisses: m.consecutiveMisses,
+    // Default: logged yesterday, so the backstop is never due unless a row says so.
+    lastQualifyingDate:
+      m.lastQualifyingDate !== undefined ? m.lastQualifyingDate : addDays(periodStart, -1),
+    joinedOn: m.joinedOn ?? tower.runStartDate ?? periodStart,
+    voluntaryReturnDate: m.voluntaryReturnDate ?? null,
+  };
+}
+
+/** One event against one member; the period under evaluation is the open one. */
+function applyEvent(
+  s: MembershipSnapshot,
+  event: FixtureEvent,
+  openPeriodStart: LocalDate
+): { next: MembershipSnapshot; transition: MembershipTransition | null } {
+  const trigger: DormancyTrigger =
+    event.kind === 'qualifying_entry'
+      ? { kind: 'qualifying_entry', localDate: event.localDate, openPeriodStart }
+      : { kind: 'day_elapsed', asOf: event.asOf, openPeriodStart };
+  const step = stepMembership(s, trigger);
+  const next: MembershipSnapshot = { ...s, consecutiveMisses: step.consecutiveMisses };
+  if (
+    event.kind === 'qualifying_entry' &&
+    (next.lastQualifyingDate === null || next.lastQualifyingDate < event.localDate)
+  ) {
+    next.lastQualifyingDate = event.localDate;
+  }
+  const t = step.transition;
+  if (t) {
+    next.state = t.to;
+    next.dormancyReason = t.dormancyReason ?? null;
+    if (t.to !== 'dormant') next.voluntaryReturnDate = null;
+  }
+  return { next, transition: t };
+}
+
+/**
+ * The closed run as 2.6 sees it: `height` survived daily periods from
+ * runStartDate, every member (as of before the events) qualifying each day.
+ */
+function draftFor(
+  runStartDate: LocalDate,
+  height: number,
+  members: readonly MembershipSnapshot[]
+): BaseBlockDraft | null {
+  const days = Array.from({ length: height }, (_, i) => addDays(runStartDate, i));
+  return buildBaseBlockDraft({
+    ordinal: 1,
+    minBlockDays: MIN_BLOCK_DAYS,
+    runPeriods: days.map((d) => ({ periodStart: d, periodEnd: d, outcome: 'survived' })),
+    members: members.map((s): RunMember => ({
+      userId: s.membershipId,
+      displayName: s.membershipId,
+      joinedOn: s.joinedOn,
+      leftOn: null,
+      dormantSpans: [],
+      qualifyingDays: days.map((localDate) => ({ localDate, tierIndex: 0 })),
+    })),
+  });
 }
 
 // ---------------------------------------------------------------------------
