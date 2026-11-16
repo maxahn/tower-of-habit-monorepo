@@ -1,8 +1,7 @@
 import { sql } from 'drizzle-orm';
-import type { db as appDb } from '../client.js';
+import type { Db } from '../client.js';
 import { users } from './schema.js';
 
-type Db = typeof appDb;
 export type User = typeof users.$inferSelect;
 
 // Only the columns email-OTP signup sets. timezone has a DB default of 'UTC';
@@ -16,9 +15,13 @@ export type NewUser = Pick<typeof users.$inferInsert, 'email' | 'timezone'>;
  * duplicate as users_email_unique (23505).
  */
 export async function createUser(db: Db, input: NewUser): Promise<User> {
-  // NOTE(2.9, Pass 1): signature only; the real insert lands in Pass 3.
-  void [db, input];
-  throw new Error('not implemented');
+  // timezone omitted ⇒ the column default 'UTC' applies. A case-variant
+  // duplicate email surfaces as users_email_unique (23505).
+  const [row] = await db
+    .insert(users)
+    .values({ email: input.email, timezone: input.timezone })
+    .returning();
+  return row!;
 }
 
 export async function findUserByEmail(db: Db, email: string): Promise<User | undefined> {

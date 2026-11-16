@@ -1,57 +1,62 @@
+import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+
 /**
- * Server-side crypto for email-OTP auth (2.9). Lives in apps/api because
- * node:crypto is unavailable in @tower-of-habit/shared (the Hermes/mobile ESLint
- * firewall bans it there).
- *
- * NOTE(2.9, Pass 1): signatures only — the implementations land in Pass 3, and
- * the crypto.test.ts suite is red until then. The `void` guards mark the
- * parameters as deliberately unused while the bodies are stubs.
+ * Server-side crypto for email-OTP auth (2.9). Thin wrappers over node:crypto
+ * (OpenSSL under the hood) — not home-grown primitives. Lives in apps/api
+ * because node:crypto is unavailable in @tower-of-habit/shared (the
+ * Hermes/mobile ESLint firewall bans it there).
  */
 
 /** Number of decimal digits in a login code. */
 export const CODE_DIGITS = 6;
+const CODE_UPPER_BOUND = 1_000_000; // 10 ** CODE_DIGITS
 
 /**
- * A fresh login code: `CODE_DIGITS` decimal digits, zero-padded, drawn from a
- * CSPRNG with rejection sampling so every value is equally likely. MUST NOT use
- * `rand % 1_000_000`, which biases the low end.
+ * A fresh login code: six decimal digits, zero-padded. randomInt is CSPRNG-
+ * backed and rejection-samples internally, so the distribution over
+ * [0, 1_000_000) is uniform — NOT `randomBytes % 1_000_000`, which biases low.
  */
 export function generateCode(): string {
-  throw new Error('not implemented');
+  return String(randomInt(CODE_UPPER_BOUND)).padStart(CODE_DIGITS, '0');
+}
+
+function sha256Hex(input: string): string {
+  return createHash('sha256').update(input, 'utf8').digest('hex');
 }
 
 /** SHA-256 hex digest of a login code, for storage and constant-time compare. */
 export function hashCode(code: string): string {
-  void code;
-  throw new Error('not implemented');
+  return sha256Hex(code);
 }
 
 /** SHA-256 hex digest of a session token, the only form ever persisted. */
 export function hashToken(token: string): string {
-  void token;
-  throw new Error('not implemented');
+  return sha256Hex(token);
 }
 
-/** A session token: 32 bytes of CSPRNG output, base64url-encoded. */
+/** A session token: 32 bytes of CSPRNG output, base64url-encoded (no padding). */
 export function generateSessionToken(): string {
-  throw new Error('not implemented');
+  return randomBytes(32).toString('base64url');
 }
 
 /**
- * Whether a submitted code matches a stored SHA-256 hex digest, compared in
- * constant time (hash the submission, then timingSafeEqual the two digests).
+ * Whether a submitted code matches a stored SHA-256 hex digest. Hashes the
+ * submission, then compares the two 32-byte digest buffers in constant time.
+ * Comparing the digests (not the raw codes) keeps both operands equal-length,
+ * so timingSafeEqual never throws and nothing leaks via length.
  */
 export function codeMatches(submitted: string, storedHex: string): boolean {
-  void [submitted, storedHex];
-  throw new Error('not implemented');
+  const a = Buffer.from(hashCode(submitted), 'hex');
+  const b = Buffer.from(storedHex, 'hex');
+  if (a.length !== b.length) return false; // malformed stored hash
+  return timingSafeEqual(a, b);
 }
 
 /**
  * Normalises an email for storage and comparison: trim + lowercase, nothing
  * else. No dot-stripping or plus-tag removal — those are provider-specific and
- * wrong as often as right.
+ * wrong as often as right. Idempotent with the shared `email` schema primitive.
  */
 export function normalizeEmail(raw: string): string {
-  void raw;
-  throw new Error('not implemented');
+  return raw.trim().toLowerCase();
 }

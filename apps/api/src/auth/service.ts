@@ -13,6 +13,14 @@ import {
   touchLastSeen,
   type Db,
 } from '@tower-of-habit/db';
+import {
+  codeMatches,
+  generateCode,
+  generateSessionToken,
+  hashCode,
+  hashToken,
+  normalizeEmail,
+} from './crypto.js';
 import type { LoginCodeSender } from './sender.js';
 
 /**
@@ -81,41 +89,67 @@ export type AuthServiceDeps = {
  * Pass-1 stubs, covered by the db package's own tests.
  */
 export function createAuthService(deps: AuthServiceDeps): AuthService {
-  void deps;
-  void [
-    consumeCode,
-    createSession,
-    createUser,
-    findLiveCodeForEmail,
-    findLiveSessionByHash,
-    findUserByEmail,
-    insertAuthCode,
-    invalidateCodesForEmail,
-    recordFailedAttempt,
-    revokeAllForUser,
-    revokeSession,
-    touchLastSeen,
-  ];
+  const { db, sender, codeTtlSeconds, sessionTtlSeconds } = deps;
+
   return {
-    async requestCode(email) {
-      void email;
-      throw new Error('not implemented');
+    async requestCode(rawEmail) {
+      const email = normalizeEmail(rawEmail);
+      const code = generateCode();
+      // One live code per email: drop any outstanding code, then insert the new
+      // one. The same work runs whether or not a user exists (users are created
+      // only on verify), so nothing here reveals account existence.
+      await invalidateCodesForEmail(db, email);
+      await insertAuthCode(db, { email, codeHash: hashCode(code), ttlSeconds: codeTtlSeconds });
+      await sender.sendLoginCode(email, code);
     },
+
     async verifyCode(input) {
-      void input;
-      throw new Error('not implemented');
+      const email = normalizeEmail(input.email);
+      // One transaction: consume the code, create-or-find the user, open the
+      // session — so a crash can't consume a code without issuing a session.
+      return db.transaction(async (tx) => {
+        const live = await findLiveCodeForEmail(tx, email);
+        if (!live) return null;
+
+        if (!codeMatches(input.code, live.codeHash)) {
+          await recordFailedAttempt(tx, live.id);
+          return null;
+        }
+
+        // Compare-and-set: a concurrent verify that already consumed it loses.
+        const consumed = await consumeCode(tx, live.id);
+        if (!consumed) return null;
+
+        const user =
+          (await findUserByEmail(tx, email)) ??
+          (await createUser(tx, { email, timezone: input.timezone }));
+
+        const token = generateSessionToken();
+        await createSession(tx, {
+          userId: user.id,
+          tokenHash: hashToken(token),
+          userAgent: input.userAgent ?? null,
+          ttlSeconds: sessionTtlSeconds,
+        });
+
+        return { token, user };
+      });
     },
+
     async authenticate(rawToken) {
-      void rawToken;
-      throw new Error('not implemented');
+      const session = await findLiveSessionByHash(db, hashToken(rawToken));
+      if (!session) return null;
+      // Refreshes last_seen_at at most once per hour (the query's own guard).
+      await touchLastSeen(db, session.id);
+      return { userId: session.userId, sessionId: session.id };
     },
+
     async revokeSession(sessionId) {
-      void sessionId;
-      throw new Error('not implemented');
+      await revokeSession(db, sessionId);
     },
+
     async revokeAllSessions(userId) {
-      void userId;
-      throw new Error('not implemented');
+      await revokeAllForUser(db, userId);
     },
   };
 }
