@@ -51,7 +51,7 @@ pnpm format # Format all files
 ### Quality checks
 
 - `pnpm build`, `pnpm test`, `pnpm typecheck`, `pnpm lint`.
-- `pnpm test:coverage` — runs each package's tests with V8 coverage. Per-package reports land in `packages/*/coverage/` (open `index.html`; `lcov.info` for editor/CI tools). The db suite needs Postgres: `pnpm dev:up` then `pnpm migrate:test`.
+- `pnpm test:coverage` — runs each package's tests with V8 coverage. Per-package reports land in `packages/*/coverage/` and `apps/api/coverage/` (open `index.html`; `lcov.info` for editor/CI tools). The db suite needs Postgres: `pnpm dev:up` then `pnpm migrate:test`.
 - `pnpm coverage:readme` — runs coverage and rewrites the table in [Coverage](#coverage) below. Run it before committing when you want the README numbers refreshed. If Postgres isn't reachable, the db row is kept and marked stale.
 
 ### Coverage
@@ -64,6 +64,7 @@ Last generated with `pnpm coverage:readme`. Coverage counts code that ran during
 | ------- | ---------: | -------: | --------: | ----: | ------------------ |
 | shared  |      99.0% |    97.7% |    100.0% | 99.0% | 1551 passed (1551) |
 | db      |      91.7% |    94.7% |     90.6% | 91.7% | 473 passed (473)   |
+| api     |      99.6% |    91.3% |     95.8% | 99.6% | 78 passed (78)     |
 
 <!-- coverage:end -->
 
