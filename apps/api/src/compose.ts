@@ -8,6 +8,7 @@ import { createSessionMiddleware } from './auth/session-middleware.js';
 import type { ClockOptions } from './context.js';
 import type { ReadinessChecks } from './health.js';
 import type { Logger } from './logger.js';
+import { mountMeRoutes } from './me/routes.js';
 import type { ClientIpResolver } from './rate-limit/client-ip.js';
 import type { RateLimiter } from './rate-limit/limiter.js';
 
@@ -55,6 +56,7 @@ export function composeApp(deps: ComposeDeps): Hono<AppEnv> {
     mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService, rateLimit }),
     mountRoutes: (api) => {
       mountAuthedAuthRoutes(api, { authService });
+      mountMeRoutes(api, { db: deps.db });
     },
   });
 }

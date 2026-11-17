@@ -6,3 +6,4 @@ export * from './memberships.js';
 export * from './periods-blocks.js';
 export * from './push-tokens.js';
 export * from './auth.js';
+export * from './me.js';

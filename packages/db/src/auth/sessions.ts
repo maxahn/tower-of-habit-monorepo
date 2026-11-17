@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { Db } from '../client.js';
 import { sessions } from './schema.js';
 
@@ -47,6 +47,25 @@ export async function findLiveSessionByHash(
       )
     );
   return row;
+}
+
+/**
+ * Every live session for the user (not revoked, not expired), newest first.
+ * Backs GET /me/sessions (2.11). The token hash is on the row; the API layer
+ * never serialises it.
+ */
+export async function listLiveSessionsForUser(db: Db, userId: string): Promise<Session[]> {
+  return db
+    .select()
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.userId, userId),
+        isNull(sessions.revokedAt),
+        sql`${sessions.expiresAt} > now()`
+      )
+    )
+    .orderBy(desc(sessions.createdAt));
 }
 
 /**

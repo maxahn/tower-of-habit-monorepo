@@ -1,5 +1,8 @@
 import {
+  meResponseSchema,
+  meSessionsResponseSchema,
   requestCodeRequestSchema,
+  updateMeRequestSchema,
   verifyCodeRequestSchema,
   verifyCodeResponseSchema,
 } from '@tower-of-habit/shared';
@@ -99,6 +102,7 @@ export function buildOpenApiDocument(): Json {
     tags: [
       { name: 'health', description: 'Liveness and readiness probes.' },
       { name: 'auth', description: 'Passwordless email-OTP authentication.' },
+      { name: 'me', description: 'The authenticated user’s profile and sessions.' },
     ],
     paths: {
       '/healthz': {
@@ -206,6 +210,53 @@ export function buildOpenApiDocument(): Json {
           security: [{ bearerAuth: [] }],
           responses: {
             '204': { description: 'All of the user’s sessions are revoked.' },
+            '401': errorResponse('Missing or invalid session.'),
+          },
+        },
+      },
+      '/v1/me': {
+        get: {
+          tags: ['me'],
+          summary: 'The current user',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'The user plus a count of towers they are active in.',
+              content: jsonContent(toSchema(meResponseSchema, 'output')),
+            },
+            '401': errorResponse('Missing or invalid session.'),
+          },
+        },
+        patch: {
+          tags: ['me'],
+          summary: 'Update display name and/or timezone',
+          description:
+            'Email is not changeable in Phase 2. Changing timezone never rewrites past entries.',
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: jsonContent(toSchema(updateMeRequestSchema, 'input')),
+          },
+          responses: {
+            '200': {
+              description: 'Updated.',
+              content: jsonContent(toSchema(meResponseSchema, 'output')),
+            },
+            '400': errorResponse('validation_failed (e.g. unknown IANA zone) or invalid_json.'),
+            '401': errorResponse('Missing or invalid session.'),
+          },
+        },
+      },
+      '/v1/me/sessions': {
+        get: {
+          tags: ['me'],
+          summary: 'List the current user’s live sessions',
+          security: [{ bearerAuth: [] }],
+          responses: {
+            '200': {
+              description: 'Live sessions, newest first; `current` marks this one.',
+              content: jsonContent(toSchema(meSessionsResponseSchema, 'output')),
+            },
             '401': errorResponse('Missing or invalid session.'),
           },
         },
