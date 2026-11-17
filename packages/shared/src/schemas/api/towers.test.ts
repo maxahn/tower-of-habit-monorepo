@@ -15,11 +15,31 @@ import {
 // constraints on towers/schema.ts. hostId comes from auth; lifecycle, height,
 // currentStreak and joinCode are server-owned.
 
-const BODY = { name: 'Morning crew', deadlineTime: '22:00', timezone: 'America/Edmonton' };
+// 2.13: creation also binds the creator's chosen habit, so habitId is required.
+const BODY = {
+  name: 'Morning crew',
+  deadlineTime: '22:00',
+  timezone: 'America/Edmonton',
+  habitId: '9b2e4c1a-0d6f-4f7e-8a3b-2c5d6e7f8a90',
+};
 
 describe('createTowerRequestSchema', () => {
   it('accepts a minimal daily tower', () => {
     expect(createTowerRequestSchema.parse(BODY)).toMatchObject(BODY);
+  });
+
+  it('requires the creator’s habitId (2.13)', () => {
+    const { habitId, ...rest } = BODY;
+    void habitId;
+    expect(createTowerRequestSchema.safeParse(rest).success).toBe(false);
+    expect(createTowerRequestSchema.safeParse({ ...BODY, habitId: 'h1' }).success).toBe(false);
+  });
+
+  it('defaults grace and wobble lead to 120 minutes', () => {
+    expect(createTowerRequestSchema.parse(BODY)).toMatchObject({
+      graceWindowMinutes: 120,
+      wobbleLeadMinutes: 120,
+    });
   });
 
   it('accepts every optional field', () => {
