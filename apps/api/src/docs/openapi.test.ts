@@ -36,6 +36,7 @@ const EXPECTED_PATHS = [
   '/v1/towers/{id}',
   '/v1/towers/join',
   '/v1/towers/{id}/memberships/{membershipId}',
+  '/v1/towers/{id}/start',
 ] as const;
 
 describe('buildOpenApiDocument', () => {
