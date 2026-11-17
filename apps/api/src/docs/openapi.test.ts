@@ -40,6 +40,7 @@ const EXPECTED_PATHS = [
   '/v1/entries',
   '/v1/habits/{id}/entries',
   '/v1/towers/{id}/period',
+  '/v1/internal/towers/{towerId}/periods/{periodId}/evaluate',
 ] as const;
 
 describe('buildOpenApiDocument', () => {
