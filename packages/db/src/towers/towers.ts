@@ -52,6 +52,19 @@ export async function createTower(db: Db, input: NewTower): Promise<Tower> {
   return row!;
 }
 
+/**
+ * 2.14: join-by-code lookup. join_code is citext, so the match is
+ * case-insensitive; the explicit ::citext cast keeps it so even if the driver
+ * sends the parameter as text (see findUserByEmail). Trimmed, nothing else.
+ */
+export async function findTowerByJoinCode(db: Db, code: string): Promise<Tower | undefined> {
+  const [row] = await db
+    .select()
+    .from(towers)
+    .where(sql`${towers.joinCode} = ${code.trim()}::citext`);
+  return row;
+}
+
 export async function getTower(db: Db, id: string): Promise<Tower | undefined> {
   const [row] = await db.select().from(towers).where(eq(towers.id, id));
   return row;

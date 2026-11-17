@@ -1,6 +1,7 @@
 import {
   createHabitRequestSchema,
   createTowerRequestSchema,
+  joinTowerRequestSchema,
   towerDetailResponseSchema,
   towerListResponseSchema,
   habitDetailResponseSchema,
@@ -254,6 +255,54 @@ function towerPaths(): Record<string, Json> {
             content: jsonContent(toSchema(towerListResponseSchema, 'output')),
           },
           '401': UNAUTHENTICATED,
+        },
+      },
+    },
+    '/v1/towers/join': {
+      post: {
+        tags: ['towers'],
+        summary: 'Join a tower by code',
+        description:
+          'Lobby only. The code is case-insensitive. The habit must be the caller’s, not archived, of the tower’s cadence, and not committed elsewhere.',
+        security: AUTHED,
+        requestBody: {
+          required: true,
+          content: jsonContent(toSchema(joinTowerRequestSchema, 'input')),
+        },
+        responses: {
+          '201': towerDetailResponse('Joined; the lobby shape.'),
+          '400': errorResponse('validation_failed or invalid_json.'),
+          '401': UNAUTHENTICATED,
+          '404': errorResponse('not_found — unknown code, or the habit is not the caller’s.'),
+          '409': errorResponse(
+            'tower_not_joinable, already_member, habit_already_committed, habit_cadence_mismatch or habit_archived.'
+          ),
+          '429': rateLimitedResponse('10 per user and 30 per client IP per hour'),
+        },
+      },
+    },
+    '/v1/towers/{id}/memberships/{membershipId}': {
+      delete: {
+        tags: ['towers'],
+        summary: 'Leave, or remove a member (lobby only)',
+        description:
+          'A member may remove themselves; the creator may remove anyone. The creator cannot leave while others remain; leaving alone disbands the lobby.',
+        security: AUTHED,
+        parameters: [
+          ID_PARAM,
+          {
+            name: 'membershipId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+          },
+        ],
+        responses: {
+          '204': { description: 'Removed.' },
+          '401': UNAUTHENTICATED,
+          '403': errorResponse('forbidden — only the creator removes others.'),
+          '404': TOWER_NOT_FOUND,
+          '409': errorResponse('creator_cannot_leave or tower_not_in_lobby.'),
         },
       },
     },
