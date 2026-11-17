@@ -28,6 +28,10 @@ const EXPECTED_PATHS = [
   '/v1/auth/sessions/revoke-all',
   '/v1/me',
   '/v1/me/sessions',
+  '/v1/habits',
+  '/v1/habits/{id}',
+  '/v1/habits/{id}/tiers',
+  '/v1/habits/{id}/archive',
 ] as const;
 
 describe('buildOpenApiDocument', () => {
