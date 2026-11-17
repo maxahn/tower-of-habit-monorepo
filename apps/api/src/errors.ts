@@ -37,7 +37,9 @@ export class DomainError extends Error {
     readonly status: ContentfulStatusCode,
     readonly code: string,
     message: string,
-    readonly details?: unknown
+    readonly details?: unknown,
+    /** Extra response headers, e.g. Retry-After on a 429. */
+    readonly headers?: Record<string, string>
   ) {
     super(message);
     this.name = 'DomainError';
@@ -107,7 +109,7 @@ const MESSAGE_BY_STATUS: Partial<Record<number, string>> = {
 export function handleError(logger: Logger): ErrorHandler {
   return (err, c) => {
     if (err instanceof DomainError) {
-      return c.json(errorBody(err.code, err.message, err.details), err.status);
+      return c.json(errorBody(err.code, err.message, err.details), err.status, err.headers);
     }
     if (err instanceof z.ZodError) {
       return c.json(

@@ -57,6 +57,17 @@ describe('error envelope: DomainError', () => {
     expect((await readErrorBody(res2)).error).not.toHaveProperty('details');
   });
 
+  it('sends the DomainError headers on the response (e.g. Retry-After on 429)', async () => {
+    const { app } = appThrowing(
+      () =>
+        new DomainError(429, 'too_many_requests', 'Slow down', undefined, { 'Retry-After': '42' })
+    );
+    const res = await app.request('/v1/boom', { headers: AUTH_HEADER });
+    expect(res.status).toBe(429);
+    expect(res.headers.get('retry-after')).toBe('42');
+    expect((await readErrorBody(res)).error.code).toBe('too_many_requests');
+  });
+
   it('does not log a DomainError at error level (it is expected behaviour)', async () => {
     const { app, logger } = appThrowing(() => new DomainError(409, 'already_logged', 'nope'));
     await app.request('/v1/boom', { headers: AUTH_HEADER });

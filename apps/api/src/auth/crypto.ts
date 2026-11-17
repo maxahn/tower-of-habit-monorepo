@@ -34,6 +34,14 @@ export function hashToken(token: string): string {
   return sha256Hex(token);
 }
 
+/**
+ * SHA-256 hex digest of a normalised email, for keys stored outside Postgres
+ * (rate-limit counters in Redis), so no raw address sits in Redis.
+ */
+export function hashEmail(email: string): string {
+  return sha256Hex(email);
+}
+
 /** A session token: 32 bytes of CSPRNG output, base64url-encoded (no padding). */
 export function generateSessionToken(): string {
   return randomBytes(32).toString('base64url');

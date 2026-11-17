@@ -1,9 +1,17 @@
 import { verifyCodeResponseSchema } from '@tower-of-habit/shared';
-import type { Hono } from 'hono';
+import type { Context, Hono } from 'hono';
 import { describe, expect, it, vi } from 'vitest';
 import type { AppEnv } from '../app.js';
-import { buildTestApp, readErrorBody } from '../testing/harness.js';
-import { mountAuthedAuthRoutes, mountPublicAuthRoutes } from './routes.js';
+import type { RateLimiter } from '../rate-limit/limiter.js';
+import { createFailingRateLimiter, createMemoryRateLimiter } from '../rate-limit/testing.js';
+import { buildTestApp, createMemoryLogger, readErrorBody } from '../testing/harness.js';
+import {
+  mountAuthedAuthRoutes,
+  mountPublicAuthRoutes,
+  REQUEST_CODE_PER_EMAIL,
+  REQUEST_CODE_PER_IP,
+  VERIFY_CODE_PER_EMAIL,
+} from './routes.js';
 import type { AuthService, AuthUser } from './service.js';
 import { createSessionMiddleware } from './session-middleware.js';
 import { createFakeAuthService } from './testing.js';
@@ -39,10 +47,23 @@ const json = (body: unknown) => ({
   body: JSON.stringify(body),
 });
 
-function publicApp(authService: AuthService) {
+/**
+ * Rate-limit deps for tests: an in-memory limiter on a movable clock, its own
+ * memory logger, and the client IP read from an `x-test-ip` header (null when
+ * absent, so the IP rule is skipped).
+ */
+function testRateLimit(limiter: RateLimiter = createMemoryRateLimiter()) {
+  return {
+    limiter,
+    logger: createMemoryLogger(),
+    clientIp: (c: Context) => c.req.header('x-test-ip') ?? null,
+  };
+}
+
+function publicApp(authService: AuthService, rateLimit = testRateLimit()) {
   // auth stays the default test auth; public routes must bypass it entirely.
   return buildTestApp({
-    mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService }),
+    mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService, rateLimit }),
   });
 }
 
@@ -199,7 +220,8 @@ describe('end-to-end: request → verify → authenticated route → logout', ()
     const authService = createFakeAuthService();
     const harness = buildTestApp({
       auth: createSessionMiddleware(authService),
-      mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService }),
+      mountPublicRoutes: (api) =>
+        mountPublicAuthRoutes(api, { authService, rateLimit: testRateLimit() }),
       mountRoutes: (api) => {
         mountAuthedAuthRoutes(api, { authService });
         api.get('/me', (c) => c.json({ userId: c.get('userId') }));
@@ -269,5 +291,118 @@ describe('end-to-end: request → verify → authenticated route → logout', ()
     );
     expect(second.status).toBe(401);
     expect((await readErrorBody(second)).error.code).toBe('invalid_code');
+  });
+});
+
+describe('rate limiting (2.18)', () => {
+  const FIFTEEN_MIN_MS = 15 * 60 * 1000;
+
+  function limitedApp(authService: AuthService = fakeService()) {
+    let now = Date.parse('2026-11-16T12:00:00.000Z');
+    const rateLimit = testRateLimit(createMemoryRateLimiter(() => now));
+    const { app } = publicApp(authService, rateLimit);
+    return { app, authService, advance: (ms: number) => (now += ms) };
+  }
+
+  const requestCode = (app: Hono<AppEnv>, email: string, ip?: string) =>
+    app.request('/v1/auth/request-code', {
+      ...json({ email }),
+      headers: { 'content-type': 'application/json', ...(ip && { 'x-test-ip': ip }) },
+    });
+
+  const verify = (app: Hono<AppEnv>, email: string) =>
+    app.request('/v1/auth/verify-code', json({ email, code: '000000' }));
+
+  it('uses the spec limits: 3/15m per email and 10/15m per IP on request-code, 10/15m per email on verify-code', () => {
+    expect(REQUEST_CODE_PER_EMAIL).toMatchObject({ limit: 3, windowSeconds: 900 });
+    expect(REQUEST_CODE_PER_IP).toMatchObject({ limit: 10, windowSeconds: 900 });
+    expect(VERIFY_CODE_PER_EMAIL).toMatchObject({ limit: 10, windowSeconds: 900 });
+  });
+
+  it('answers the 4th request-code for one email with 429 and Retry-After, without sending', async () => {
+    const { app, authService } = limitedApp();
+    for (let i = 0; i < 3; i++) {
+      expect((await requestCode(app, 'me@example.com')).status).toBe(202);
+    }
+
+    const res = await requestCode(app, 'me@example.com');
+
+    expect(res.status).toBe(429);
+    expect((await readErrorBody(res)).error.code).toBe('too_many_requests');
+    expect(Number(res.headers.get('retry-after'))).toBe(900);
+    expect(authService.requestCode).toHaveBeenCalledTimes(3);
+  });
+
+  it('counts the per-email limit on the normalised address', async () => {
+    const { app } = limitedApp();
+    await requestCode(app, 'me@example.com');
+    await requestCode(app, ' ME@example.com');
+    await requestCode(app, 'Me@Example.com ');
+    expect((await requestCode(app, 'me@EXAMPLE.com')).status).toBe(429);
+  });
+
+  it('keeps emails independent', async () => {
+    const { app } = limitedApp();
+    for (let i = 0; i < 4; i++) await requestCode(app, 'me@example.com');
+    expect((await requestCode(app, 'other@example.com')).status).toBe(202);
+  });
+
+  it('limits request-code to 10 per IP across different emails', async () => {
+    const { app } = limitedApp();
+    for (let i = 0; i < 10; i++) {
+      expect((await requestCode(app, `u${i}@example.com`, '203.0.113.7')).status).toBe(202);
+    }
+    expect((await requestCode(app, 'u10@example.com', '203.0.113.7')).status).toBe(429);
+    expect((await requestCode(app, 'u10@example.com', '198.51.100.1')).status).toBe(202);
+  });
+
+  it('skips the IP rule when the client IP is unknown', async () => {
+    const { app } = limitedApp();
+    for (let i = 0; i < 11; i++) {
+      expect((await requestCode(app, `u${i}@example.com`)).status).toBe(202);
+    }
+  });
+
+  it('allows requests again once the window has passed', async () => {
+    const { app, advance } = limitedApp();
+    for (let i = 0; i < 4; i++) await requestCode(app, 'me@example.com');
+
+    advance(FIFTEEN_MIN_MS - 1000);
+    const limited = await requestCode(app, 'me@example.com');
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get('retry-after')).toBe('1');
+
+    advance(1000);
+    expect((await requestCode(app, 'me@example.com')).status).toBe(202);
+  });
+
+  it('answers the 11th verify-code for one email with 429, without verifying', async () => {
+    const { app, authService } = limitedApp();
+    for (let i = 0; i < 10; i++) {
+      expect((await verify(app, 'me@example.com')).status).toBe(401);
+    }
+
+    const res = await verify(app, 'me@example.com');
+
+    expect(res.status).toBe(429);
+    expect((await readErrorBody(res)).error.code).toBe('too_many_requests');
+    expect(res.headers.get('retry-after')).toBe('900');
+    expect(authService.verifyCode).toHaveBeenCalledTimes(10);
+  });
+
+  it('fails open when the limiter is unavailable, logging a warning', async () => {
+    const authService = fakeService();
+    const rateLimit = testRateLimit(createFailingRateLimiter());
+    const { app } = publicApp(authService, rateLimit);
+
+    for (let i = 0; i < 5; i++) {
+      expect((await requestCode(app, 'me@example.com', '203.0.113.7')).status).toBe(202);
+    }
+    expect((await verify(app, 'me@example.com')).status).toBe(401);
+
+    expect(authService.requestCode).toHaveBeenCalledTimes(5);
+    const warns = rateLimit.logger.lines.filter((l) => l.level === 'warn');
+    expect(warns).toHaveLength(11); // 5 × (ip + email) + 1 verify
+    expect(warns[0]).toMatchObject({ msg: 'rate limiter unavailable; allowing' });
   });
 });

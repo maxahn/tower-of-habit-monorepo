@@ -8,6 +8,8 @@ import { createLogLoginCodeSender } from './auth/sender.js';
 import { createAuthService } from './auth/service.js';
 import { createSessionMiddleware } from './auth/session-middleware.js';
 import { createJsonLogger } from './logger.js';
+import { createClientIpResolver } from './rate-limit/client-ip.js';
+import { createRedisRateLimiter } from './rate-limit/limiter.js';
 import { createGracefulShutdown, installSignalHandlers } from './shutdown.js';
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
@@ -53,6 +55,15 @@ const authService = createAuthService({
   sessionTtlSeconds: SESSION_TTL_SECONDS,
 });
 
+// Shares the client above: no offline queue and one retry, so a Redis outage
+// fails fast and the limits fail open (rate-limit/enforce.ts).
+const rateLimit = {
+  limiter: createRedisRateLimiter(redis),
+  logger,
+  // Set only behind a proxy that overwrites the header (Caddy: x-real-ip).
+  clientIp: createClientIpResolver({ trustedHeader: env.TRUSTED_IP_HEADER }),
+};
+
 const app = createApp({
   logger,
   auth: createSessionMiddleware(authService),
@@ -62,7 +73,7 @@ const app = createApp({
   isDraining: () => shutdown.isDraining(),
   corsOrigins,
   bodyLimitBytes,
-  mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService }),
+  mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService, rateLimit }),
   mountRoutes: (api) => mountAuthedAuthRoutes(api, { authService }),
 });
 

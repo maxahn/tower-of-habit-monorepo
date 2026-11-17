@@ -81,12 +81,10 @@ export type AuthServiceDeps = {
 };
 
 /**
- * The real, Postgres-backed auth service.
- *
- * NOTE(2.9, Pass 1): the factory and its dependency wiring are real, but the
- * method bodies are deferred to Pass 3. The db query helpers it composes
- * (invalidateCodesForEmail, consumeCode, createSession, …) are themselves
- * Pass-1 stubs, covered by the db package's own tests.
+ * The real, Postgres-backed auth service. Login and signup share one flow:
+ * request-code issues a code for any email (always the same work, so account
+ * existence is never revealed), and verify-code creates the user on first
+ * successful verify. Abuse (code spam) is bounded by rate limiting (2.18).
  */
 export function createAuthService(deps: AuthServiceDeps): AuthService {
   const { db, sender, codeTtlSeconds, sessionTtlSeconds } = deps;

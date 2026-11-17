@@ -26,6 +26,10 @@ services:
     image: tower-api:${TOWER_VERSION:-latest}
     restart: unless-stopped
     env_file: ['${ENV_FILE:-.env}']
+    environment:
+      # Only Caddy publishes ports and it sets X-Real-IP from {remote_host}, so
+      # the header is trustworthy here; the per-IP rate limit keys on it.
+      TRUSTED_IP_HEADER: x-real-ip
     networks: [edge, internal]
     depends_on:
       postgres: { condition: service_healthy }

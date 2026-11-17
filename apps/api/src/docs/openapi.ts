@@ -74,6 +74,17 @@ const errorResponse = (description: string): Json => ({
   content: jsonContent(ERROR_REF),
 });
 
+// 2.18: fixed 15-minute windows; see auth/routes.ts for the rule constants.
+const rateLimitedResponse = (limits: string): Json => ({
+  ...errorResponse(`too_many_requests — rate limited (${limits}).`),
+  headers: {
+    'Retry-After': {
+      description: 'Seconds until the rate-limit window resets.',
+      schema: { type: 'integer', minimum: 1 },
+    },
+  },
+});
+
 export function buildOpenApiDocument(): Json {
   return {
     openapi: OPENAPI_VERSION,
@@ -149,6 +160,7 @@ export function buildOpenApiDocument(): Json {
             '202': { description: 'Accepted. A code is sent if the address can receive one.' },
             '400': errorResponse('validation_failed (bad email) or invalid_json.'),
             '413': errorResponse('Request body too large.'),
+            '429': rateLimitedResponse('3 per email and 10 per client IP per 15 minutes'),
           },
         },
       },
@@ -172,6 +184,7 @@ export function buildOpenApiDocument(): Json {
             ),
             '400': errorResponse('validation_failed or invalid_json.'),
             '413': errorResponse('Request body too large.'),
+            '429': rateLimitedResponse('10 per email per 15 minutes'),
           },
         },
       },

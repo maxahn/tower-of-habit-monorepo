@@ -61,6 +61,19 @@ describe('buildOpenApiDocument', () => {
     );
   });
 
+  it('documents 429 with Retry-After on the rate-limited auth routes', () => {
+    for (const path of ['/v1/auth/request-code', '/v1/auth/verify-code']) {
+      const limited = doc.paths[path]!.post!.responses['429'] as {
+        headers: Record<string, unknown>;
+        content: { 'application/json': { schema: { $ref: string } } };
+      };
+      expect(limited.headers['Retry-After']).toBeDefined();
+      expect(limited.content['application/json'].schema.$ref).toBe(
+        '#/components/schemas/ErrorResponse'
+      );
+    }
+  });
+
   it('describes the verify-code request and success bodies from the zod schemas', () => {
     const post = doc.paths['/v1/auth/verify-code']!.post!;
     const reqSchema = (
