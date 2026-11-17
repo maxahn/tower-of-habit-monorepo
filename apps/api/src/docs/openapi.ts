@@ -5,6 +5,7 @@ import {
   joinTowerRequestSchema,
   logEntryRequestSchema,
   logEntryResponseSchema,
+  periodPreviewResponseSchema,
   towerDetailResponseSchema,
   towerListResponseSchema,
   habitDetailResponseSchema,
@@ -323,6 +324,25 @@ function towerPaths(): Record<string, Json> {
           '403': errorResponse('forbidden — not the creator.'),
           '404': TOWER_NOT_FOUND,
           '409': errorResponse('tower_too_small or habit_cadence_mismatch.'),
+        },
+      },
+    },
+    '/v1/towers/{id}/period': {
+      get: {
+        tags: ['towers'],
+        summary: 'Preview the current period',
+        description:
+          'The current period’s live state from the same evaluator the evaluation job uses, at the request instant. Read-only: nothing is persisted, even when the computed status is collapsed.',
+        security: AUTHED,
+        parameters: [ID_PARAM],
+        responses: {
+          '200': {
+            description: 'OK.',
+            content: jsonContent(toSchema(periodPreviewResponseSchema, 'output')),
+          },
+          '401': UNAUTHENTICATED,
+          '404': TOWER_NOT_FOUND,
+          '409': errorResponse('tower_not_started.'),
         },
       },
     },

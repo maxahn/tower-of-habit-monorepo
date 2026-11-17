@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** 2.17 Period preview.
+**Next task:** 2.18 Rate limiting and abuse controls.
 
 **Blockers:** none. Postgres (`localhost:5433`, `tower_test`) and Redis are reachable via
 `pnpm dev:up`; `pnpm migrate:test` has been applied.
@@ -15,3 +15,4 @@
 - 2.14 Join, leave, remove: `POST /v1/towers/join`, `DELETE /v1/towers/:id/memberships/:membershipId` (lobby only; creator alone disbands); db `findTowerByJoinCode`.
 - 2.15 Tower start: `POST /v1/towers/:id/start` (creator only, ≥ 2 members, period 1 via `computePeriodWindow`, next-day rule, idempotent); `apps/api/src/towers/periods.ts` (`periodWindowFor`, `firstPeriodStart`, `periodInsert`); db `activateTower`.
 - 2.16 Logging entries: `POST /v1/entries`, `GET /v1/habits/:id/entries` (`apps/api/src/entries/routes.ts`: D3 zones, optional validated `localDate`, computed `source`, 2.3 qualification, dormant-return on a qualifying log); db `recordEntry`; shared `logEntryResponseSchema`, `entryListResponseSchema`.
+- 2.17 Period preview: `GET /v1/towers/:id/period` (read-only `evaluatePeriod` at `ctx.now`); `apps/api/src/evaluation/input.ts` (`loadEvaluationInput`, shared with 2.19); shared `periodPreviewResponseSchema`, `currentRunStart`; db `countQualifyingDays`.

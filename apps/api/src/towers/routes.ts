@@ -9,14 +9,18 @@ import {
   getHabit,
   getMembership,
   JoinCodeExhaustedError,
+  listPeriodsForTower,
   listTowerMembers,
   listTowersForUser,
 } from '@tower-of-habit/db';
 import {
   createTowerRequestSchema,
   joinTowerRequestSchema,
+  type PeriodPreviewResponse,
   type TowerListResponse,
 } from '@tower-of-habit/shared';
+import { evaluatePeriod } from '@tower-of-habit/shared/evaluator';
+import { loadEvaluationInput } from '../evaluation/input.js';
 import type { Hono } from 'hono';
 import type { AppEnv } from '../app.js';
 import { withTx, type TxRunner } from '../context.js';
@@ -39,6 +43,10 @@ import { bindableHabit, memberOf, towerDetail } from './service.js';
  * 2.15: POST /towers/:id/start — creator only, >= 2 members, lobby -> active
  * with period 1 materialised in the same transaction. Idempotent on an active
  * tower.
+ *
+ * 2.17: GET /towers/:id/period — the current period through evaluatePeriod
+ * with ctx.now. Read-only: even a computed `collapsed` writes nothing; that is
+ * the evaluation job's (2.19).
  *
  * Non-members get 404, never 403: a 403 would confirm the id (or code) is real.
  * An unknown code and a non-joinable tower take the same single lookup, so
@@ -187,6 +195,49 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
         periodInsert(tower.id, periodWindowFor(tower, firstPeriodStart(tower, ctx.now)))
       );
       return c.json(await towerDetail(tx, ctx, started));
+    })
+  );
+
+  api.get('/towers/:id/period', (c) =>
+    withTx(deps.db, c, async (tx, ctx) => {
+      const { tower } = await memberOf(tx, ctx, c.req.param('id'));
+      if (tower.lifecycle === 'draft') {
+        throw new DomainError(409, 'tower_not_started', 'The tower has not started');
+      }
+      const [period] = await listPeriodsForTower(tx, tower.id, 1);
+      if (!period) {
+        throw new DomainError(409, 'tower_not_started', 'The tower has no period');
+      }
+      const loaded = await loadEvaluationInput(tx, tower, period, ctx.now);
+      const out = evaluatePeriod(loaded.input);
+      const body: PeriodPreviewResponse = {
+        period: period as unknown as PeriodPreviewResponse['period'],
+        window: loaded.window,
+        now: ctx.now.toISOString(),
+        periodStatus: out.periodStatus,
+        quota: tower.quota,
+        members: loaded.memberships.map((m, i) => {
+          const o = out.perMember[i]!;
+          return {
+            membershipId: m.id,
+            userId: m.userId,
+            displayName: loaded.names.get(m.id) ?? null,
+            state: m.state,
+            qualifyingDays: loaded.input.members[i]!.qualifyingDays,
+            standing: o.standing,
+            daysNeeded: o.daysNeeded,
+            daysRemaining: o.daysRemaining,
+            slack: o.slack,
+          };
+        }),
+        outstanding:
+          out.periodStatus === 'wobbling'
+            ? out.perMember.filter((o) => o.standing === 'short').map((o) => o.membershipId)
+            : [],
+        height: tower.height,
+        currentStreak: tower.currentStreak,
+      };
+      return c.json(body);
     })
   );
 

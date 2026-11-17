@@ -1,4 +1,4 @@
-import { and, desc, eq, ne, sql, sum } from 'drizzle-orm';
+import { and, countDistinct, desc, eq, gte, lte, ne, sql, sum } from 'drizzle-orm';
 import {
   DEFAULT_GRACE_WINDOW_MINUTES,
   gapFillCandidate,
@@ -406,6 +406,27 @@ export async function dailyNumericTotal(
     .from(entries)
     .where(and(eq(entries.habitId, habitId), eq(entries.localDate, localDate)));
   return Number(row?.total ?? 0);
+}
+
+/** Qualifying days inside an inclusive date range: a member's count for a period. */
+export async function countQualifyingDays(
+  db: Db,
+  habitId: string,
+  from: string,
+  to: string
+): Promise<number> {
+  const [row] = await db
+    .select({ n: countDistinct(entries.localDate) })
+    .from(entries)
+    .where(
+      and(
+        eq(entries.habitId, habitId),
+        eq(entries.countsTowardQuota, true),
+        gte(entries.localDate, from),
+        lte(entries.localDate, to)
+      )
+    );
+  return row?.n ?? 0;
 }
 
 /** The streak read: qualifying rows only, newest first. */
