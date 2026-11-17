@@ -1,6 +1,11 @@
 import { isValidTimeZone, JOIN_CODE_ALPHABET, JOIN_CODE_LENGTH } from '@tower-of-habit/shared';
-import { eq } from 'drizzle-orm';
+import { and, asc, count, eq, ne, sql } from 'drizzle-orm';
 import type { Db } from '../client.js';
+import { habits } from '../habits/schema.js';
+import { isUniqueViolation } from '../pg-errors.js';
+import { users } from '../users/schema.js';
+import { memberships } from './memberships/schema.js';
+import type { MembershipState } from './memberships/schema.js';
 import { towers } from './schema.js';
 
 export type Tower = typeof towers.$inferSelect;
@@ -86,4 +91,107 @@ export async function updateTower(db: Db, id: string, patch: TowerPatch): Promis
 
 export async function deleteTower(db: Db, id: string): Promise<void> {
   await db.delete(towers).where(eq(towers.id, id));
+}
+
+/** 2.13: five attempts at a unique join code is plenty for a 31^8 space. */
+export const JOIN_CODE_ATTEMPTS = 5;
+
+export class JoinCodeExhaustedError extends Error {
+  constructor(readonly attempts: number) {
+    super(`Could not allocate a unique join code in ${attempts} attempts`);
+    this.name = 'JoinCodeExhaustedError';
+  }
+}
+
+/**
+ * createTower with a fresh CSPRNG join code, retried on
+ * towers_join_code_unique up to `attempts` times. Codes are stored
+ * upper-cased (the column is citext, so lookups are case-insensitive either
+ * way; normalising on write keeps the stored form canonical).
+ *
+ * Each attempt runs in its own savepoint, so a collision inside a caller's
+ * transaction does not poison it (a unique violation otherwise aborts the
+ * whole transaction until rollback).
+ */
+export async function createTowerWithFreshCode(
+  db: Db,
+  input: Omit<NewTower, 'joinCode'>,
+  options: { attempts?: number; generate?: () => string } = {}
+): Promise<Tower> {
+  const attempts = options.attempts ?? JOIN_CODE_ATTEMPTS;
+  const generate = options.generate ?? generateJoinCode;
+  for (let i = 0; i < attempts; i++) {
+    const joinCode = generate().toUpperCase();
+    try {
+      return await db.transaction((tx) => createTower(tx, { ...input, joinCode }));
+    } catch (e) {
+      if (!isUniqueViolation(e, 'towers_join_code_unique')) throw e;
+    }
+  }
+  throw new JoinCodeExhaustedError(attempts);
+}
+
+export type TowerListItem = {
+  tower: Tower;
+  membershipState: MembershipState;
+  /** Live (non-removed) memberships. */
+  memberCount: number;
+};
+
+/** Towers the user holds a live membership in, oldest first (GET /towers). */
+export async function listTowersForUser(db: Db, userId: string): Promise<TowerListItem[]> {
+  const mine = await db
+    .select({ tower: towers, membershipState: memberships.state })
+    .from(memberships)
+    .innerJoin(towers, eq(towers.id, memberships.towerId))
+    .where(and(eq(memberships.userId, userId), ne(memberships.state, 'removed')))
+    .orderBy(asc(towers.createdAt), asc(towers.id));
+  const out: TowerListItem[] = [];
+  for (const row of mine) {
+    const [c] = await db
+      .select({ n: count() })
+      .from(memberships)
+      .where(and(eq(memberships.towerId, row.tower.id), ne(memberships.state, 'removed')));
+    out.push({ tower: row.tower, membershipState: row.membershipState, memberCount: c?.n ?? 0 });
+  }
+  return out;
+}
+
+export type TowerMemberRow = {
+  membershipId: string;
+  userId: string;
+  displayName: string | null;
+  habitId: string;
+  habitName: string;
+  habitType: (typeof habits.$inferSelect)['type'];
+  state: MembershipState;
+  joinedAt: Date;
+};
+
+/**
+ * The roster as the lobby and tower views show it: every live membership
+ * joined to its user and habit, the host first and then by join time.
+ */
+export async function listTowerMembers(db: Db, towerId: string): Promise<TowerMemberRow[]> {
+  return db
+    .select({
+      membershipId: memberships.id,
+      userId: memberships.userId,
+      displayName: users.displayName,
+      habitId: memberships.habitId,
+      habitName: habits.name,
+      habitType: habits.type,
+      state: memberships.state,
+      joinedAt: memberships.joinedAt,
+    })
+    .from(memberships)
+    .innerJoin(towers, eq(towers.id, memberships.towerId))
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .innerJoin(habits, eq(habits.id, memberships.habitId))
+    .where(and(eq(memberships.towerId, towerId), ne(memberships.state, 'removed')))
+    .orderBy(
+      sql`case when ${memberships.userId} = ${towers.hostId} then 0 else 1 end`,
+      asc(memberships.joinedAt),
+      asc(memberships.id)
+    );
 }

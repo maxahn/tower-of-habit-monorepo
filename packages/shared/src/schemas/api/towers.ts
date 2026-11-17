@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { periodTypeSchema, towerStatusSchema } from '../enums.js';
+import {
+  habitTypeSchema,
+  membershipStateSchema,
+  periodTypeSchema,
+  towerStatusSchema,
+} from '../enums.js';
+import { baseBlockResponseSchema, towerPeriodResponseSchema } from './periods-blocks.js';
 import {
   displayText,
   ianaTimeZone,
@@ -29,6 +35,8 @@ export const JOIN_CODE_LENGTH = 8;
  */
 export const DEFAULT_WOBBLE_LEAD_MINUTES = 120;
 export const DEFAULT_NUDGE_LEAD_MINUTES = 240;
+/** towers.grace_window_minutes default (DR-001); equals DEFAULT_GRACE_WINDOW_MINUTES in time/local-date.ts. */
+const DEFAULT_GRACE_WINDOW_MINUTES_API = 120;
 
 const MINUTES_PER_DAY = 1440;
 
@@ -121,8 +129,22 @@ function checkTowerRules(v: TowerRules, ctx: z.RefinementCtx, withDefaults: bool
   }
 }
 
+/**
+ * POST /towers (2.13). Creation also binds the creator's chosen habit, so
+ * habitId is required. Grace and wobble lead default to 120 minutes here
+ * (the db defaults) so the response never surprises the client.
+ */
 export const createTowerRequestSchema = z
-  .strictObject(towerFields)
+  .strictObject({
+    ...towerFields,
+    habitId: uuid,
+    graceWindowMinutes: z.int().min(0).max(360).default(DEFAULT_GRACE_WINDOW_MINUTES_API),
+    wobbleLeadMinutes: z
+      .int()
+      .min(0)
+      .max(MINUTES_PER_DAY - 1)
+      .default(DEFAULT_WOBBLE_LEAD_MINUTES),
+  })
   .superRefine((v, ctx) => checkTowerRules(v, ctx, true));
 export type CreateTowerRequest = z.infer<typeof createTowerRequestSchema>;
 
@@ -161,3 +183,62 @@ export const towerResponseSchema = z.object({
   createdAt: timestamp,
 });
 export type TowerResponse = z.infer<typeof towerResponseSchema>;
+
+/*
+ * 2.13: GET /towers and GET /towers/:id. The detail has two shapes, keyed on
+ * `kind`: a lobby carries the join code and nothing about periods; an active
+ * (or paused/archived) tower carries its current period and block stack and
+ * never the join code. Both are member-only.
+ */
+
+export const towerMemberSchema = z.strictObject({
+  membershipId: uuid,
+  userId: uuid,
+  displayName: z.string().nullable(),
+  habitId: uuid,
+  habitName: displayText,
+  habitType: habitTypeSchema,
+  state: membershipStateSchema,
+  joinedAt: timestamp,
+});
+export type TowerMember = z.infer<typeof towerMemberSchema>;
+
+export const towerRoleSchema = z.enum(['host', 'member']);
+export type TowerRole = z.infer<typeof towerRoleSchema>;
+
+const towerWithoutCode = towerResponseSchema.omit({ joinCode: true });
+
+export const towerLobbyResponseSchema = z.strictObject({
+  kind: z.literal('lobby'),
+  tower: towerResponseSchema,
+  members: z.array(towerMemberSchema),
+  role: towerRoleSchema,
+  joinCode: z.string(),
+});
+export type TowerLobbyResponse = z.infer<typeof towerLobbyResponseSchema>;
+
+export const towerActiveResponseSchema = z.strictObject({
+  kind: z.literal('active'),
+  tower: towerWithoutCode,
+  members: z.array(towerMemberSchema),
+  role: towerRoleSchema,
+  /** The latest materialised period; null if none exists yet. */
+  currentPeriod: towerPeriodResponseSchema.nullable(),
+  /** Oldest first. */
+  blocks: z.array(baseBlockResponseSchema),
+});
+export type TowerActiveResponse = z.infer<typeof towerActiveResponseSchema>;
+
+export const towerDetailResponseSchema = z.discriminatedUnion('kind', [
+  towerLobbyResponseSchema,
+  towerActiveResponseSchema,
+]);
+export type TowerDetailResponse = z.infer<typeof towerDetailResponseSchema>;
+
+export const towerListItemSchema = z.strictObject({
+  tower: towerWithoutCode,
+  membershipState: membershipStateSchema,
+  memberCount: nonNegativeInt,
+});
+export const towerListResponseSchema = z.strictObject({ towers: z.array(towerListItemSchema) });
+export type TowerListResponse = z.infer<typeof towerListResponseSchema>;

@@ -12,6 +12,7 @@ import type { Logger } from './logger.js';
 import { mountMeRoutes } from './me/routes.js';
 import type { ClientIpResolver } from './rate-limit/client-ip.js';
 import type { RateLimiter } from './rate-limit/limiter.js';
+import { mountTowerRoutes } from './towers/routes.js';
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
 export const CODE_TTL_SECONDS = 10 * 60; // 10 minutes
@@ -59,6 +60,7 @@ export function composeApp(deps: ComposeDeps): Hono<AppEnv> {
       mountAuthedAuthRoutes(api, { authService });
       mountMeRoutes(api, { db: deps.db });
       mountHabitRoutes(api, { db: deps.db });
+      mountTowerRoutes(api, { db: deps.db });
     },
   });
 }

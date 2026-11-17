@@ -1,5 +1,8 @@
 import {
   createHabitRequestSchema,
+  createTowerRequestSchema,
+  towerDetailResponseSchema,
+  towerListResponseSchema,
   habitDetailResponseSchema,
   habitListResponseSchema,
   meResponseSchema,
@@ -209,6 +212,69 @@ function habitPaths(): Record<string, Json> {
   };
 }
 
+const towerDetailResponse = (description: string): Json => ({
+  description,
+  content: jsonContent(toSchema(towerDetailResponseSchema, 'output')),
+});
+const TOWER_NOT_FOUND = errorResponse(
+  'not_found — unknown id, or the caller is not a member (never 403).'
+);
+
+// 2.13
+function towerPaths(): Record<string, Json> {
+  return {
+    '/v1/towers': {
+      post: {
+        tags: ['towers'],
+        summary: 'Create a tower (lobby)',
+        description:
+          'Creates the tower in the lobby with the creator as host, bound through the given habit (owned, not archived, same cadence, not committed elsewhere).',
+        security: AUTHED,
+        requestBody: {
+          required: true,
+          content: jsonContent(toSchema(createTowerRequestSchema, 'input')),
+        },
+        responses: {
+          '201': towerDetailResponse('Created, in the lobby shape.'),
+          '400': errorResponse('validation_failed or invalid_json.'),
+          '401': UNAUTHENTICATED,
+          '404': errorResponse('not_found — the habit is not the caller’s.'),
+          '409': errorResponse(
+            'habit_already_committed, habit_cadence_mismatch or habit_archived.'
+          ),
+        },
+      },
+      get: {
+        tags: ['towers'],
+        summary: 'List my towers',
+        security: AUTHED,
+        responses: {
+          '200': {
+            description: 'Towers the caller is a live member of.',
+            content: jsonContent(toSchema(towerListResponseSchema, 'output')),
+          },
+          '401': UNAUTHENTICATED,
+        },
+      },
+    },
+    '/v1/towers/{id}': {
+      get: {
+        tags: ['towers'],
+        summary: 'A tower, as a member sees it',
+        description:
+          'Two shapes keyed on `kind`: `lobby` (with the join code) while in the lobby; `active` (current period, block stack, no join code) afterwards.',
+        security: AUTHED,
+        parameters: [ID_PARAM],
+        responses: {
+          '200': towerDetailResponse('OK.'),
+          '401': UNAUTHENTICATED,
+          '404': TOWER_NOT_FOUND,
+        },
+      },
+    },
+  };
+}
+
 export function buildOpenApiDocument(): Json {
   return {
     openapi: OPENAPI_VERSION,
@@ -225,6 +291,7 @@ export function buildOpenApiDocument(): Json {
       { name: 'auth', description: 'Passwordless email-OTP authentication.' },
       { name: 'me', description: 'The authenticated user’s profile and sessions.' },
       { name: 'habits', description: 'Habits and their tier ladders.' },
+      { name: 'towers', description: 'Towers: lobby, membership, start, period and evaluation.' },
     ],
     paths: {
       '/healthz': {
@@ -384,6 +451,7 @@ export function buildOpenApiDocument(): Json {
         },
       },
       ...habitPaths(),
+      ...towerPaths(),
     },
     components: {
       securitySchemes: {

@@ -21,7 +21,7 @@ Where a ticket's vocabulary differs from the Phase 1 schema, the mapping is reco
       builder, minted sessions, in-memory code sink, `X-Test-Now`, one command).
 - [x] 2.11 Users and profile (`GET /me`, `PATCH /me`, `GET /me/sessions`).
 - [x] 2.12 Habits and tiers (CRUD, `PUT /habits/:id/tiers`, archive, tower lock rules).
-- [ ] 2.13 Tower creation and lobby (`POST /towers`, `GET /towers`, `GET /towers/:id`).
+- [x] 2.13 Tower creation and lobby (`POST /towers`, `GET /towers`, `GET /towers/:id`).
 - [ ] 2.14 Join, leave, remove (`POST /towers/join`, `DELETE /towers/:id/memberships/:id`).
 - [ ] 2.15 Tower start (`POST /towers/:id/start`, period 1 materialised).
 - [ ] 2.16 Logging entries (`POST /entries`, `GET /habits/:id/entries`).
