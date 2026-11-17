@@ -20,6 +20,7 @@ import { generateSessionToken, hashToken } from '../auth/crypto.js';
 import { createFakeSender, type FakeSender, type SentCode } from '../auth/testing.js';
 import { composeApp, SESSION_TTL_SECONDS } from '../compose.js';
 import { TEST_NOW_HEADER } from '../context.js';
+import type { RateLimiter } from '../rate-limit/limiter.js';
 import { createMemoryRateLimiter } from '../rate-limit/testing.js';
 import { createMemoryLogger, type MemoryLogger } from './harness.js';
 
@@ -126,7 +127,9 @@ let userSeq = 0;
  * Builds the app once per file and truncates every table before each test.
  * Call at module scope, like useTestOwner in the db package.
  */
-export function useIntegrationApp(options: { now?: Date } = {}): IntegrationApp {
+export function useIntegrationApp(
+  options: { now?: Date; limiter?: RateLimiter } = {}
+): IntegrationApp {
   const logger = createMemoryLogger();
   const sender = createFakeSender();
   const clock = testClock(options.now ?? INTEGRATION_NOW);
@@ -136,7 +139,7 @@ export function useIntegrationApp(options: { now?: Date } = {}): IntegrationApp 
     db,
     logger,
     sender,
-    limiter: createMemoryRateLimiter(() => clock.now.getTime()),
+    limiter: options.limiter ?? createMemoryRateLimiter(() => clock.now.getTime()),
     clientIp: (c) => c.req.header('x-test-ip') ?? null,
     readiness: { postgres: async () => undefined, redis: async () => undefined },
     isDraining: () => false,

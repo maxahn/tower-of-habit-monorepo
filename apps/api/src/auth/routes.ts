@@ -15,8 +15,10 @@ import type { AuthService } from './service.js';
  * Fixed 15-minute windows in Redis: request-code 3 per email and 10 per client
  * IP, verify-code 10 per email. Over the limit → 429 too_many_requests with
  * Retry-After. Emails are hashed before they become Redis keys. If Redis is
- * unreachable the limits fail open (enforce.ts). The per-code 5-attempt cap is
- * a separate control: it lives on the auth_codes row and the service enforces it.
+ * unreachable, request-code fails open and verify-code fails CLOSED (2.18):
+ * the limiter is load-bearing for verify, where a 6-digit code is 10^6
+ * candidates. The per-code 5-attempt cap is a separate control: it lives on
+ * the auth_codes row and the service enforces it.
  */
 
 const WINDOW_SECONDS = 15 * 60;
@@ -46,7 +48,8 @@ export type PublicAuthRouteDeps = {
  * Public routes (no session). Mounted on the pre-auth /v1 router.
  *   POST /auth/request-code  → always 202, empty body (no account enumeration)
  *   POST /auth/verify-code   → { token, user }, or 401 invalid_code
- * Both → 429 too_many_requests when rate limited.
+ * Both → 429 too_many_requests when rate limited; verify-code → 503
+ * rate_limiter_unavailable when the limiter is down.
  */
 export function mountPublicAuthRoutes(api: Hono<AppEnv>, deps: PublicAuthRouteDeps): void {
   const { rateLimit } = deps;
@@ -65,7 +68,9 @@ export function mountPublicAuthRoutes(api: Hono<AppEnv>, deps: PublicAuthRouteDe
 
   api.post('/auth/verify-code', jsonBody(verifyCodeRequestSchema), async (c) => {
     const { email, code, timezone } = c.req.valid('json');
-    await enforceRateLimits(rateLimit, [{ rule: VERIFY_CODE_PER_EMAIL, id: hashEmail(email) }]);
+    await enforceRateLimits(rateLimit, [{ rule: VERIFY_CODE_PER_EMAIL, id: hashEmail(email) }], {
+      failClosed: true,
+    });
     const result = await deps.authService.verifyCode({
       email,
       code,

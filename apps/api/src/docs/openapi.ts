@@ -282,6 +282,9 @@ function towerPaths(): Record<string, Json> {
             'tower_not_joinable, already_member, habit_already_committed, habit_cadence_mismatch or habit_archived.'
           ),
           '429': rateLimitedResponse('10 per user and 30 per client IP per hour'),
+          '503': errorResponse(
+            'rate_limiter_unavailable — the limiter is down and this endpoint fails closed.'
+          ),
         },
       },
     },
@@ -517,6 +520,9 @@ export function buildOpenApiDocument(): Json {
             '400': errorResponse('validation_failed or invalid_json.'),
             '413': errorResponse('Request body too large.'),
             '429': rateLimitedResponse('10 per email per 15 minutes'),
+            '503': errorResponse(
+              'rate_limiter_unavailable — the limiter is down and this endpoint fails closed.'
+            ),
           },
         },
       },

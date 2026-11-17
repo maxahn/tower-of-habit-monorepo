@@ -25,6 +25,9 @@ import type { Hono } from 'hono';
 import type { AppEnv } from '../app.js';
 import { withTx, type TxRunner } from '../context.js';
 import { DomainError } from '../errors.js';
+import type { ClientIpResolver } from '../rate-limit/client-ip.js';
+import { enforceRateLimits, type RateLimitDeps } from '../rate-limit/enforce.js';
+import type { RateRule } from '../rate-limit/limiter.js';
 import { jsonBody } from '../validation.js';
 import { firstPeriodStart, periodInsert, periodWindowFor } from './periods.js';
 import { bindableHabit, memberOf, towerDetail } from './service.js';
@@ -53,7 +56,24 @@ import { bindableHabit, memberOf, towerDetail } from './service.js';
  * timing does not distinguish them.
  */
 
-export type TowerRouteDeps = { db: TxRunner };
+export type TowerRouteDeps = {
+  db: TxRunner;
+  rateLimit: RateLimitDeps & { clientIp: ClientIpResolver };
+};
+
+/**
+ * 2.18: join-by-code limits. An 8-character code space is plenty against
+ * random guessing but not against a patient enumerator; the per-user limit is
+ * the real control and the per-IP one catches the rest. Every attempt counts,
+ * and both fail closed: with the limiter down the endpoint refuses (503).
+ */
+const HOUR_SECONDS = 60 * 60;
+export const JOIN_PER_USER: RateRule = {
+  name: 'join:user',
+  limit: 10,
+  windowSeconds: HOUR_SECONDS,
+};
+export const JOIN_PER_IP: RateRule = { name: 'join:ip', limit: 30, windowSeconds: HOUR_SECONDS };
 
 export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void {
   api.post('/towers', jsonBody(createTowerRequestSchema), (c) =>
@@ -107,8 +127,16 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
     })
   );
 
-  api.post('/towers/join', jsonBody(joinTowerRequestSchema), (c) =>
-    withTx(deps.db, c, async (tx, ctx) => {
+  api.post('/towers/join', jsonBody(joinTowerRequestSchema), async (c) => {
+    await enforceRateLimits(
+      deps.rateLimit,
+      [
+        { rule: JOIN_PER_USER, id: c.get('userId') },
+        { rule: JOIN_PER_IP, id: deps.rateLimit.clientIp(c) },
+      ],
+      { failClosed: true }
+    );
+    return withTx(deps.db, c, async (tx, ctx) => {
       const { joinCode, habitId } = c.req.valid('json');
       const tower = await findTowerByJoinCode(tx, joinCode);
       if (!tower) throw new DomainError(404, 'not_found', 'Tower not found');
@@ -122,8 +150,8 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
       const habit = await bindableHabit(tx, ctx, habitId, tower);
       await createMembership(tx, { towerId: tower.id, userId: ctx.userId, habitId: habit.id });
       return c.json(await towerDetail(tx, ctx, tower), 201);
-    })
-  );
+    });
+  });
 
   api.delete('/towers/:id/memberships/:membershipId', (c) =>
     withTx(deps.db, c, async (tx, ctx) => {

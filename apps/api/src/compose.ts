@@ -13,6 +13,7 @@ import type { Logger } from './logger.js';
 import { mountMeRoutes } from './me/routes.js';
 import type { ClientIpResolver } from './rate-limit/client-ip.js';
 import type { RateLimiter } from './rate-limit/limiter.js';
+import { writeCeiling } from './rate-limit/write-ceiling.js';
 import { mountTowerRoutes } from './towers/routes.js';
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
@@ -58,10 +59,12 @@ export function composeApp(deps: ComposeDeps): Hono<AppEnv> {
     clock: deps.clock,
     mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService, rateLimit }),
     mountRoutes: (api) => {
+      // 2.18: the per-user write ceiling, after auth so the user is known.
+      api.use(writeCeiling(rateLimit, (c) => c.get('userId') ?? null));
       mountAuthedAuthRoutes(api, { authService });
       mountMeRoutes(api, { db: deps.db });
       mountHabitRoutes(api, { db: deps.db });
-      mountTowerRoutes(api, { db: deps.db });
+      mountTowerRoutes(api, { db: deps.db, rateLimit });
       mountEntryRoutes(api, { db: deps.db });
     },
   });

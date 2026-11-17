@@ -26,7 +26,7 @@ Where a ticket's vocabulary differs from the Phase 1 schema, the mapping is reco
 - [x] 2.15 Tower start (`POST /towers/:id/start`, period 1 materialised).
 - [x] 2.16 Logging entries (`POST /entries`, `GET /habits/:id/entries`).
 - [x] 2.17 Period preview (`GET /towers/:id/period`).
-- [ ] 2.18 Rate limiting and abuse controls (join limits, write ceiling, fail-closed
+- [x] 2.18 Rate limiting and abuse controls (join limits, write ceiling, fail-closed
       verify-code and join).
 - [ ] 2.19 Internal evaluation trigger (`POST /internal/towers/:towerId/periods/:periodId/evaluate`).
 - [ ] 2.21 End-to-end scenario test (the Phase 2 definition of done).
