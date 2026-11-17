@@ -26,6 +26,8 @@ const EXPECTED_PATHS = [
   '/v1/auth/verify-code',
   '/v1/auth/logout',
   '/v1/auth/sessions/revoke-all',
+  '/v1/me',
+  '/v1/me/sessions',
 ] as const;
 
 describe('buildOpenApiDocument', () => {
