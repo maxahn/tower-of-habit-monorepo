@@ -2,22 +2,16 @@ import type { Server } from 'node:http';
 import { serve } from '@hono/node-server';
 import { closeDb, db, pingDb } from '@tower-of-habit/db';
 import { Redis } from 'ioredis';
-import { createApp } from './app.js';
-import { mountAuthedAuthRoutes, mountPublicAuthRoutes } from './auth/routes.js';
 import { createLogLoginCodeSender } from './auth/sender.js';
-import { createAuthService } from './auth/service.js';
-import { createSessionMiddleware } from './auth/session-middleware.js';
+import { composeApp } from './compose.js';
 import { createJsonLogger } from './logger.js';
 import { createClientIpResolver } from './rate-limit/client-ip.js';
 import { createRedisRateLimiter } from './rate-limit/limiter.js';
 import { createGracefulShutdown, installSignalHandlers } from './shutdown.js';
 
-const SECONDS_PER_DAY = 24 * 60 * 60;
-const CODE_TTL_SECONDS = 10 * 60; // 10 minutes
-const SESSION_TTL_SECONDS = 90 * SECONDS_PER_DAY; // 90 days
-
-// Composition root: the only module that touches real Postgres, Redis, env and
-// the process. Everything it wires is unit-tested through createApp.
+// Composition root: the only module that touches real Redis, env and the
+// process. The route table itself is wired in compose.ts, which the
+// integration suite also runs.
 
 const env = process.env;
 const port = Number(env.PORT) || 3000;
@@ -28,6 +22,7 @@ const corsOrigins = (env.CORS_ORIGINS ?? '')
 const bodyLimitBytes = Number(env.BODY_LIMIT_BYTES) || 1024 * 1024;
 // Under Compose's default 10s stop_grace_period, so we exit before SIGKILL.
 const shutdownTimeoutMs = Number(env.SHUTDOWN_TIMEOUT_MS) || 8_000;
+const production = env.NODE_ENV === 'production';
 
 const logger = createJsonLogger();
 
@@ -43,37 +38,26 @@ redis.on('error', (err) => logger.warn({ err }, 'redis connection error'));
 // real email delivery). Defaulted false, and refused in production: a code in a
 // prod log is a code in everyone's log shipper.
 const authCodeLog = env.AUTH_CODE_LOG === 'true';
-if (env.NODE_ENV === 'production' && authCodeLog) {
+if (production && authCodeLog) {
   throw new Error('AUTH_CODE_LOG must not be true when NODE_ENV=production');
 }
 
 // ALLOW_TEST_CLOCK lets a request override its `now` with X-Test-Now (2.10).
 // Only for the integration suite; refused in production for the obvious reason.
 const allowTestClock = env.ALLOW_TEST_CLOCK === 'true';
-if (env.NODE_ENV === 'production' && allowTestClock) {
+if (production && allowTestClock) {
   throw new Error('ALLOW_TEST_CLOCK must not be true when NODE_ENV=production');
 }
 
-const loginCodeSender = createLogLoginCodeSender(logger, { logCode: authCodeLog });
-const authService = createAuthService({
+const app = composeApp({
   db,
-  sender: loginCodeSender,
-  codeTtlSeconds: CODE_TTL_SECONDS,
-  sessionTtlSeconds: SESSION_TTL_SECONDS,
-});
-
-// Shares the client above: no offline queue and one retry, so a Redis outage
-// fails fast and the limits fail open (rate-limit/enforce.ts).
-const rateLimit = {
-  limiter: createRedisRateLimiter(redis),
   logger,
+  sender: createLogLoginCodeSender(logger, { logCode: authCodeLog }),
+  // Shares the client above: no offline queue and one retry, so a Redis outage
+  // fails fast and the limits fail open or closed per route (rate-limit/enforce.ts).
+  limiter: createRedisRateLimiter(redis),
   // Set only behind a proxy that overwrites the header (Caddy: x-real-ip).
   clientIp: createClientIpResolver({ trustedHeader: env.TRUSTED_IP_HEADER }),
-};
-
-const app = createApp({
-  logger,
-  auth: createSessionMiddleware(authService),
   readiness: { postgres: pingDb, redis: () => redis.ping() },
   // Called per request, never before the first tick, by which time `shutdown`
   // below is initialised.
@@ -81,8 +65,6 @@ const app = createApp({
   corsOrigins,
   bodyLimitBytes,
   clock: { allowTestClock },
-  mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService, rateLimit }),
-  mountRoutes: (api) => mountAuthedAuthRoutes(api, { authService }),
 });
 
 const server = serve({ fetch: app.fetch, port }, (info) => {

@@ -30,7 +30,8 @@
     "dev:mobile": "ENV_FILE=.env.dev docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev up -d postgres redis && pnpm --filter @tower-of-habit/mobile dev",
     "services:up:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging up -d",
     "services:down:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging down",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:integration": "pnpm --filter @tower-of-habit/api test:integration"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.2.2",

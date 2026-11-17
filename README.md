@@ -51,6 +51,7 @@ pnpm format # Format all files
 ### Quality checks
 
 - `pnpm build`, `pnpm test`, `pnpm typecheck`, `pnpm lint`.
+- `pnpm test:integration` — runs the API's integration suite (`apps/api/src/**/*.integration.test.ts`) against the real Postgres from Compose using `.env.test`: `pnpm dev:up`, `pnpm migrate:test`, then this. Tables are truncated before every test. `X-Test-Now` is honoured by the app under test, so a test can cross a period deadline without sleeping.
 - `pnpm test:coverage` — runs each package's tests with V8 coverage. Per-package reports land in `packages/*/coverage/` and `apps/api/coverage/` (open `index.html`; `lcov.info` for editor/CI tools). The db suite needs Postgres: `pnpm dev:up` then `pnpm migrate:test`.
 - `pnpm coverage:readme` — runs coverage and rewrites the table in [Coverage](#coverage) below. Run it before committing when you want the README numbers refreshed. If Postgres isn't reachable, the db row is kept and marked stale.
 
