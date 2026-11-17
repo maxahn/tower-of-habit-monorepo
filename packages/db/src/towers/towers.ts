@@ -102,6 +102,20 @@ export async function updateTower(db: Db, id: string, patch: TowerPatch): Promis
   return row;
 }
 
+/**
+ * 2.15: lobby -> active, stamping started_at with the injected `now`.
+ * Conditioned on lifecycle = 'draft', so a concurrent start loses cleanly:
+ * undefined means the tower was not a draft (already started, or gone).
+ */
+export async function activateTower(db: Db, id: string, now: Date): Promise<Tower | undefined> {
+  const [row] = await db
+    .update(towers)
+    .set({ lifecycle: 'active', startedAt: now })
+    .where(and(eq(towers.id, id), eq(towers.lifecycle, 'draft')))
+    .returning();
+  return row;
+}
+
 export async function deleteTower(db: Db, id: string): Promise<void> {
   await db.delete(towers).where(eq(towers.id, id));
 }

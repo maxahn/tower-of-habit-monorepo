@@ -1,9 +1,12 @@
 import {
+  activateTower,
   createMembership,
+  createPeriod,
   createTowerWithFreshCode,
   deleteMembership,
   deleteTower,
   findTowerByJoinCode,
+  getHabit,
   getMembership,
   JoinCodeExhaustedError,
   listTowerMembers,
@@ -19,6 +22,7 @@ import type { AppEnv } from '../app.js';
 import { withTx, type TxRunner } from '../context.js';
 import { DomainError } from '../errors.js';
 import { jsonBody } from '../validation.js';
+import { firstPeriodStart, periodInsert, periodWindowFor } from './periods.js';
 import { bindableHabit, memberOf, towerDetail } from './service.js';
 
 /**
@@ -31,6 +35,10 @@ import { bindableHabit, memberOf, towerDetail } from './service.js';
  *   POST   /towers/join                              by code, in the lobby only
  *   DELETE /towers/:id/memberships/:membershipId     self in the lobby; others
  *                                                    by the creator only
+ *
+ * 2.15: POST /towers/:id/start — creator only, >= 2 members, lobby -> active
+ * with period 1 materialised in the same transaction. Idempotent on an active
+ * tower.
  *
  * Non-members get 404, never 403: a 403 would confirm the id (or code) is real.
  * An unknown code and a non-joinable tower take the same single lookup, so
@@ -141,6 +149,44 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
       // In the lobby the row is deleted outright, which frees the habit.
       await deleteMembership(tx, target.id);
       return c.body(null, 204);
+    })
+  );
+
+  api.post('/towers/:id/start', (c) =>
+    withTx(deps.db, c, async (tx, ctx) => {
+      const { tower } = await memberOf(tx, ctx, c.req.param('id'));
+      if (tower.hostId !== ctx.userId) {
+        throw new DomainError(403, 'forbidden', 'Only the creator can start the tower');
+      }
+      // Idempotent: an active tower returns its state, with no second period.
+      if (tower.lifecycle !== 'draft') return c.json(await towerDetail(tx, ctx, tower));
+
+      const roster = await listTowerMembers(tx, tower.id);
+      if (roster.length < 2) {
+        throw new DomainError(409, 'tower_too_small', 'A tower needs at least two members');
+      }
+      for (const m of roster) {
+        const habit = await getHabit(tx, m.habitId);
+        if (
+          !habit ||
+          habit.periodUnit !== tower.periodUnit ||
+          habit.periodLength !== tower.periodLength
+        ) {
+          throw new DomainError(
+            409,
+            'habit_cadence_mismatch',
+            "Every member's habit must match the tower's cadence"
+          );
+        }
+      }
+      const started = await activateTower(tx, tower.id, ctx.now);
+      if (!started) return c.json(await towerDetail(tx, ctx, tower)); // raced; see above
+      // Period 1, in this transaction: an active tower is never without one.
+      await createPeriod(
+        tx,
+        periodInsert(tower.id, periodWindowFor(tower, firstPeriodStart(tower, ctx.now)))
+      );
+      return c.json(await towerDetail(tx, ctx, started));
     })
   );
 

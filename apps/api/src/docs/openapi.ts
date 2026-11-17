@@ -306,6 +306,23 @@ function towerPaths(): Record<string, Json> {
         },
       },
     },
+    '/v1/towers/{id}/start': {
+      post: {
+        tags: ['towers'],
+        summary: 'Start the tower',
+        description:
+          'Creator only; needs at least two members with matching cadence. Moves lobby → active and materialises period 1 (today in the tower zone, or tomorrow if today’s deadline has passed). Idempotent once active.',
+        security: AUTHED,
+        parameters: [ID_PARAM],
+        responses: {
+          '200': towerDetailResponse('Active, with the current period.'),
+          '401': UNAUTHENTICATED,
+          '403': errorResponse('forbidden — not the creator.'),
+          '404': TOWER_NOT_FOUND,
+          '409': errorResponse('tower_too_small or habit_cadence_mismatch.'),
+        },
+      },
+    },
     '/v1/towers/{id}': {
       get: {
         tags: ['towers'],
