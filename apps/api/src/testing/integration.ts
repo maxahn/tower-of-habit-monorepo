@@ -128,7 +128,7 @@ let userSeq = 0;
  * Call at module scope, like useTestOwner in the db package.
  */
 export function useIntegrationApp(
-  options: { now?: Date; limiter?: RateLimiter } = {}
+  options: { now?: Date; limiter?: RateLimiter; internalApiToken?: string } = {}
 ): IntegrationApp {
   const logger = createMemoryLogger();
   const sender = createFakeSender();
@@ -146,6 +146,7 @@ export function useIntegrationApp(
     corsOrigins: [],
     bodyLimitBytes: 1024 * 1024,
     clock: { allowTestClock: true },
+    internalApiToken: options.internalApiToken,
   });
 
   beforeEach(async () => {
@@ -222,7 +223,12 @@ export function useIntegrationApp(
     },
 
     async membership(tower, member, habit) {
-      return createMembership(db, { towerId: tower.id, userId: member.user.id, habitId: habit.id });
+      return createMembership(db, {
+        towerId: tower.id,
+        userId: member.user.id,
+        habitId: habit.id,
+        joinedAt: clock.now,
+      });
     },
 
     async lobby(opts = {}) {

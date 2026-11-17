@@ -116,6 +116,38 @@ export async function activateTower(db: Db, id: string, now: Date): Promise<Towe
   return row;
 }
 
+/** The tower row, locked FOR UPDATE for the rest of the transaction. */
+export async function lockTower(db: Db, id: string): Promise<Tower | undefined> {
+  const [row] = await db.select().from(towers).where(eq(towers.id, id)).for('update');
+  return row;
+}
+
+/**
+ * 2.19: a survived period extends the run. Evaluator-owned columns, written
+ * directly: updateTower refuses them, which is right for application code and
+ * exactly what the evaluation job has to get round.
+ */
+export async function extendTowerRun(db: Db, id: string): Promise<Tower> {
+  const [row] = await db
+    .update(towers)
+    .set({ height: sql`${towers.height} + 1`, currentStreak: sql`${towers.currentStreak} + 1` })
+    .where(eq(towers.id, id))
+    .returning();
+  if (!row) throw new TowerNotFoundError(id);
+  return row;
+}
+
+/** 2.19: a collapse closes the run (DECISIONS P15: the block keeps its height). */
+export async function closeTowerRun(db: Db, id: string): Promise<Tower> {
+  const [row] = await db
+    .update(towers)
+    .set({ height: 0, currentStreak: 0 })
+    .where(eq(towers.id, id))
+    .returning();
+  if (!row) throw new TowerNotFoundError(id);
+  return row;
+}
+
 export async function deleteTower(db: Db, id: string): Promise<void> {
   await db.delete(towers).where(eq(towers.id, id));
 }

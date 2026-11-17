@@ -2,6 +2,7 @@ import {
   createHabitRequestSchema,
   createTowerRequestSchema,
   entryListResponseSchema,
+  evaluationResponseSchema,
   joinTowerRequestSchema,
   logEntryRequestSchema,
   logEntryResponseSchema,
@@ -434,6 +435,7 @@ export function buildOpenApiDocument(): Json {
       { name: 'habits', description: 'Habits and their tier ladders.' },
       { name: 'towers', description: 'Towers: lobby, membership, start, period and evaluation.' },
       { name: 'entries', description: 'Logging against a habit.' },
+      { name: 'internal', description: 'Operator endpoints behind INTERNAL_API_TOKEN.' },
     ],
     paths: {
       '/healthz': {
@@ -598,6 +600,40 @@ export function buildOpenApiDocument(): Json {
       ...habitPaths(),
       ...towerPaths(),
       ...entryPaths(),
+      '/v1/internal/towers/{towerId}/periods/{periodId}/evaluate': {
+        post: {
+          tags: ['internal'],
+          summary: 'Evaluate a period (manual stand-in for the Phase 3 tick)',
+          description:
+            'Guarded by INTERNAL_API_TOKEN as a bearer token; not mounted when unset. Claims the period (FOR UPDATE SKIP LOCKED), runs the evaluator, and persists the outcome, counters, base block, membership transitions and the next period in one transaction.',
+          security: [{ internalToken: [] }],
+          parameters: [
+            {
+              name: 'towerId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string', format: 'uuid' },
+            },
+            {
+              name: 'periodId',
+              in: 'path',
+              required: true,
+              schema: { type: 'string', format: 'uuid' },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'The persisted outcome.',
+              content: jsonContent(toSchema(evaluationResponseSchema, 'output')),
+            },
+            '401': errorResponse('Missing or invalid internal token.'),
+            '404': errorResponse('not_found — unknown period, or not this tower’s.'),
+            '409': errorResponse(
+              'period_already_evaluated (details carry the persisted period), period_not_due or period_claimed.'
+            ),
+          },
+        },
+      },
     },
     components: {
       securitySchemes: {
@@ -605,6 +641,11 @@ export function buildOpenApiDocument(): Json {
           type: 'http',
           scheme: 'bearer',
           description: 'Session token from verify-code.',
+        },
+        internalToken: {
+          type: 'http',
+          scheme: 'bearer',
+          description: 'INTERNAL_API_TOKEN, for operator endpoints.',
         },
       },
       schemas: { ErrorResponse: ERROR_RESPONSE_SCHEMA },

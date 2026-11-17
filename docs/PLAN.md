@@ -28,7 +28,7 @@ Where a ticket's vocabulary differs from the Phase 1 schema, the mapping is reco
 - [x] 2.17 Period preview (`GET /towers/:id/period`).
 - [x] 2.18 Rate limiting and abuse controls (join limits, write ceiling, fail-closed
       verify-code and join).
-- [ ] 2.19 Internal evaluation trigger (`POST /internal/towers/:towerId/periods/:periodId/evaluate`).
+- [x] 2.19 Internal evaluation trigger (`POST /internal/towers/:towerId/periods/:periodId/evaluate`).
 - [ ] 2.21 End-to-end scenario test (the Phase 2 definition of done).
 
 OpenAPI (`apps/api/src/docs/openapi.ts`) is updated in the same commit as each new route;

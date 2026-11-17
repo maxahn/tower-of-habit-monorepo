@@ -131,7 +131,9 @@ describe('POST /v1/internal/towers/:towerId/periods/:periodId/evaluate', () => {
       'user_id',
       'was_dormant',
     ]);
-    expect(JSON.stringify(body)).not.toMatch(/missed|caused|blame/i);
+    // §5: the BLOCK carries no blame. (Membership transitions, by nature, name
+    // the membership that went at_risk; they are events, not the block.)
+    expect(JSON.stringify(body.baseBlock)).not.toMatch(/missed|caused|blame/i);
 
     expect(body.transitions).toEqual([
       expect.objectContaining({ membershipId: b!.membership.id, to: 'at_risk' }),

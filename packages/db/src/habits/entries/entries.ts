@@ -429,6 +429,27 @@ export async function countQualifyingDays(
   return row?.n ?? 0;
 }
 
+/** Each credited day in an inclusive range with its tier: a roster entry's input (2.6). */
+export async function listQualifyingDaysInRange(
+  db: Db,
+  habitId: string,
+  from: string,
+  to: string
+): Promise<{ localDate: string; tierIndex: number }[]> {
+  return db
+    .select({ localDate: entries.localDate, tierIndex: entries.tierReached })
+    .from(entries)
+    .where(
+      and(
+        eq(entries.habitId, habitId),
+        eq(entries.countsTowardQuota, true),
+        gte(entries.localDate, from),
+        lte(entries.localDate, to)
+      )
+    )
+    .orderBy(entries.localDate);
+}
+
 /** The streak read: qualifying rows only, newest first. */
 export async function listQualifyingDates(
   db: Db,

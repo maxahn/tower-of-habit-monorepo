@@ -100,6 +100,26 @@ export async function ensurePeriod(db: Db, input: NewTowerPeriod): Promise<Tower
   return row!;
 }
 
+/**
+ * 2.19: the manual evaluation's claim, in the same shape the Phase 3 tick will
+ * use: `SELECT … FOR UPDATE SKIP LOCKED` on the one period named. Undefined
+ * when the row does not exist, belongs to another tower, or is locked by a
+ * concurrent evaluation. Call inside the evaluation transaction: the lock is
+ * held until it commits.
+ */
+export async function lockPeriodForEvaluation(
+  db: Db,
+  periodId: string,
+  towerId: string
+): Promise<TowerPeriod | undefined> {
+  const [row] = await db
+    .select()
+    .from(towerPeriods)
+    .where(and(eq(towerPeriods.id, periodId), eq(towerPeriods.towerId, towerId)))
+    .for('update', { skipLocked: true });
+  return row;
+}
+
 export async function getPeriod(db: Db, id: string): Promise<TowerPeriod | undefined> {
   const [row] = await db.select().from(towerPeriods).where(eq(towerPeriods.id, id));
   return row;

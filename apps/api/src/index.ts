@@ -65,7 +65,12 @@ const app = composeApp({
   corsOrigins,
   bodyLimitBytes,
   clock: { allowTestClock },
+  // 2.19: the internal evaluation trigger mounts only when a token is set.
+  internalApiToken: env.INTERNAL_API_TOKEN,
 });
+if (!env.INTERNAL_API_TOKEN) {
+  logger.warn({}, 'INTERNAL_API_TOKEN unset; internal routes not mounted');
+}
 
 const server = serve({ fetch: app.fetch, port }, (info) => {
   logger.info({ port: info.port }, 'api listening');

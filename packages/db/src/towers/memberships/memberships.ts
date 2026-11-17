@@ -3,8 +3,13 @@ import type { Db } from '../../client.js';
 import { memberships, type DormancyReason, type MembershipState } from './schema.js';
 
 export type Membership = typeof memberships.$inferSelect;
-// State, counters and dates come from defaults.
-export type NewMembership = Pick<typeof memberships.$inferInsert, 'towerId' | 'userId' | 'habitId'>;
+// State and counters come from defaults. joinedAt is the caller's `now`
+// (the request instant), so a membership never dates itself off the database
+// clock while everything else in the request uses the injected one.
+export type NewMembership = Pick<
+  typeof memberships.$inferInsert,
+  'towerId' | 'userId' | 'habitId' | 'joinedAt'
+>;
 // Evaluator-owned fields. State and the dormancy fields change only through
 // transitionMembership; tower, user and habit are immutable.
 export type MembershipPatch = Partial<
@@ -50,9 +55,12 @@ export function assertMembershipTransition(from: MembershipState, to: Membership
 }
 
 export async function createMembership(db: Db, input: NewMembership): Promise<Membership> {
-  const { towerId, userId, habitId } = input;
+  const { towerId, userId, habitId, joinedAt } = input;
   // A second live tower for the habit surfaces as one_active_tower_per_habit (23505).
-  const [row] = await db.insert(memberships).values({ towerId, userId, habitId }).returning();
+  const [row] = await db
+    .insert(memberships)
+    .values({ towerId, userId, habitId, ...(joinedAt !== undefined ? { joinedAt } : {}) })
+    .returning();
   return row!;
 }
 

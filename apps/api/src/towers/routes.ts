@@ -104,7 +104,12 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
         }
         throw e;
       }
-      await createMembership(tx, { towerId: tower.id, userId: ctx.userId, habitId: habit.id });
+      await createMembership(tx, {
+        towerId: tower.id,
+        userId: ctx.userId,
+        habitId: habit.id,
+        joinedAt: ctx.now,
+      });
       return c.json(await towerDetail(tx, ctx, tower), 201);
     })
   );
@@ -148,7 +153,12 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
         throw new DomainError(409, 'already_member', 'You are already in this tower');
       }
       const habit = await bindableHabit(tx, ctx, habitId, tower);
-      await createMembership(tx, { towerId: tower.id, userId: ctx.userId, habitId: habit.id });
+      await createMembership(tx, {
+        towerId: tower.id,
+        userId: ctx.userId,
+        habitId: habit.id,
+        joinedAt: ctx.now,
+      });
       return c.json(await towerDetail(tx, ctx, tower), 201);
     });
   });
