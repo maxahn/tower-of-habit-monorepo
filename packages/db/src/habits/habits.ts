@@ -1,19 +1,24 @@
-import { and, eq } from 'drizzle-orm';
-import type { db as appDb } from '../client.js';
+import { and, asc, eq, ne } from 'drizzle-orm';
+import type { Db } from '../client.js';
+import { memberships } from '../towers/memberships/schema.js';
+import type { Membership } from '../towers/memberships/memberships.js';
+import { towers } from '../towers/schema.js';
+import type { Tower } from '../towers/towers.js';
 import { BASE_TIER_INDEX, TierInvariantError, type NewHabitTier } from './tiers/tiers.js';
 import { habits, type HabitLifecycle } from './schema.js';
 import { habitTiers } from './tiers/schema.js';
 
-type Db = typeof appDb;
 export type Habit = typeof habits.$inferSelect;
 type HabitFields = Omit<
   typeof habits.$inferInsert,
   'id' | 'type' | 'lifecycle' | 'startedAt' | 'archivedAt' | 'createdAt' | 'updatedAt'
 >;
 // A tiered habit is created together with its tiers (which must include
-// tier 0); other types take none.
+// tier 0). A numeric habit may carry a ladder too (2.12 / DECISIONS P9: tier
+// 0's threshold is what qualifies() checks); a binary habit takes none.
 export type NewHabit =
-  | (HabitFields & { type: 'binary' | 'numeric'; tiers?: never })
+  | (HabitFields & { type: 'binary'; tiers?: never })
+  | (HabitFields & { type: 'numeric'; tiers?: readonly NewHabitTier[] })
   | (HabitFields & { type: 'tiered'; tiers: readonly NewHabitTier[] });
 // Lifecycle and its timestamps change only through transitionHabit. Ownership
 // and type are immutable (a type change would break the tier invariant).
@@ -45,7 +50,7 @@ export class HabitNotFoundError extends Error {
 
 export async function createHabit(db: Db, input: NewHabit): Promise<Habit> {
   const { tiers, ...fields } = input;
-  if (input.type === 'tiered') {
+  if (input.type === 'tiered' || (input.type === 'numeric' && tiers?.length)) {
     if (!tiers?.some((t) => t.tierIndex === BASE_TIER_INDEX)) {
       throw new TierInvariantError('missing_base_tier');
     }
@@ -66,6 +71,31 @@ export async function createHabit(db: Db, input: NewHabit): Promise<Habit> {
 
 export async function getHabit(db: Db, id: string): Promise<Habit | undefined> {
   const [row] = await db.select().from(habits).where(eq(habits.id, id));
+  return row;
+}
+
+/** The owner's habits, oldest first (GET /habits). */
+export async function listHabitsForOwner(db: Db, ownerId: string): Promise<Habit[]> {
+  return db
+    .select()
+    .from(habits)
+    .where(eq(habits.ownerId, ownerId))
+    .orderBy(asc(habits.createdAt), asc(habits.id));
+}
+
+export type HabitTower = { membership: Membership; tower: Tower };
+
+/**
+ * The tower a habit is bound into, via its live (non-removed) membership.
+ * one_active_tower_per_habit guarantees at most one. Tower lifecycle is not
+ * filtered: a draft (lobby) or paused tower still binds the habit.
+ */
+export async function findHabitTower(db: Db, habitId: string): Promise<HabitTower | undefined> {
+  const [row] = await db
+    .select({ membership: memberships, tower: towers })
+    .from(memberships)
+    .innerJoin(towers, eq(towers.id, memberships.towerId))
+    .where(and(eq(memberships.habitId, habitId), ne(memberships.state, 'removed')));
   return row;
 }
 

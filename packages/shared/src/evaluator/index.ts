@@ -4,3 +4,4 @@ export * from './evaluate.js';
 export * from './dormancy.js';
 export * from './base-block.js';
 export * from './collapse-log.js';
+export * from './streak.js';

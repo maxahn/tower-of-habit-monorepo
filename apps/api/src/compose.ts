@@ -6,6 +6,7 @@ import type { LoginCodeSender } from './auth/sender.js';
 import { createAuthService } from './auth/service.js';
 import { createSessionMiddleware } from './auth/session-middleware.js';
 import type { ClockOptions } from './context.js';
+import { mountHabitRoutes } from './habits/routes.js';
 import type { ReadinessChecks } from './health.js';
 import type { Logger } from './logger.js';
 import { mountMeRoutes } from './me/routes.js';
@@ -57,6 +58,7 @@ export function composeApp(deps: ComposeDeps): Hono<AppEnv> {
     mountRoutes: (api) => {
       mountAuthedAuthRoutes(api, { authService });
       mountMeRoutes(api, { db: deps.db });
+      mountHabitRoutes(api, { db: deps.db });
     },
   });
 }

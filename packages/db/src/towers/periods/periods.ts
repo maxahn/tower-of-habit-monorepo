@@ -1,11 +1,10 @@
 import { and, asc, desc, eq, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import { civilInZone, resolvePeriodWindow } from '@tower-of-habit/shared';
-import type { db as appDb } from '../../client.js';
+import type { Db } from '../../client.js';
 import { towers } from '../schema.js';
 import { TowerNotFoundError } from '../towers.js';
 import { towerPeriods, type PeriodOutcome, type PeriodState } from './schema.js';
 
-type Db = typeof appDb;
 export type TowerPeriod = typeof towerPeriods.$inferSelect;
 // State, outcome, timestamps and attempts are scheduler-owned: they change only
 // through claimDuePeriods and transitionPeriod.

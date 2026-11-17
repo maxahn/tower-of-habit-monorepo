@@ -1,9 +1,8 @@
 import { isValidTimeZone, JOIN_CODE_ALPHABET, JOIN_CODE_LENGTH } from '@tower-of-habit/shared';
 import { eq } from 'drizzle-orm';
-import type { db as appDb } from '../client.js';
+import type { Db } from '../client.js';
 import { towers } from './schema.js';
 
-type Db = typeof appDb;
 export type Tower = typeof towers.$inferSelect;
 // Lifecycle and startedAt change only through lifecycle transitions; height
 // and currentStreak are evaluator-owned.

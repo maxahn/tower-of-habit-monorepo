@@ -1,8 +1,7 @@
 import { and, eq } from 'drizzle-orm';
-import type { db as appDb } from '../../client.js';
+import type { Db } from '../../client.js';
 import { memberships, type DormancyReason, type MembershipState } from './schema.js';
 
-type Db = typeof appDb;
 export type Membership = typeof memberships.$inferSelect;
 // State, counters and dates come from defaults.
 export type NewMembership = Pick<typeof memberships.$inferInsert, 'towerId' | 'userId' | 'habitId'>;

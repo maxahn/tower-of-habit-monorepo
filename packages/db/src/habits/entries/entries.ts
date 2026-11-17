@@ -7,7 +7,7 @@ import {
   SOLO_DEADLINE_TIME,
   type LocalDateContext,
 } from '@tower-of-habit/shared';
-import type { db as appDb } from '../../client.js';
+import type { Db } from '../../client.js';
 import { asPgError, isUniqueViolation, UNIQUE_VIOLATION } from '../../pg-errors.js';
 import { InvalidTimeZoneError, isValidTimeZone } from '../../towers/towers.js';
 import { memberships } from '../../towers/memberships/schema.js';
@@ -16,7 +16,6 @@ import { HabitNotFoundError } from '../habits.js';
 import { habits } from '../schema.js';
 import { entries } from './schema.js';
 
-type Db = typeof appDb;
 export type Entry = typeof entries.$inferSelect;
 type HabitType = (typeof habits.$inferSelect)['type'];
 

@@ -1,5 +1,10 @@
 import {
+  createHabitRequestSchema,
+  habitDetailResponseSchema,
+  habitListResponseSchema,
   meResponseSchema,
+  replaceTiersRequestSchema,
+  updateHabitRequestSchema,
   meSessionsResponseSchema,
   requestCodeRequestSchema,
   updateMeRequestSchema,
@@ -88,6 +93,122 @@ const rateLimitedResponse = (limits: string): Json => ({
   },
 });
 
+const ID_PARAM: Json = {
+  name: 'id',
+  in: 'path',
+  required: true,
+  schema: { type: 'string', format: 'uuid' },
+};
+const AUTHED: Json[] = [{ bearerAuth: [] }];
+const NOT_FOUND = errorResponse('not_found — unknown, or owned by someone else.');
+const UNAUTHENTICATED = errorResponse('Missing or invalid session.');
+const LOCKED = errorResponse('habit_locked_by_tower — the habit is bound into an active tower.');
+
+const detailResponse = (description: string): Json => ({
+  description,
+  content: jsonContent(toSchema(habitDetailResponseSchema, 'output')),
+});
+
+// 2.12
+function habitPaths(): Record<string, Json> {
+  return {
+    '/v1/habits': {
+      post: {
+        tags: ['habits'],
+        summary: 'Create a habit',
+        description:
+          'Numeric and tiered habits are created with their tier ladder (levels contiguous from 0; numeric thresholds strictly increasing). The habit is active at once.',
+        security: AUTHED,
+        requestBody: {
+          required: true,
+          content: jsonContent(toSchema(createHabitRequestSchema, 'input')),
+        },
+        responses: {
+          '201': detailResponse('Created.'),
+          '400': errorResponse('validation_failed or invalid_json.'),
+          '401': UNAUTHENTICATED,
+        },
+      },
+      get: {
+        tags: ['habits'],
+        summary: 'List my habits',
+        security: AUTHED,
+        responses: {
+          '200': {
+            description: 'The caller’s habits, oldest first.',
+            content: jsonContent(toSchema(habitListResponseSchema, 'output')),
+          },
+          '401': UNAUTHENTICATED,
+        },
+      },
+    },
+    '/v1/habits/{id}': {
+      get: {
+        tags: ['habits'],
+        summary: 'A habit with its ladder, current streak and owning tower',
+        security: AUTHED,
+        parameters: [ID_PARAM],
+        responses: { '200': detailResponse('OK.'), '401': UNAUTHENTICATED, '404': NOT_FOUND },
+      },
+      patch: {
+        tags: ['habits'],
+        summary: 'Update name, unit or cadence',
+        description:
+          'Cadence (periodUnit, periodLength, quota) is locked while in an active tower.',
+        security: AUTHED,
+        parameters: [ID_PARAM],
+        requestBody: {
+          required: true,
+          content: jsonContent(toSchema(updateHabitRequestSchema, 'input')),
+        },
+        responses: {
+          '200': detailResponse('Updated.'),
+          '400': errorResponse('validation_failed or invalid_json.'),
+          '401': UNAUTHENTICATED,
+          '404': NOT_FOUND,
+          '409': LOCKED,
+        },
+      },
+    },
+    '/v1/habits/{id}/tiers': {
+      put: {
+        tags: ['habits'],
+        summary: 'Replace the tier ladder',
+        description:
+          'The whole ladder, replaced at once. While in an active tower, tier 0’s threshold may not change; tiers above it may.',
+        security: AUTHED,
+        parameters: [ID_PARAM],
+        requestBody: {
+          required: true,
+          content: jsonContent(toSchema(replaceTiersRequestSchema, 'input')),
+        },
+        responses: {
+          '200': detailResponse('Replaced.'),
+          '400': errorResponse('validation_failed (ladder rules) or invalid_json.'),
+          '401': UNAUTHENTICATED,
+          '404': NOT_FOUND,
+          '409': LOCKED,
+        },
+      },
+    },
+    '/v1/habits/{id}/archive': {
+      post: {
+        tags: ['habits'],
+        summary: 'Archive a habit',
+        description: 'Idempotent. Refused while the habit is bound into an active tower.',
+        security: AUTHED,
+        parameters: [ID_PARAM],
+        responses: {
+          '200': detailResponse('Archived.'),
+          '401': UNAUTHENTICATED,
+          '404': NOT_FOUND,
+          '409': LOCKED,
+        },
+      },
+    },
+  };
+}
+
 export function buildOpenApiDocument(): Json {
   return {
     openapi: OPENAPI_VERSION,
@@ -103,6 +224,7 @@ export function buildOpenApiDocument(): Json {
       { name: 'health', description: 'Liveness and readiness probes.' },
       { name: 'auth', description: 'Passwordless email-OTP authentication.' },
       { name: 'me', description: 'The authenticated user’s profile and sessions.' },
+      { name: 'habits', description: 'Habits and their tier ladders.' },
     ],
     paths: {
       '/healthz': {
@@ -261,6 +383,7 @@ export function buildOpenApiDocument(): Json {
           },
         },
       },
+      ...habitPaths(),
     },
     components: {
       securitySchemes: {
