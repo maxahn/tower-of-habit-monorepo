@@ -72,4 +72,32 @@ describe('enforceRateLimits', () => {
       msg: 'rate limiter unavailable; allowing',
     });
   });
+
+  // 2.18: verify-code and join-by-code fail CLOSED. The limiter is load-bearing
+  // for them (a 6-digit code is 10^6 candidates), not hygiene.
+  it('fails closed when asked: a throwing limiter is 503 rate_limiter_unavailable', async () => {
+    const logger = createMemoryLogger();
+    const err = await caught(
+      enforceRateLimits({ limiter: createFailingRateLimiter(), logger }, [{ rule: A, id: 'x' }], {
+        failClosed: true,
+      })
+    );
+    expect(err).toBeInstanceOf(DomainError);
+    expect(err).toMatchObject({
+      status: 503,
+      code: 'rate_limiter_unavailable',
+      headers: { 'Retry-After': expect.any(String) },
+    });
+    expect(logger.lines[0]).toMatchObject({ level: 'error', rule: 'a' });
+  });
+
+  it('still denies normally when failing closed and the limiter answers', async () => {
+    const limiter = scripted({ a: { allowed: false, retryAfterSeconds: 30 } });
+    const err = await caught(
+      enforceRateLimits({ limiter, logger: createMemoryLogger() }, [{ rule: A, id: 'x' }], {
+        failClosed: true,
+      })
+    );
+    expect(err).toMatchObject({ status: 429, code: 'too_many_requests' });
+  });
 });

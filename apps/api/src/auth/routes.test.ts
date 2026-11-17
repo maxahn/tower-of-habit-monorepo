@@ -390,7 +390,10 @@ describe('rate limiting (2.18)', () => {
     expect(authService.verifyCode).toHaveBeenCalledTimes(10);
   });
 
-  it('fails open when the limiter is unavailable, logging a warning', async () => {
+  // 2.18: request-code fails OPEN (a user who can't request a code can't sign
+  // in at all), verify-code fails CLOSED (an unthrottled verify endpoint is
+  // brute-forceable in minutes).
+  it('request-code fails open when the limiter is unavailable, logging a warning', async () => {
     const authService = fakeService();
     const rateLimit = testRateLimit(createFailingRateLimiter());
     const { app } = publicApp(authService, rateLimit);
@@ -398,11 +401,21 @@ describe('rate limiting (2.18)', () => {
     for (let i = 0; i < 5; i++) {
       expect((await requestCode(app, 'me@example.com', '203.0.113.7')).status).toBe(202);
     }
-    expect((await verify(app, 'me@example.com')).status).toBe(401);
-
     expect(authService.requestCode).toHaveBeenCalledTimes(5);
     const warns = rateLimit.logger.lines.filter((l) => l.level === 'warn');
-    expect(warns).toHaveLength(11); // 5 × (ip + email) + 1 verify
+    expect(warns).toHaveLength(10); // 5 × (ip + email)
     expect(warns[0]).toMatchObject({ msg: 'rate limiter unavailable; allowing' });
+  });
+
+  it('verify-code fails closed when the limiter is unavailable (503, never verified)', async () => {
+    const authService = fakeService();
+    const rateLimit = testRateLimit(createFailingRateLimiter());
+    const { app } = publicApp(authService, rateLimit);
+
+    const res = await verify(app, 'me@example.com');
+    expect(res.status).toBe(503);
+    expect((await readErrorBody(res)).error.code).toBe('rate_limiter_unavailable');
+    expect(res.headers.get('retry-after')).toMatch(/^\d+$/);
+    expect(authService.verifyCode).not.toHaveBeenCalled();
   });
 });
