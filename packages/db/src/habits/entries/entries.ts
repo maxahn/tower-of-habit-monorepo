@@ -282,6 +282,70 @@ export async function addSupplementalEntry(db: Db, input: LogEntryInput): Promis
   }
 }
 
+export type RecordEntryInput = {
+  habitId: string;
+  /** Decided by the caller (the API's window check), never by the client. */
+  localDate: string;
+  loggedAt: Date;
+  /** 2.3's verdict. Only a qualifying entry can carry the day's credit. */
+  qualifies: boolean;
+  tierReached?: number;
+  numericValue?: number;
+  clientEntryId?: string;
+};
+
+export type RecordedEntry = { entry: Entry; created: boolean };
+
+/**
+ * 2.16 (DECISIONS P7/P8): write an entry for an explicit local date.
+ *
+ *   - qualifies and the day has no credit yet  -> credited row
+ *   - otherwise                                 -> supplemental row (§4: extra
+ *     logs, qualifying or not, are stored and summed into the day's total)
+ *   - replayed clientEntryId                    -> the original row, created: false
+ *   - one_qualifying_entry_per_day race         -> the existing credited row,
+ *     created: false (the day is already credited; the client converges)
+ *
+ * The insert runs in its own savepoint, so a unique violation inside the
+ * caller's transaction does not abort it (25P02 on every later statement).
+ * `assumeDayFree` skips the probe; tests use it to reproduce the race.
+ */
+export async function recordEntry(
+  db: Db,
+  input: RecordEntryInput,
+  options: { assumeDayFree?: boolean } = {}
+): Promise<RecordedEntry> {
+  const [habit] = await db
+    .select({ type: habits.type })
+    .from(habits)
+    .where(eq(habits.id, input.habitId));
+  if (!habit) throw new HabitNotFoundError(input.habitId);
+  assertEntryShape(input.habitId, habit.type, input);
+
+  const credited =
+    input.qualifies &&
+    (options.assumeDayFree === true ||
+      !(await hasQualifyingEntry(db, input.habitId, input.localDate)));
+  try {
+    const entry = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(entries)
+        .values(valuesFor(input, input.localDate, credited))
+        .returning();
+      return row!;
+    });
+    return { entry, created: true };
+  } catch (e) {
+    const retried = await retriedEntry(db, input.clientEntryId, e);
+    if (retried) return { entry: retried, created: false };
+    if (isUniqueViolation(e, 'one_qualifying_entry_per_day')) {
+      const existing = await qualifyingEntryForDate(db, input.habitId, input.localDate);
+      if (existing) return { entry: existing, created: false };
+    }
+    throw e;
+  }
+}
+
 export async function getEntry(db: Db, id: string): Promise<Entry | undefined> {
   const [row] = await db.select().from(entries).where(eq(entries.id, id));
   return row;

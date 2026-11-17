@@ -24,7 +24,7 @@ Where a ticket's vocabulary differs from the Phase 1 schema, the mapping is reco
 - [x] 2.13 Tower creation and lobby (`POST /towers`, `GET /towers`, `GET /towers/:id`).
 - [x] 2.14 Join, leave, remove (`POST /towers/join`, `DELETE /towers/:id/memberships/:id`).
 - [x] 2.15 Tower start (`POST /towers/:id/start`, period 1 materialised).
-- [ ] 2.16 Logging entries (`POST /entries`, `GET /habits/:id/entries`).
+- [x] 2.16 Logging entries (`POST /entries`, `GET /habits/:id/entries`).
 - [ ] 2.17 Period preview (`GET /towers/:id/period`).
 - [ ] 2.18 Rate limiting and abuse controls (join limits, write ceiling, fail-closed
       verify-code and join).

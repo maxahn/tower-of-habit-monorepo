@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** 2.16 Logging entries.
+**Next task:** 2.17 Period preview.
 
 **Blockers:** none. Postgres (`localhost:5433`, `tower_test`) and Redis are reachable via
 `pnpm dev:up`; `pnpm migrate:test` has been applied.
@@ -14,3 +14,4 @@
 - 2.13 Tower creation and lobby: `POST/GET /v1/towers`, `GET /v1/towers/:id` (`apps/api/src/towers/routes.ts`, `service.ts`); shared `createTowerRequestSchema` now takes `habitId`, `towerDetailResponseSchema` (lobby | active), `towerListResponseSchema`; db `createTowerWithFreshCode` (5 retries), `listTowersForUser`, `listTowerMembers`.
 - 2.14 Join, leave, remove: `POST /v1/towers/join`, `DELETE /v1/towers/:id/memberships/:membershipId` (lobby only; creator alone disbands); db `findTowerByJoinCode`.
 - 2.15 Tower start: `POST /v1/towers/:id/start` (creator only, ≥ 2 members, period 1 via `computePeriodWindow`, next-day rule, idempotent); `apps/api/src/towers/periods.ts` (`periodWindowFor`, `firstPeriodStart`, `periodInsert`); db `activateTower`.
+- 2.16 Logging entries: `POST /v1/entries`, `GET /v1/habits/:id/entries` (`apps/api/src/entries/routes.ts`: D3 zones, optional validated `localDate`, computed `source`, 2.3 qualification, dormant-return on a qualifying log); db `recordEntry`; shared `logEntryResponseSchema`, `entryListResponseSchema`.

@@ -184,8 +184,13 @@ export function useIntegrationApp(options: { now?: Date } = {}): IntegrationApp 
         type === 'binary'
           ? await createHabit(db, { ...base, type })
           : type === 'numeric'
-            ? // Tiers for numeric habits arrive with 2.12 (DECISIONS P9).
-              await createHabit(db, { ...base, type, unit: opts.unit ?? 'minutes' })
+            ? await createHabit(db, {
+                ...base,
+                type,
+                unit: opts.unit ?? 'minutes',
+                // Tier 0's threshold is what qualifies() checks (DECISIONS P9).
+                tiers: opts.tiers ?? [{ tierIndex: 0, label: 'Base', thresholdValue: 20 }],
+              })
             : await createHabit(db, {
                 ...base,
                 type,

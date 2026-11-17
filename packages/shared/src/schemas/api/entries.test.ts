@@ -73,7 +73,6 @@ describe('logEntryRequestSchema', () => {
 
   it.each([
     ['loggedAt', '2026-01-05T17:00:00.000Z'],
-    ['localDate', '2026-01-05'],
     ['countsTowardQuota', true],
     ['id', '5d1c9a7e-3b2f-4c6d-9e8f-0a1b2c3d4e5f'],
     ['createdAt', '2026-01-05T17:00:00.000Z'],
@@ -84,7 +83,8 @@ describe('logEntryRequestSchema', () => {
   it('infers a type without server-owned fields', () => {
     expectTypeOf<LogEntryRequest>().not.toBeAny();
     expectTypeOf<LogEntryRequest>().not.toHaveProperty('loggedAt');
-    expectTypeOf<LogEntryRequest>().not.toHaveProperty('localDate');
+    // 2.16: localDate is accepted as the client's belief and validated server-side.
+    expectTypeOf<LogEntryRequest['localDate']>().toEqualTypeOf<string | undefined>();
     expectTypeOf<LogEntryRequest['habitId']>().toEqualTypeOf<string>();
   });
 });

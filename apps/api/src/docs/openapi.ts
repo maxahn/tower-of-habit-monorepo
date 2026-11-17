@@ -1,7 +1,10 @@
 import {
   createHabitRequestSchema,
   createTowerRequestSchema,
+  entryListResponseSchema,
   joinTowerRequestSchema,
+  logEntryRequestSchema,
+  logEntryResponseSchema,
   towerDetailResponseSchema,
   towerListResponseSchema,
   habitDetailResponseSchema,
@@ -341,6 +344,55 @@ function towerPaths(): Record<string, Json> {
   };
 }
 
+// 2.16
+function entryPaths(): Record<string, Json> {
+  return {
+    '/v1/entries': {
+      post: {
+        tags: ['entries'],
+        summary: 'Log an entry',
+        description:
+          'The server derives the local date from the request instant in the tower’s zone (user’s zone for a standalone habit). An optional `localDate` must be today, or yesterday while its grace window is open. Qualification is computed from the habit. A replayed `clientEntryId` returns the original entry (200); a day already credited stores the new entry as supplemental.',
+        security: AUTHED,
+        requestBody: {
+          required: true,
+          content: jsonContent(toSchema(logEntryRequestSchema, 'input')),
+        },
+        responses: {
+          '201': {
+            description: 'Created.',
+            content: jsonContent(toSchema(logEntryResponseSchema, 'output')),
+          },
+          '200': {
+            description: 'An existing entry (idempotent replay, or a race on the day’s credit).',
+            content: jsonContent(toSchema(logEntryResponseSchema, 'output')),
+          },
+          '400': errorResponse('validation_failed, invalid_json or date_out_of_window.'),
+          '401': UNAUTHENTICATED,
+          '404': NOT_FOUND,
+          '409': errorResponse('habit_misconfigured — a numeric habit with no base threshold.'),
+        },
+      },
+    },
+    '/v1/habits/{id}/entries': {
+      get: {
+        tags: ['entries'],
+        summary: 'List a habit’s entries',
+        security: AUTHED,
+        parameters: [ID_PARAM],
+        responses: {
+          '200': {
+            description: 'Newest first.',
+            content: jsonContent(toSchema(entryListResponseSchema, 'output')),
+          },
+          '401': UNAUTHENTICATED,
+          '404': NOT_FOUND,
+        },
+      },
+    },
+  };
+}
+
 export function buildOpenApiDocument(): Json {
   return {
     openapi: OPENAPI_VERSION,
@@ -358,6 +410,7 @@ export function buildOpenApiDocument(): Json {
       { name: 'me', description: 'The authenticated user’s profile and sessions.' },
       { name: 'habits', description: 'Habits and their tier ladders.' },
       { name: 'towers', description: 'Towers: lobby, membership, start, period and evaluation.' },
+      { name: 'entries', description: 'Logging against a habit.' },
     ],
     paths: {
       '/healthz': {
@@ -518,6 +571,7 @@ export function buildOpenApiDocument(): Json {
       },
       ...habitPaths(),
       ...towerPaths(),
+      ...entryPaths(),
     },
     components: {
       securitySchemes: {
