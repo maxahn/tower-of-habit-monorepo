@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 import { requestId, type RequestIdVariables } from 'hono/request-id';
 import { buildOpenApiDocument, DOCS_PATH, OPENAPI_PATH } from './docs/openapi.js';
 import { SWAGGER_UI_HTML } from './docs/swagger-ui.js';
+import { requestClock, type ClockOptions } from './context.js';
 import { catchNonErrors, DomainError, handleError, handleNotFound } from './errors.js';
 import { healthRoutes, type ReadinessChecks } from './health.js';
 import { requestLogger, type Logger } from './logger.js';
@@ -21,7 +22,12 @@ const OPENAPI_DOCUMENT = buildOpenApiDocument();
 // are present on every authenticated (/v1) route; the public auth routes below
 // do not read them.
 export type AppEnv = {
-  Variables: RequestIdVariables & { userId: string; sessionId: string };
+  Variables: RequestIdVariables & {
+    userId: string;
+    sessionId: string;
+    /** The request's single instant (2.10), set by the clock middleware. */
+    now: Date;
+  };
 };
 
 export type AppDeps = {
@@ -36,6 +42,8 @@ export type AppDeps = {
   bodyLimitBytes: number;
   /** Per readiness check. Defaults to 1000. */
   readinessTimeoutMs?: number;
+  /** 2.10 clock options. Defaults to no test clock. */
+  clock?: ClockOptions;
   /**
    * Registers routes on a /v1 router that runs BEFORE auth, for endpoints that
    * must be reachable without a session (login code request/verify). Mounted
@@ -53,7 +61,9 @@ export const DEFAULT_READINESS_TIMEOUT_MS = 1_000;
 
 /**
  * Middleware order (acceptance criterion, do not reorder):
- *   requestId → requestLogger → cors → bodyLimit → [health routes] → auth → route
+ *   requestId → requestLogger → clock → cors → bodyLimit → [health routes] → auth → route
+ * The clock (2.10) sits right after the logger: it reads no request body and
+ * must be set for public and authenticated routes alike.
  *
  * Health routes sit before auth so the Compose and Caddy probes need no
  * credentials. onError = handleError(logger), notFound = handleNotFound.
@@ -63,6 +73,7 @@ export function createApp(deps: AppDeps): Hono<AppEnv> {
 
   app.use(requestId());
   app.use(requestLogger(deps.logger));
+  app.use(requestClock(deps.clock ?? { allowTestClock: false }));
   app.use(cors({ origin: [...deps.corsOrigins], exposeHeaders: ['X-Request-Id'] }));
   app.use(
     bodyLimit({

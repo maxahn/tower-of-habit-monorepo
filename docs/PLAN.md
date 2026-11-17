@@ -15,7 +15,7 @@ Where a ticket's vocabulary differs from the Phase 1 schema, the mapping is reco
 
 ## Tasks
 
-- [ ] 2.10 Request context and transaction helper (`ctx.now`, `withTx`, `X-Test-Now`
+- [x] 2.10 Request context and transaction helper (`ctx.now`, `withTx`, `X-Test-Now`
       behind `ALLOW_TEST_CLOCK`, ESLint `no-restricted-syntax` for apps/api).
 - [ ] 2.20 Integration test harness (real Postgres, truncate between tests, fixture
       builder, minted sessions, in-memory code sink, `X-Test-Now`, one command).

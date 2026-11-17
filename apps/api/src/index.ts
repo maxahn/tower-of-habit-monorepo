@@ -47,6 +47,13 @@ if (env.NODE_ENV === 'production' && authCodeLog) {
   throw new Error('AUTH_CODE_LOG must not be true when NODE_ENV=production');
 }
 
+// ALLOW_TEST_CLOCK lets a request override its `now` with X-Test-Now (2.10).
+// Only for the integration suite; refused in production for the obvious reason.
+const allowTestClock = env.ALLOW_TEST_CLOCK === 'true';
+if (env.NODE_ENV === 'production' && allowTestClock) {
+  throw new Error('ALLOW_TEST_CLOCK must not be true when NODE_ENV=production');
+}
+
 const loginCodeSender = createLogLoginCodeSender(logger, { logCode: authCodeLog });
 const authService = createAuthService({
   db,
@@ -73,6 +80,7 @@ const app = createApp({
   isDraining: () => shutdown.isDraining(),
   corsOrigins,
   bodyLimitBytes,
+  clock: { allowTestClock },
   mountPublicRoutes: (api) => mountPublicAuthRoutes(api, { authService, rateLimit }),
   mountRoutes: (api) => mountAuthedAuthRoutes(api, { authService }),
 });
