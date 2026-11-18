@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 3.4 claim wiring — wire `claimDuePeriods` and `evaluateTowerPeriod` into the tick loop.
+**Next task:** 3.4 claim wiring — green phase: implement `createWorkerEvaluator`, wire `evaluate` and `materialise` into the composition root, make all 6 integration tests pass.
 
 **Blockers:** none.
 
 ## Done
+
+- 3.4 TDD red phase: skip detection in `runTick` (SKIP_CODES duck-type check on `.code`), 5 unit tests passing; `createWorkerEvaluator` stub in `apps/worker/src/evaluate.ts`; 6 integration tests in `claim.integration.test.ts` (5 fail against stub, 1 crash-safety passes independently).
 
 - 2.10 Request context and transaction helper: `apps/api/src/context.ts` (`requestClock`, `ctxOf`, `withTx`, `X-Test-Now` behind `ALLOW_TEST_CLOCK`), eslint rule for `apps/api/src`.
 - 2.20 Integration test harness: `apps/api/src/testing/integration.ts` (`useIntegrationApp`: real Postgres, truncate per test, fixture builder, minted sessions, code sink, test clock), `apps/api/src/compose.ts` (production wiring shared with index.ts), `pnpm test:integration`.
