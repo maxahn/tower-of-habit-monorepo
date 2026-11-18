@@ -33,6 +33,7 @@ import { DomainError } from '../errors.js';
 import type { Logger } from '../logger.js';
 import { periodInsert, periodWindowFor } from '../towers/periods.js';
 import { loadEvaluationInput, type LoadedEvaluation } from './input.js';
+import { enqueueEvaluationNotifications } from './notifications.js';
 
 /**
  * 2.19: evaluate one period and persist everything the outcome implies, in
@@ -127,6 +128,16 @@ export async function evaluateTowerPeriod(
   const nextPeriod = out.nextPeriodStart
     ? await ensurePeriod(tx, periodInsert(tower.id, periodWindowFor(tower, out.nextPeriodStart)))
     : null;
+
+  await enqueueEvaluationNotifications(tx, {
+    tower,
+    periodId: claimed.id,
+    outcome,
+    memberships: loaded.memberships,
+    transitions,
+    periods: loaded.periods,
+    now,
+  });
 
   logger?.info(
     { towerId: tower.id, periodId: period.id, periodStart: period.periodStart, outcome },
