@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import type { PgTable } from 'drizzle-orm/pg-core';
@@ -246,7 +246,15 @@ ${enumRows}
 </body>
 </html>`;
 
-const outPath = resolve(import.meta.dirname!, '../../..', 'docs/schema-erd.html');
+const root = resolve(import.meta.dirname!, '../../..');
+const outPath = resolve(root, 'docs/schema-erd.html');
 writeFileSync(outPath, html, 'utf-8');
 console.log(`Wrote ${outPath}`);
 console.log(`  ${tables.length} tables, ${enums.length} enums, ${totalFks} foreign keys`);
+
+const readmePath = resolve(root, 'README.md');
+const readme = readFileSync(readmePath, 'utf-8');
+const erdBlock = `<!-- erd:start -->\n\n\`\`\`mermaid\n${fullDiagram}\n\`\`\`\n\n<!-- erd:end -->`;
+const updated = readme.replace(/<!-- erd:start -->[\s\S]*?<!-- erd:end -->/, erdBlock);
+writeFileSync(readmePath, updated, 'utf-8');
+console.log(`Updated ERD in ${readmePath}`);
