@@ -63,9 +63,9 @@ Last generated with `pnpm coverage:readme`. Coverage counts code that ran during
 
 | Package | Statements | Branches | Functions | Lines | Tests              |
 | ------- | ---------: | -------: | --------: | ----: | ------------------ |
-| shared  |      99.0% |    97.7% |    100.0% | 99.0% | 1551 passed (1551) |
-| db      |      92.3% |    94.7% |     90.8% | 92.3% | 493 passed (493)   |
-| api     |      88.4% |    92.1% |     93.6% | 88.4% | 110 passed (110)   |
+| shared  |      99.2% |    97.9% |    100.0% | 99.2% | 1603 passed (1603) |
+| db      |      93.2% |    92.8% |     92.1% | 93.2% | 532 passed (532)   |
+| api     |      57.7% |    90.7% |     87.0% | 57.7% | 170 passed (170)   |
 
 <!-- coverage:end -->
 
