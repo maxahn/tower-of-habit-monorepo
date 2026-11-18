@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** 3.3 implementation — make the 11 `sweep.test.ts` tests pass by implementing `materialisePeriods` in `apps/worker/src/sweep.ts`.
+**Next task:** 3.4 claim wiring — wire `claimDuePeriods` and `evaluateTowerPeriod` into the tick loop.
 
 **Blockers:** none.
 
