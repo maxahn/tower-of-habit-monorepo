@@ -1,12 +1,12 @@
 # Progress
 
-**Next task:** 3.4 claim wiring — green phase: implement `createWorkerEvaluator`, wire `evaluate` and `materialise` into the composition root, make all 6 integration tests pass.
+**Next task:** 3.5 eval tx (add step 10: notification enqueueing).
 
 **Blockers:** none.
 
 ## Done
 
-- 3.4 TDD red phase: skip detection in `runTick` (SKIP_CODES duck-type check on `.code`), 5 unit tests passing; `createWorkerEvaluator` stub in `apps/worker/src/evaluate.ts`; 6 integration tests in `claim.integration.test.ts` (5 fail against stub, 1 crash-safety passes independently).
+- 3.4 Period claim wiring: `createWorkerEvaluator` in `apps/worker/src/evaluate.ts` delegates to `createEvaluator` from `@tower-of-habit/api`; composition root (`apps/worker/src/index.ts`) now wires `evaluate` and `materialise` for real; skip detection (period_already_evaluated / period_claimed / period_not_due) in `runTick`; 33 worker tests pass (11 tick, 11 sweep, 5 loop, 6 claim integration).
 
 - 2.10 Request context and transaction helper: `apps/api/src/context.ts` (`requestClock`, `ctxOf`, `withTx`, `X-Test-Now` behind `ALLOW_TEST_CLOCK`), eslint rule for `apps/api/src`.
 - 2.20 Integration test harness: `apps/api/src/testing/integration.ts` (`useIntegrationApp`: real Postgres, truncate per test, fixture builder, minted sessions, code sink, test clock), `apps/api/src/compose.ts` (production wiring shared with index.ts), `pnpm test:integration`.
