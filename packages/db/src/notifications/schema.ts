@@ -45,6 +45,9 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'tower_archived',
   'block_completed',
   'host_transferred',
+  // Phase 3 additions.
+  'hibernate',
+  'at_risk',
 ]);
 
 // pending -> sent | failed | skipped, with failed -> pending as an explicit

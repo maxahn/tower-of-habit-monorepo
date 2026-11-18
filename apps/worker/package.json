@@ -14,8 +14,7 @@
   "dependencies": {
     "@tower-of-habit/db": "workspace:*",
     "@tower-of-habit/shared": "workspace:*",
-    "bullmq": "^6.0.10",
-    "ioredis": "^6.0.0",
+    "graphile-worker": "^0.16.6",
     "zod": "catalog:"
   },
   "devDependencies": {

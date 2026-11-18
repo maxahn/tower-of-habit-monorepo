@@ -32,6 +32,8 @@ const SAMPLES: Record<NotificationType, NotificationEvent> = {
   tower_archived: { type: 'tower_archived', towerId: TOWER, userId: USER },
   block_completed: { type: 'block_completed', blockId: BLOCK, userId: USER },
   host_transferred: { type: 'host_transferred', periodId: PERIOD, userId: USER },
+  hibernate: { type: 'hibernate', periodId: PERIOD, userId: USER },
+  at_risk: { type: 'at_risk', membershipId: MEMBERSHIP, periodId: PERIOD },
 };
 
 /**
@@ -69,6 +71,11 @@ const GOLDEN: ReadonlyArray<readonly [NotificationType, string]> = [
     'host_transferred',
     'host_transferred:3f1c6d32-6a4e-4a9e-bb1f-8f0f5a4f2c11:8f0f5a4f-2c11-4a9e-bb1f-3f1c6d326a4e',
   ],
+  [
+    'hibernate',
+    'hibernate:3f1c6d32-6a4e-4a9e-bb1f-8f0f5a4f2c11:8f0f5a4f-2c11-4a9e-bb1f-3f1c6d326a4e',
+  ],
+  ['at_risk', 'at_risk:a94b1d7e-5c33-4f81-9e2a-6b0d8c4f1e55:3f1c6d32-6a4e-4a9e-bb1f-8f0f5a4f2c11'],
 ];
 
 describe('buildDedupeKey — the frozen format', () => {
@@ -159,6 +166,8 @@ describe('buildDedupeKey — grammar', () => {
     ['periodId', { type: 'wobble', periodId: '', userId: USER }],
     ['userId', { type: 'wobble', periodId: PERIOD, userId: '' }],
     ['membershipId', { type: 'dormant', membershipId: '' }],
+    ['membershipId', { type: 'at_risk', membershipId: '', periodId: PERIOD }],
+    ['periodId', { type: 'at_risk', membershipId: MEMBERSHIP, periodId: '' }],
     ['towerId', { type: 'tower_started', towerId: '', userId: USER }],
     ['blockId', { type: 'block_completed', blockId: '', userId: USER }],
   ] as ReadonlyArray<readonly [string, NotificationEvent]>)(
@@ -204,7 +213,8 @@ describe('buildDedupeKey — grammar', () => {
 describe('dedupeEventRecipient', () => {
   it('names the recipient for every scope that carries one', () => {
     for (const type of NOTIFICATION_TYPES) {
-      const expected = type === 'dormant' || type === 'returned' ? undefined : USER;
+      const expected =
+        type === 'dormant' || type === 'returned' || type === 'at_risk' ? undefined : USER;
       expect(dedupeEventRecipient(SAMPLES[type])).toBe(expected);
     }
   });

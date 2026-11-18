@@ -138,6 +138,8 @@ const CASES: EnumCase[] = [
       'tower_archived',
       'block_completed',
       'host_transferred',
+      'hibernate',
+      'at_risk',
     ],
   },
 ];

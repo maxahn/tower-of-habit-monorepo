@@ -150,6 +150,29 @@ export default config(
       ],
     },
   },
+  // 3.2: worker handlers never read the clock. `now` is captured once per tick
+  // in the composition root and passed to every call below it.
+  {
+    files: ['apps/worker/src/**/*.ts'],
+    ignores: ['**/*.test.ts', 'apps/worker/src/index.ts', 'apps/worker/src/logger.ts'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'Date',
+          property: 'now',
+          message: 'Take `now: Date` as a parameter instead.',
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message: 'new Date() reads the system clock. Take `now: Date` as a parameter.',
+        },
+      ],
+    },
+  },
   {
     files: ['**/metro.config.js'],
     rules: {
