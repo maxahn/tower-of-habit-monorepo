@@ -1,12 +1,12 @@
 # Progress
 
-**Next task:** 3.5 green phase — implement `enqueueEvaluationNotifications` to make the 4 red notification tests pass.
+**Next task:** 3.6 — nudge notifications.
 
 **Blockers:** none.
 
 ## Done
 
-- 3.5 TDD red phase: `enqueueEvaluationNotifications` stub (no-op) in `apps/api/src/evaluation/notifications.ts`, wired as step 10 of `evaluateTowerPeriod`; 6 integration tests in `apps/worker/src/notifications.integration.test.ts` (4 red: collapse/at_risk/dormant/hibernate notifications; 2 green: survived and subsequent-hibernation produce nothing). All 92 API + 35 existing worker tests still pass.
+- 3.5 Evaluation notification enqueueing: `enqueueEvaluationNotifications` in `apps/api/src/evaluation/notifications.ts` calls `ensureNotification` inside the evaluation transaction. Collapsed → one `collapse` per member + `at_risk`/`dormant` per transition; first hibernation → one `hibernate` per member; survived and subsequent hibernation → nothing. All 6 notification integration tests pass (39 worker tests total).
 - 3.4 Period claim wiring: `createWorkerEvaluator` in `apps/worker/src/evaluate.ts` delegates to `createEvaluator` from `@tower-of-habit/api`; composition root (`apps/worker/src/index.ts`) now wires `evaluate` and `materialise` for real; skip detection (period_already_evaluated / period_claimed / period_not_due) in `runTick`; 33 worker tests pass (11 tick, 11 sweep, 5 loop, 6 claim integration).
 
 - 2.10 Request context and transaction helper: `apps/api/src/context.ts` (`requestClock`, `ctxOf`, `withTx`, `X-Test-Now` behind `ALLOW_TEST_CLOCK`), eslint rule for `apps/api/src`.
