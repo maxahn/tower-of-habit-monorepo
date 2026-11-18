@@ -96,3 +96,72 @@ describe('runTick', () => {
     );
   });
 });
+
+function domainError(code: string, message = code): Error & { code: string } {
+  return Object.assign(new Error(message), { code });
+}
+
+describe('runTick — skip detection', () => {
+  it('skips a period_already_evaluated as skipped, not errored', async () => {
+    const deps = makeDeps({
+      claim: vi.fn<TickDeps['claim']>().mockResolvedValue([period('p1', 't1')]),
+      evaluate: vi
+        .fn<TickDeps['evaluate']>()
+        .mockRejectedValue(domainError('period_already_evaluated')),
+    });
+
+    const report = await runTick(NOW, deps);
+
+    expect(report.skipped).toBe(1);
+    expect(report.errored).toBe(0);
+    expect(report.evaluated).toBe(0);
+  });
+
+  it('skips period_claimed', async () => {
+    const deps = makeDeps({
+      claim: vi.fn<TickDeps['claim']>().mockResolvedValue([period('p1', 't1')]),
+      evaluate: vi.fn<TickDeps['evaluate']>().mockRejectedValue(domainError('period_claimed')),
+    });
+
+    const report = await runTick(NOW, deps);
+
+    expect(report.skipped).toBe(1);
+    expect(report.errored).toBe(0);
+  });
+
+  it('skips period_not_due', async () => {
+    const deps = makeDeps({
+      claim: vi.fn<TickDeps['claim']>().mockResolvedValue([period('p1', 't1')]),
+      evaluate: vi.fn<TickDeps['evaluate']>().mockRejectedValue(domainError('period_not_due')),
+    });
+
+    const report = await runTick(NOW, deps);
+
+    expect(report.skipped).toBe(1);
+    expect(report.errored).toBe(0);
+  });
+
+  it('counts a plain Error (no code) as errored', async () => {
+    const deps = makeDeps({
+      claim: vi.fn<TickDeps['claim']>().mockResolvedValue([period('p1', 't1')]),
+      evaluate: vi.fn<TickDeps['evaluate']>().mockRejectedValue(new Error('connection lost')),
+    });
+
+    const report = await runTick(NOW, deps);
+
+    expect(report.errored).toBe(1);
+    expect(report.skipped).toBe(0);
+  });
+
+  it('counts an unknown code as errored', async () => {
+    const deps = makeDeps({
+      claim: vi.fn<TickDeps['claim']>().mockResolvedValue([period('p1', 't1')]),
+      evaluate: vi.fn<TickDeps['evaluate']>().mockRejectedValue(domainError('something_unknown')),
+    });
+
+    const report = await runTick(NOW, deps);
+
+    expect(report.errored).toBe(1);
+    expect(report.skipped).toBe(0);
+  });
+});

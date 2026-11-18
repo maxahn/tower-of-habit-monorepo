@@ -1,5 +1,20 @@
 import type { Logger } from './logger.js';
 
+const SKIP_CODES: ReadonlySet<string> = new Set([
+  'period_already_evaluated',
+  'period_claimed',
+  'period_not_due',
+]);
+
+function isSkippable(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    'code' in err &&
+    typeof err.code === 'string' &&
+    SKIP_CODES.has(err.code)
+  );
+}
+
 export type TickReport = {
   materialised: number;
   claimed: number;
@@ -45,11 +60,23 @@ export async function runTick(now: Date, deps: TickDeps): Promise<TickReport> {
       await deps.evaluate(period.towerId, period.id, now);
       report.evaluated++;
     } catch (err) {
-      report.errored++;
-      deps.logger.error(
-        { err, towerId: period.towerId, periodId: period.id },
-        'period evaluation failed'
-      );
+      if (isSkippable(err)) {
+        report.skipped++;
+        deps.logger.info(
+          {
+            towerId: period.towerId,
+            periodId: period.id,
+            code: (err as Error & { code: string }).code,
+          },
+          'period evaluation skipped'
+        );
+      } else {
+        report.errored++;
+        deps.logger.error(
+          { err, towerId: period.towerId, periodId: period.id },
+          'period evaluation failed'
+        );
+      }
     }
   }
 
