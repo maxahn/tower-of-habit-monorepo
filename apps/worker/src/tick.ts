@@ -1,6 +1,7 @@
 import type { Logger } from './logger.js';
 
 export type TickReport = {
+  materialised: number;
   claimed: number;
   evaluated: number;
   skipped: number;
@@ -12,7 +13,10 @@ export type EvaluateFn = (towerId: string, periodId: string, now: Date) => Promi
 
 export type ClaimFn = (now: Date) => Promise<ReadonlyArray<{ towerId: string; id: string }>>;
 
+export type MaterialiseFn = (now: Date) => Promise<number>;
+
 export type TickDeps = {
+  materialise?: MaterialiseFn;
   claim: ClaimFn;
   evaluate: EvaluateFn;
   logger: Logger;
@@ -21,12 +25,17 @@ export type TickDeps = {
 export async function runTick(now: Date, deps: TickDeps): Promise<TickReport> {
   const start = performance.now();
   const report: TickReport = {
+    materialised: 0,
     claimed: 0,
     evaluated: 0,
     skipped: 0,
     errored: 0,
     durationMs: 0,
   };
+
+  if (deps.materialise) {
+    report.materialised = await deps.materialise(now);
+  }
 
   const periods = await deps.claim(now);
   report.claimed = periods.length;

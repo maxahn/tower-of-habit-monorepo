@@ -3,6 +3,7 @@ import type { TickReport } from './tick.js';
 import { startTickLoop } from './loop.js';
 
 const ZERO_REPORT: TickReport = {
+  materialised: 0,
   claimed: 0,
   evaluated: 0,
   skipped: 0,

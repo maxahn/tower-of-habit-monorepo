@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** Phase 3 planning complete. Begin implementation with 3.14 (email delivery) or 3.1 (worker scaffold).
+**Next task:** 3.3 implementation — make the 11 `sweep.test.ts` tests pass by implementing `materialisePeriods` in `apps/worker/src/sweep.ts`.
 
 **Blockers:** none.
 
