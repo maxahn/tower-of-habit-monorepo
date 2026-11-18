@@ -31,7 +31,8 @@
     "services:up:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging up -d",
     "services:down:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging down",
     "prepare": "husky",
-    "test:integration": "pnpm --filter @tower-of-habit/api test:integration"
+    "test:integration": "pnpm --filter @tower-of-habit/api test:integration",
+    "db:erd": "tsx packages/db/scripts/generate-erd.ts"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "^21.2.2",
