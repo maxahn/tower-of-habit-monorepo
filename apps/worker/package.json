@@ -12,6 +12,7 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@tower-of-habit/api": "workspace:*",
     "@tower-of-habit/db": "workspace:*",
     "@tower-of-habit/shared": "workspace:*",
     "graphile-worker": "^0.16.6",

@@ -139,6 +139,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@tower-of-habit/api':
+        specifier: workspace:*
+        version: link:../api
       '@tower-of-habit/db':
         specifier: workspace:*
         version: link:../../packages/db

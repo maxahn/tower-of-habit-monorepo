@@ -1,9 +1,11 @@
 import { claimDuePeriods, closeDb, db } from '@tower-of-habit/db';
 import { run as runGraphile, type Runner } from 'graphile-worker';
 import { config, redactedConfig } from './config.js';
+import { createWorkerEvaluator } from './evaluate.js';
 import { startHealthz } from './healthz.js';
 import { createJsonLogger } from './logger.js';
 import { startTickLoop, type TickLoop } from './loop.js';
+import { materialisePeriods } from './sweep.js';
 import { runTick } from './tick.js';
 
 const logger = createJsonLogger();
@@ -29,17 +31,14 @@ logger.info({ port: config.PORT }, 'healthz listening');
 
 let loop: TickLoop | undefined;
 if (config.TICK_ENABLED) {
+  const evaluate = createWorkerEvaluator(db, logger);
   loop = startTickLoop({
     intervalMs: config.TICK_INTERVAL_MS,
     tick: () =>
       runTick(new Date(), {
+        materialise: (now) => materialisePeriods(db, now, logger),
         claim: (now) => claimDuePeriods(db, now),
-        evaluate: async (towerId, periodId, now) => {
-          logger.warn(
-            { towerId, periodId, now: now.toISOString() },
-            'evaluate not wired yet (3.4)'
-          );
-        },
+        evaluate,
         logger,
       }),
     logger,
