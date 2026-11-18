@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** Phase 2 complete. Proceed to Phase 3 planning.
+**Next task:** Phase 3 planning complete. Begin implementation with 3.14 (email delivery) or 3.1 (worker scaffold).
 
 **Blockers:** none.
 
@@ -18,4 +18,5 @@
 - 2.18 Rate limiting: `enforceRateLimits` gains `failClosed` (503 `rate_limiter_unavailable`); verify-code and join-by-code (10/user/h, 30/IP/h) fail closed; per-user write ceiling (`rate-limit/write-ceiling.ts`, 600/h, fails open) on the authenticated router.
 - 2.21 End-to-end scenario test: `apps/api/src/integration/e2e-scenario.integration.test.ts` (full Phase 2 walk-through: OTP auth, habits, tower lifecycle, wobble, collapse, base block, dormancy, solo continuation, reactivation; outsider isolation with third user Charlie).
 - Schema ERD generator: `packages/db/scripts/generate-erd.ts` (introspects Drizzle schema via `getTableConfig`, outputs Mermaid ER diagram HTML to `docs/schema-erd.html`; `pnpm db:erd` to regenerate).
+- Phase 3 reconciliation: updated `docs/phase-3-tickets.md` and `docs/phase-3-PLAN.md` against actual Phase 1/2 implementation. C1–C6 resolved, M1/M2 marked complete, tickets 3.4/3.5/3.9/3.10/3.11 rewritten to reflect existing code, 3.9 absorbed into 3.5, BullMQ→Graphile Worker noted in 3.1, estimate reduced to 10–14 days.
 - 2.19 Internal evaluation trigger: `POST /v1/internal/towers/:towerId/periods/:periodId/evaluate` behind `INTERNAL_API_TOKEN` (`apps/api/src/internal/routes.ts`); `apps/api/src/evaluation/service.ts` (`evaluateTowerPeriod(tx, towerId, periodId, now)` for Phase 3 to import: claim with FOR UPDATE SKIP LOCKED, outcome incl. hibernated, height/streak, base block via `buildBaseBlockDraft`, §6 transitions + backstop, next period); db `lockPeriodForEvaluation`, `lockTower`, `extendTowerRun`, `closeTowerRun`, `listQualifyingDaysInRange`, `createMembership` takes `joinedAt`; shared `evaluationResponseSchema`. DECISIONS P15 records the height-on-collapse semantics.
