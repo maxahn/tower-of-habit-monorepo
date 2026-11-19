@@ -1,3 +1,4 @@
+import type { Db } from '@tower-of-habit/db';
 import type { Logger } from '../logger.js';
 
 /**
@@ -19,6 +20,24 @@ export interface LoginCodeSender {
  * code can only be logged here, on purpose. When `logCode` is false the sender
  * still records that a code was sent, with the email but never the code.
  */
+export function assertAuthCodeLogDisabled(opts: {
+  production: boolean;
+  authCodeLog: boolean;
+}): void {
+  if (opts.production && opts.authCodeLog) {
+    throw new Error('AUTH_CODE_LOG must not be true when NODE_ENV=production');
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function createEmailLoginCodeSender(db: Db): LoginCodeSender {
+  return {
+    async sendLoginCode() {
+      // stub — red phase
+    },
+  };
+}
+
 export function createLogLoginCodeSender(
   logger: Logger,
   opts: { logCode: boolean }

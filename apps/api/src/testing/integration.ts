@@ -49,6 +49,7 @@ const ALL_TABLES = [
   'notifications',
   'auth_codes',
   'sessions',
+  'email_deliverability',
 ];
 
 export async function truncateAll(): Promise<void> {
