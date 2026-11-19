@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 3.13 green phase — implement `deliverPush` and `checkPushReceipts` to make the 4 red tests pass.
+**Next task:** 3.14 — email delivery (send_email task).
 
 **Blockers:** none.
 
 ## Done
+
+- 3.13 Push delivery: `deliverPush` and `checkPushReceipts` in `apps/worker/src/push.ts` (pending→sent/skipped/failed, permanent vs transient Expo errors, DeviceNotRegistered token invalidation). `expo-push-service.ts` adapter wraps `expo-server-sdk`. Graphile Worker task list wired in `index.ts`: `send_push` (enqueues `check_push_receipts` 15 min later), `check_push_receipts`, `nudge`, `wobble`. `EXPO_ACCESS_TOKEN` optional in worker config. All 7 push integration tests pass (64 worker tests total).
 
 - 3.12 Voluntary dormancy: POST/DELETE `/towers/:id/absence` in `apps/api/src/towers/routes.ts`. POST validates per-declaration cap (14 days), concurrent cap (one at a time via `voluntaryReturnDate`), annual budget (28 days via `voluntaryAbsenceDaysUsed` column), and timing rule (after deadline → defers transition, stays active for current period). DELETE restores active and clears return date, rejects if no absence active. Schema: `declareAbsenceRequestSchema`/`declareAbsenceResponseSchema` in `packages/shared`. Migration 0013 adds `voluntary_absence_days_used` column. All 10 integration tests pass (106 API total).
 - 3.11 Hibernation and wake: hibernate notification already done in 3.5's `enqueueEvaluationNotifications` (first hibernation only, suppresses repeats). Added `soloActive: boolean` to `towerActiveResponseSchema` and `periodPreviewResponseSchema` — counts live members (active/at_risk) and returns true when exactly one remains. Tower detail (`service.ts`) and period preview (`routes.ts`) both compute it. All 4 soloActive integration tests pass (96 API integration tests total).

@@ -15,6 +15,7 @@
     "@tower-of-habit/api": "workspace:*",
     "@tower-of-habit/db": "workspace:*",
     "@tower-of-habit/shared": "workspace:*",
+    "expo-server-sdk": "^8.0.0",
     "graphile-worker": "^0.16.6",
     "zod": "catalog:"
   },

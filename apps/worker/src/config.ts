@@ -10,6 +10,7 @@ const schema = z.object({
     .transform((v) => v === 'true'),
   NODE_ENV: z.string().default('development'),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().default(20_000),
+  EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
 });
 
 export type Config = z.infer<typeof schema>;
@@ -32,5 +33,9 @@ export function redactedConfig(cfg: Config): Record<string, unknown> {
   } catch {
     redactedUrl = '(invalid URL)';
   }
-  return { ...cfg, DATABASE_URL: redactedUrl };
+  return {
+    ...cfg,
+    DATABASE_URL: redactedUrl,
+    ...(cfg.EXPO_ACCESS_TOKEN ? { EXPO_ACCESS_TOKEN: '***' } : {}),
+  };
 }
