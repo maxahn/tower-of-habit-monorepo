@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** 3.13 — Graphile Worker and push delivery.
+**Next task:** 3.13 green phase — implement `deliverPush` and `checkPushReceipts` to make the 4 red tests pass.
 
 **Blockers:** none.
 
