@@ -1,11 +1,12 @@
 # Progress
 
-**Next task:** 3.12 — voluntary dormancy green phase (implement POST/DELETE `/towers/:id/absence`).
+**Next task:** 3.13 — Graphile Worker and push delivery.
 
 **Blockers:** none.
 
 ## Done
 
+- 3.12 Voluntary dormancy: POST/DELETE `/towers/:id/absence` in `apps/api/src/towers/routes.ts`. POST validates per-declaration cap (14 days), concurrent cap (one at a time via `voluntaryReturnDate`), annual budget (28 days via `voluntaryAbsenceDaysUsed` column), and timing rule (after deadline → defers transition, stays active for current period). DELETE restores active and clears return date, rejects if no absence active. Schema: `declareAbsenceRequestSchema`/`declareAbsenceResponseSchema` in `packages/shared`. Migration 0013 adds `voluntary_absence_days_used` column. All 10 integration tests pass (106 API total).
 - 3.11 Hibernation and wake: hibernate notification already done in 3.5's `enqueueEvaluationNotifications` (first hibernation only, suppresses repeats). Added `soloActive: boolean` to `towerActiveResponseSchema` and `periodPreviewResponseSchema` — counts live members (active/at_risk) and returns true when exactly one remains. Tower detail (`service.ts`) and period preview (`routes.ts`) both compute it. All 4 soloActive integration tests pass (96 API integration tests total).
 - 3.10 Backstop sweep: `sweepBackstop` in `apps/worker/src/backstop.ts` queries all live memberships joined with towers, computes tower-local date via `civilInZone`, checks `backstopDue` from the shared evaluator, transitions eligible members to dormant via `transitionMembership`, and enqueues dormant notifications via `ensureNotification`. All 6 integration tests pass (57 worker tests total).
 - 3.8 Collapse dispatch: fully implemented in 3.5's `enqueueEvaluationNotifications`. All collapse/at_risk/dormant/hibernate notification scenarios covered by 6 existing tests in `notifications.integration.test.ts`. No separate worker task needed — collapse fires inside the evaluation transaction.

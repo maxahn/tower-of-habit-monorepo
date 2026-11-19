@@ -74,29 +74,25 @@ describe('POST /v1/towers/:id/absence', () => {
   it('rejects a declaration that would exceed the 28-day annual budget', async () => {
     const s = await started();
     const member = s.members[1]!;
-    // Simulate the member already having used 25 days this rolling year.
-    // The implementation must track historical usage; this test verifies the
-    // cap by declaring an absence that would bring the total above 28.
-    // For now, we set up two sequential 14-day stints and then try a third.
-    // With the stub returning 200 for all, the third call "succeeds" → RED.
+    // Two 14-day stints exhaust the 28-day annual budget.
     const res1 = await it_.request(`/v1/towers/${s.tower.id}/absence`, {
       as: member,
-      json: { from: '2026-08-01', to: '2026-08-14' },
+      json: { from: '2026-11-17', to: '2026-11-30' },
     });
     expect(res1.status).toBe(200);
-    // Cancel the first to allow the second.
+    // Cancel the first to allow the second (concurrent cap).
     await it_.request(`/v1/towers/${s.tower.id}/absence`, { method: 'DELETE', as: member });
     const res2 = await it_.request(`/v1/towers/${s.tower.id}/absence`, {
       as: member,
-      json: { from: '2026-09-01', to: '2026-09-14' },
+      json: { from: '2026-12-01', to: '2026-12-14' },
     });
     expect(res2.status).toBe(200);
     // Cancel the second to allow the third attempt.
     await it_.request(`/v1/towers/${s.tower.id}/absence`, { method: 'DELETE', as: member });
-    // Third: only 1 day remaining in budget (28 - 14 - 14 = 0), so even 1 day fails.
+    // Budget is now 28 days (14 + 14). Even 1 more day fails.
     const res3 = await it_.request(`/v1/towers/${s.tower.id}/absence`, {
       as: member,
-      json: { from: '2026-11-17', to: '2026-11-17' },
+      json: { from: '2026-12-15', to: '2026-12-15' },
     });
     expect(res3.status).toBe(409);
     expect((await readErrorBody(res3)).error.code).toBe('annual_budget_exceeded');

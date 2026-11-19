@@ -15,7 +15,10 @@ export type NewMembership = Pick<
 export type MembershipPatch = Partial<
   Pick<
     typeof memberships.$inferInsert,
-    'consecutiveMissedPeriods' | 'lastQualifyingDate' | 'voluntaryReturnDate'
+    | 'consecutiveMissedPeriods'
+    | 'lastQualifyingDate'
+    | 'voluntaryReturnDate'
+    | 'voluntaryAbsenceDaysUsed'
   >
 >;
 
