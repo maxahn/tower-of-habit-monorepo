@@ -226,6 +226,8 @@ export const towerActiveResponseSchema = z.strictObject({
   currentPeriod: towerPeriodResponseSchema.nullable(),
   /** Oldest first. */
   blocks: z.array(baseBlockResponseSchema),
+  /** True when exactly one member is active or at_risk (everyone else is dormant). */
+  soloActive: z.boolean(),
 });
 export type TowerActiveResponse = z.infer<typeof towerActiveResponseSchema>;
 

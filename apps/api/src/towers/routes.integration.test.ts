@@ -167,6 +167,34 @@ describe('GET /v1/towers/:id', () => {
     expect(JSON.stringify(body)).not.toContain(s.tower.joinCode);
   });
 
+  it('reports soloActive true when only one member is active', async () => {
+    const s = await it_.fixtures.lobby({ members: 2 });
+    await db
+      .update(towers)
+      .set({ lifecycle: 'active', startedAt: it_.clock.now })
+      .where(eq(towers.id, s.tower.id));
+    await db
+      .update(memberships)
+      .set({ state: 'dormant', dormantSince: it_.clock.now, dormancyReason: 'consecutive_miss' })
+      .where(eq(memberships.id, s.members[1]!.membership.id));
+    const body = await detail(await it_.request(`/v1/towers/${s.tower.id}`, { as: s.host }));
+    expect(body.kind).toBe('active');
+    if (body.kind !== 'active') return;
+    expect(body.soloActive).toBe(true);
+  });
+
+  it('reports soloActive false when multiple members are active', async () => {
+    const s = await it_.fixtures.lobby({ members: 2 });
+    await db
+      .update(towers)
+      .set({ lifecycle: 'active', startedAt: it_.clock.now })
+      .where(eq(towers.id, s.tower.id));
+    const body = await detail(await it_.request(`/v1/towers/${s.tower.id}`, { as: s.host }));
+    expect(body.kind).toBe('active');
+    if (body.kind !== 'active') return;
+    expect(body.soloActive).toBe(false);
+  });
+
   it('is 404 to a removed member', async () => {
     const s = await it_.fixtures.lobby({ members: 2 });
     const leaver = s.members[1]!;

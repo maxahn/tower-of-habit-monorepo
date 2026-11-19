@@ -82,6 +82,7 @@ describe('towerDetailResponseSchema', () => {
       role: 'member',
       currentPeriod: PERIOD,
       blocks: [],
+      soloActive: false,
     });
     expect(r.success).toBe(true);
     expect(r.success && 'joinCode' in r.data).toBe(false);

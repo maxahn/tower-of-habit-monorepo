@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** 3.11 — hibernation notification (mostly implemented; remaining: surface solo-active-member state in API response).
+**Next task:** 3.11 green phase — implement `soloActive` computation to make 2 red tests pass.
 
 **Blockers:** none.
 

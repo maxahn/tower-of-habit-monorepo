@@ -274,6 +274,7 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
             : [],
         height: tower.height,
         currentStreak: tower.currentStreak,
+        soloActive: false,
       };
       return c.json(body);
     })

@@ -52,5 +52,7 @@ export const periodPreviewResponseSchema = z.strictObject({
   outstanding: z.array(uuid),
   height: nonNegativeInt,
   currentStreak: nonNegativeInt,
+  /** True when exactly one member is active or at_risk (everyone else is dormant). */
+  soloActive: z.boolean(),
 });
 export type PeriodPreviewResponse = z.infer<typeof periodPreviewResponseSchema>;

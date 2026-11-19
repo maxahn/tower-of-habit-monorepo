@@ -52,6 +52,7 @@ const BODY = {
   outstanding: ['2b2e4c1a-0d6f-4f7e-8a3b-2c5d6e7f8a90'],
   height: 3,
   currentStreak: 3,
+  soloActive: false,
 };
 
 describe('periodPreviewResponseSchema', () => {

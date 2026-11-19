@@ -96,6 +96,22 @@ describe('GET /v1/towers/:id/period', () => {
     );
   });
 
+  it('reports soloActive true when only one member is active', async () => {
+    const s = await started();
+    await db
+      .update(memberships)
+      .set({ state: 'dormant', dormantSince: it_.clock.now, dormancyReason: 'consecutive_miss' })
+      .where(eq(memberships.id, s.members[1]!.membership.id));
+    const body = await preview(s.tower.id, s.host);
+    expect(body.soloActive).toBe(true);
+  });
+
+  it('reports soloActive false when multiple members are active', async () => {
+    const s = await started();
+    const body = await preview(s.tower.id, s.host);
+    expect(body.soloActive).toBe(false);
+  });
+
   it('is 409 tower_not_started for a lobby, and 404 to non-members', async () => {
     const lobby = await it_.fixtures.lobby({ members: 2 });
     const res = await it_.request(`/v1/towers/${lobby.tower.id}/period`, { as: lobby.host });
