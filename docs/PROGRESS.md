@@ -1,11 +1,12 @@
 # Progress
 
-**Next task:** 3.11 green phase — implement `soloActive` computation to make 2 red tests pass.
+**Next task:** 3.12 — voluntary dormancy (new API endpoints).
 
 **Blockers:** none.
 
 ## Done
 
+- 3.11 Hibernation and wake: hibernate notification already done in 3.5's `enqueueEvaluationNotifications` (first hibernation only, suppresses repeats). Added `soloActive: boolean` to `towerActiveResponseSchema` and `periodPreviewResponseSchema` — counts live members (active/at_risk) and returns true when exactly one remains. Tower detail (`service.ts`) and period preview (`routes.ts`) both compute it. All 4 soloActive integration tests pass (96 API integration tests total).
 - 3.10 Backstop sweep: `sweepBackstop` in `apps/worker/src/backstop.ts` queries all live memberships joined with towers, computes tower-local date via `civilInZone`, checks `backstopDue` from the shared evaluator, transitions eligible members to dormant via `transitionMembership`, and enqueues dormant notifications via `ensureNotification`. All 6 integration tests pass (57 worker tests total).
 - 3.8 Collapse dispatch: fully implemented in 3.5's `enqueueEvaluationNotifications`. All collapse/at_risk/dormant/hibernate notification scenarios covered by 6 existing tests in `notifications.integration.test.ts`. No separate worker task needed — collapse fires inside the evaluation transaction.
 - 3.7 Wobble dispatch: `processWobble` in `apps/worker/src/wobble.ts` — broadcast to all live members when at least one is outstanding. Same guards as nudge (staleness, period state). Key difference from nudge: sends to ALL live members (not just outstanding) when anyone is short. All 6 wobble integration tests pass (51 worker tests total).

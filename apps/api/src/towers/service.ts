@@ -113,6 +113,6 @@ export async function towerDetail(
     role,
     currentPeriod: (currentPeriod ?? null) as unknown as TowerActiveResponse['currentPeriod'],
     blocks: blocks as unknown as TowerActiveResponse['blocks'],
-    soloActive: false,
+    soloActive: members.filter((m) => m.state === 'active' || m.state === 'at_risk').length === 1,
   };
 }

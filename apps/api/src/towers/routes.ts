@@ -274,7 +274,9 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
             : [],
         height: tower.height,
         currentStreak: tower.currentStreak,
-        soloActive: false,
+        soloActive:
+          loaded.memberships.filter((m) => m.state === 'active' || m.state === 'at_risk').length ===
+          1,
       };
       return c.json(body);
     })
