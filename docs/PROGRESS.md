@@ -1,12 +1,12 @@
 # Progress
 
-**Next task:** 3.10 green phase — implement `sweepBackstop` to make 3 red backstop tests pass.
+**Next task:** 3.11 — hibernation notification (mostly implemented; remaining: surface solo-active-member state in API response).
 
 **Blockers:** none.
 
 ## Done
 
-- 3.10 Backstop sweep (red phase): `sweepBackstop` stub in `apps/worker/src/backstop.ts` + 6 integration tests in `backstop.integration.test.ts`. Tests: (1) never-logged member 15+ days since join → dormant, (2) lastQualifyingDate exactly 14 days ago → dormant, (3) two eligible → 2 dormant notifications, (4) logged within 14 days → no change, (5) already dormant → skipped, (6) day 13 → no change. 3 red, 3 green (57 worker tests total).
+- 3.10 Backstop sweep: `sweepBackstop` in `apps/worker/src/backstop.ts` queries all live memberships joined with towers, computes tower-local date via `civilInZone`, checks `backstopDue` from the shared evaluator, transitions eligible members to dormant via `transitionMembership`, and enqueues dormant notifications via `ensureNotification`. All 6 integration tests pass (57 worker tests total).
 - 3.8 Collapse dispatch: fully implemented in 3.5's `enqueueEvaluationNotifications`. All collapse/at_risk/dormant/hibernate notification scenarios covered by 6 existing tests in `notifications.integration.test.ts`. No separate worker task needed — collapse fires inside the evaluation transaction.
 - 3.7 Wobble dispatch: `processWobble` in `apps/worker/src/wobble.ts` — broadcast to all live members when at least one is outstanding. Same guards as nudge (staleness, period state). Key difference from nudge: sends to ALL live members (not just outstanding) when anyone is short. All 6 wobble integration tests pass (51 worker tests total).
 - 3.6 Nudge dispatch: `processNudge` in `apps/worker/src/nudge.ts` loads the period, checks staleness (bail if `now > deadlineAt`) and state (bail if not `pending`), filters to active/at_risk members, skips those who met quota via `countQualifyingDays`, and creates `nudge` notification rows via `ensureNotification` for the rest. All 6 nudge integration tests pass (45 worker tests total).
