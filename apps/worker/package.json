@@ -17,6 +17,7 @@
     "@tower-of-habit/shared": "workspace:*",
     "expo-server-sdk": "^8.0.0",
     "graphile-worker": "^0.16.6",
+    "resend": "^6.39.0",
     "zod": "catalog:"
   },
   "devDependencies": {

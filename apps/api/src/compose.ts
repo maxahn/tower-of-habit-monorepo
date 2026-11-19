@@ -17,6 +17,7 @@ import type { ClientIpResolver } from './rate-limit/client-ip.js';
 import type { RateLimiter } from './rate-limit/limiter.js';
 import { writeCeiling } from './rate-limit/write-ceiling.js';
 import { mountTowerRoutes } from './towers/routes.js';
+import { mountResendWebhook } from './webhooks/resend.js';
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
 export const CODE_TTL_SECONDS = 10 * 60; // 10 minutes
@@ -42,6 +43,8 @@ export type ComposeDeps = {
   clock: ClockOptions;
   /** 2.19: when set, mounts the guarded internal routes. */
   internalApiToken?: string | undefined;
+  /** 3.14: when set, mounts the Resend bounce/complaint webhook. */
+  resendWebhookSecret?: string | undefined;
 };
 
 export function composeApp(deps: ComposeDeps): Hono<AppEnv> {
@@ -67,6 +70,13 @@ export function composeApp(deps: ComposeDeps): Hono<AppEnv> {
         mountInternalRoutes(api, {
           token: deps.internalApiToken,
           evaluate: createEvaluator(deps.db, deps.logger),
+        });
+      }
+      if (deps.resendWebhookSecret) {
+        mountResendWebhook(api, {
+          db: deps.db,
+          webhookSecret: deps.resendWebhookSecret,
+          logger: deps.logger,
         });
       }
     },

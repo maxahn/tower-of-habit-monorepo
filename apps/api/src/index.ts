@@ -2,7 +2,11 @@ import type { Server } from 'node:http';
 import { serve } from '@hono/node-server';
 import { closeDb, db, pingDb } from '@tower-of-habit/db';
 import { Redis } from 'ioredis';
-import { createLogLoginCodeSender } from './auth/sender.js';
+import {
+  assertAuthCodeLogDisabled,
+  createEmailLoginCodeSender,
+  createLogLoginCodeSender,
+} from './auth/sender.js';
 import { composeApp } from './compose.js';
 import { createJsonLogger } from './logger.js';
 import { createClientIpResolver } from './rate-limit/client-ip.js';
@@ -38,9 +42,7 @@ redis.on('error', (err) => logger.warn({ err }, 'redis connection error'));
 // real email delivery). Defaulted false, and refused in production: a code in a
 // prod log is a code in everyone's log shipper.
 const authCodeLog = env.AUTH_CODE_LOG === 'true';
-if (production && authCodeLog) {
-  throw new Error('AUTH_CODE_LOG must not be true when NODE_ENV=production');
-}
+assertAuthCodeLogDisabled({ production, authCodeLog });
 
 // ALLOW_TEST_CLOCK lets a request override its `now` with X-Test-Now (2.10).
 // Only for the integration suite; refused in production for the obvious reason.
@@ -52,7 +54,9 @@ if (production && allowTestClock) {
 const app = composeApp({
   db,
   logger,
-  sender: createLogLoginCodeSender(logger, { logCode: authCodeLog }),
+  sender: authCodeLog
+    ? createLogLoginCodeSender(logger, { logCode: true })
+    : createEmailLoginCodeSender(db),
   // Shares the client above: no offline queue and one retry, so a Redis outage
   // fails fast and the limits fail open or closed per route (rate-limit/enforce.ts).
   limiter: createRedisRateLimiter(redis),
@@ -67,6 +71,7 @@ const app = composeApp({
   clock: { allowTestClock },
   // 2.19: the internal evaluation trigger mounts only when a token is set.
   internalApiToken: env.INTERNAL_API_TOKEN,
+  resendWebhookSecret: env.RESEND_WEBHOOK_SECRET,
 });
 if (!env.INTERNAL_API_TOKEN) {
   logger.warn({}, 'INTERNAL_API_TOKEN unset; internal routes not mounted');

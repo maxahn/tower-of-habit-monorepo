@@ -31,8 +31,8 @@ describe('request-code deliverability', () => {
     // Green: 422 with error code 'email_undeliverable'.
     // Red: 202 because the service does not check.
     expect(res.status).toBe(422);
-    const body = (await res.json()) as { code: string };
-    expect(body.code).toBe('email_undeliverable');
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe('email_undeliverable');
   });
 
   it('allows request-code for a non-bounced email', async () => {

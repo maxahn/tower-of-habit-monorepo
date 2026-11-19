@@ -1,4 +1,5 @@
 import type { Db } from '@tower-of-habit/db';
+import { sql } from 'drizzle-orm';
 import type { Logger } from '../logger.js';
 
 /**
@@ -29,11 +30,16 @@ export function assertAuthCodeLogDisabled(opts: {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function createEmailLoginCodeSender(db: Db): LoginCodeSender {
   return {
-    async sendLoginCode() {
-      // stub — red phase
+    async sendLoginCode(email, code) {
+      await db.execute(
+        sql`SELECT graphile_worker.add_job(
+          'send_email',
+          ${JSON.stringify({ email, code })}::json,
+          max_attempts := 5
+        )`
+      );
     },
   };
 }

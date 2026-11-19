@@ -1,16 +1,26 @@
+import { eq, sql } from 'drizzle-orm';
 import type { Db } from '../client.js';
+import { emailDeliverability } from './email-deliverability-schema.js';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function markEmailUndeliverable(db: Db, email: string, reason: string): Promise<void> {
-  // stub — red phase
+  await db
+    .insert(emailDeliverability)
+    .values({ email: sql`${email}::citext`, reason })
+    .onConflictDoUpdate({
+      target: emailDeliverability.email,
+      set: { reason, markedAt: sql`now()` },
+    });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function isEmailDeliverable(db: Db, email: string): Promise<boolean> {
-  return true; // stub — red phase
+  const rows = await db
+    .select({ email: emailDeliverability.email })
+    .from(emailDeliverability)
+    .where(eq(emailDeliverability.email, sql`${email}::citext`))
+    .limit(1);
+  return rows.length === 0;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function clearEmailDeliverability(db: Db, email: string): Promise<void> {
-  // stub — red phase
+  await db.delete(emailDeliverability).where(eq(emailDeliverability.email, sql`${email}::citext`));
 }

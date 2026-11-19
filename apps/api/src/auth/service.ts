@@ -7,12 +7,14 @@ import {
   findUserByEmail,
   insertAuthCode,
   invalidateCodesForEmail,
+  isEmailDeliverable,
   recordFailedAttempt,
   revokeAllForUser,
   revokeSession,
   touchLastSeen,
   type Db,
 } from '@tower-of-habit/db';
+import { DomainError } from '../errors.js';
 import {
   codeMatches,
   generateCode,
@@ -92,6 +94,13 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
   return {
     async requestCode(rawEmail) {
       const email = normalizeEmail(rawEmail);
+      if (!(await isEmailDeliverable(db, email))) {
+        throw new DomainError(
+          422,
+          'email_undeliverable',
+          'This email address has previously bounced. Please try a different email address.'
+        );
+      }
       const code = generateCode();
       // One live code per email: drop any outstanding code, then insert the new
       // one. The same work runs whether or not a user exists (users are created

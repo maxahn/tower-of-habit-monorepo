@@ -11,6 +11,8 @@ const schema = z.object({
   NODE_ENV: z.string().default('development'),
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().default(20_000),
   EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(1).optional(),
 });
 
 export type Config = z.infer<typeof schema>;
@@ -37,5 +39,6 @@ export function redactedConfig(cfg: Config): Record<string, unknown> {
     ...cfg,
     DATABASE_URL: redactedUrl,
     ...(cfg.EXPO_ACCESS_TOKEN ? { EXPO_ACCESS_TOKEN: '***' } : {}),
+    ...(cfg.RESEND_API_KEY ? { RESEND_API_KEY: '***' } : {}),
   };
 }

@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 3.14 — email delivery (send_email task).
+**Next task:** 3.15 or next phase-3 ticket.
 
-**Blockers:** none.
+**Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes).
 
 ## Done
+
+- 3.14 Email delivery for login codes: `deliverLoginEmail` in `apps/worker/src/email.ts` formats code-first subject/body per ticket spec. `resend-email-service.ts` adapter wraps Resend SDK. `send_email` Graphile Worker task in `index.ts`. API-side `createEmailLoginCodeSender` enqueues job via `graphile_worker.add_job` SQL. `email_deliverability` table (citext PK) tracks bounced/complained addresses independently of users. `isEmailDeliverable` gate in `requestCode` → 422 `email_undeliverable`. Resend bounce/complaint webhook at `POST /webhooks/resend` (Svix signature verification). `assertAuthCodeLogDisabled` extracted and tested. Config: `RESEND_API_KEY`, `EMAIL_FROM` (worker), `RESEND_WEBHOOK_SECRET` (API). All 8 previously-red tests pass; 536 DB / 68 worker / 108 API integration tests total.
 
 - 3.13 Push delivery: `deliverPush` and `checkPushReceipts` in `apps/worker/src/push.ts` (pending→sent/skipped/failed, permanent vs transient Expo errors, DeviceNotRegistered token invalidation). `expo-push-service.ts` adapter wraps `expo-server-sdk`. Graphile Worker task list wired in `index.ts`: `send_push` (enqueues `check_push_receipts` 15 min later), `check_push_receipts`, `nudge`, `wobble`. `EXPO_ACCESS_TOKEN` optional in worker config. All 7 push integration tests pass (64 worker tests total).
 

@@ -1,8 +1,10 @@
 import { claimDuePeriods, closeDb, db } from '@tower-of-habit/db';
 import { run as runGraphile, type Runner, type TaskList } from 'graphile-worker';
 import { config, redactedConfig } from './config.js';
+import { deliverLoginEmail } from './email.js';
 import { createWorkerEvaluator } from './evaluate.js';
 import { createExpoPushService } from './expo-push-service.js';
+import { createResendEmailService } from './resend-email-service.js';
 import { startHealthz } from './healthz.js';
 import { createJsonLogger } from './logger.js';
 import { startTickLoop, type TickLoop } from './loop.js';
@@ -16,10 +18,20 @@ const logger = createJsonLogger();
 logger.info({ config: redactedConfig(config) }, 'worker starting');
 
 const pushService = createExpoPushService(config.EXPO_ACCESS_TOKEN);
+const emailService = config.RESEND_API_KEY
+  ? createResendEmailService(config.RESEND_API_KEY)
+  : undefined;
 
 const RECEIPT_CHECK_DELAY_MS = 15 * 60 * 1000;
 
 const taskList: TaskList = {
+  async send_email(payload, helpers) {
+    const { email, code } = payload as { email: string; code: string };
+    if (!emailService) throw new Error('RESEND_API_KEY not configured');
+    if (!config.EMAIL_FROM) throw new Error('EMAIL_FROM not configured');
+    await deliverLoginEmail(emailService, { email, code }, config.EMAIL_FROM);
+    helpers.logger.info(`send_email: ${email} → sent`);
+  },
   async send_push(payload, helpers) {
     const { notificationId } = payload as { notificationId: string };
     const result = await deliverPush(db, notificationId, pushService);

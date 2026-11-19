@@ -13,12 +13,31 @@ export interface LoginEmailResult {
 }
 
 export async function deliverLoginEmail(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _emailService: EmailService,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _payload: { email: string; code: string },
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _fromAddress: string
+  emailService: EmailService,
+  payload: { email: string; code: string },
+  fromAddress: string
 ): Promise<LoginEmailResult> {
-  return { resendId: '' }; // stub — red phase
+  const subject = `${payload.code} is your Tower code`;
+  const text = [
+    `${payload.code} is your Tower code`,
+    '',
+    'Enter this code to sign in. It expires in 10 minutes.',
+    '',
+    'If you did not request this, ignore this email.',
+  ].join('\n');
+  const html = [
+    `<p>${payload.code} is your Tower code</p>`,
+    '<p>Enter this code to sign in. It expires in 10 minutes.</p>',
+    '<p style="color:#666;font-size:12px">If you did not request this, ignore this email.</p>',
+  ].join('');
+
+  const result = await emailService.sendEmail({
+    from: fromAddress,
+    to: payload.email,
+    subject,
+    text,
+    html,
+  });
+
+  return { resendId: result.id };
 }
