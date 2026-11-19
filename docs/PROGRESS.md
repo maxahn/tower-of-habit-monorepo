@@ -1,11 +1,12 @@
 # Progress
 
-**Next task:** 3.7 — wobble dispatch.
+**Next task:** 3.7 green phase — implement `processWobble` to make the 3 red wobble tests pass.
 
 **Blockers:** none.
 
 ## Done
 
+- 3.7 TDD red phase: `processWobble` stub (no-op) in `apps/worker/src/wobble.ts`; 6 integration tests in `apps/worker/src/wobble.integration.test.ts` (3 red: broadcast to all when all outstanding, broadcast when one outstanding, dormant excluded; 3 green: all met quota, stale past deadline, period already evaluated). All 45 existing worker tests still pass.
 - 3.6 Nudge dispatch: `processNudge` in `apps/worker/src/nudge.ts` loads the period, checks staleness (bail if `now > deadlineAt`) and state (bail if not `pending`), filters to active/at_risk members, skips those who met quota via `countQualifyingDays`, and creates `nudge` notification rows via `ensureNotification` for the rest. All 6 nudge integration tests pass (45 worker tests total).
 - 3.5 Evaluation notification enqueueing: `enqueueEvaluationNotifications` in `apps/api/src/evaluation/notifications.ts` calls `ensureNotification` inside the evaluation transaction. Collapsed → one `collapse` per member + `at_risk`/`dormant` per transition; first hibernation → one `hibernate` per member; survived and subsequent hibernation → nothing. All 6 notification integration tests pass (39 worker tests total).
 - 3.4 Period claim wiring: `createWorkerEvaluator` in `apps/worker/src/evaluate.ts` delegates to `createEvaluator` from `@tower-of-habit/api`; composition root (`apps/worker/src/index.ts`) now wires `evaluate` and `materialise` for real; skip detection (period_already_evaluated / period_claimed / period_not_due) in `runTick`; 33 worker tests pass (11 tick, 11 sweep, 5 loop, 6 claim integration).
