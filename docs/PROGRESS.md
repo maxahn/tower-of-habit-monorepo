@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** 3.12 — voluntary dormancy (new API endpoints).
+**Next task:** 3.12 — voluntary dormancy green phase (implement POST/DELETE `/towers/:id/absence`).
 
 **Blockers:** none.
 

@@ -15,6 +15,7 @@ import {
 } from '@tower-of-habit/db';
 import {
   createTowerRequestSchema,
+  declareAbsenceRequestSchema,
   joinTowerRequestSchema,
   type PeriodPreviewResponse,
   type TowerListResponse,
@@ -279,6 +280,27 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
           1,
       };
       return c.json(body);
+    })
+  );
+
+  api.post('/towers/:id/absence', jsonBody(declareAbsenceRequestSchema), (c) =>
+    withTx(deps.db, c, async (tx, ctx) => {
+      const { tower } = await memberOf(tx, ctx, c.req.param('id'));
+      if (tower.lifecycle === 'draft') {
+        throw new DomainError(409, 'tower_not_started', 'The tower has not started');
+      }
+      const { from, to } = c.req.valid('json');
+      return c.json({ from, to });
+    })
+  );
+
+  api.delete('/towers/:id/absence', (c) =>
+    withTx(deps.db, c, async (tx, ctx) => {
+      const { tower } = await memberOf(tx, ctx, c.req.param('id'));
+      if (tower.lifecycle === 'draft') {
+        throw new DomainError(409, 'tower_not_started', 'The tower has not started');
+      }
+      return c.body(null, 204);
     })
   );
 

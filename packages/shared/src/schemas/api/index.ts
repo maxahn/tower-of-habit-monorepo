@@ -1,3 +1,4 @@
+export * from './absence.js';
 export * from './habits.js';
 export * from './tiers.js';
 export * from './entries.js';
