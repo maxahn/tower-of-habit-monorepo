@@ -286,3 +286,14 @@ export async function transitionPeriod(
 export async function deletePeriod(db: Db, id: string): Promise<void> {
   await db.delete(towerPeriods).where(eq(towerPeriods.id, id));
 }
+
+/**
+ * 3.17: age in seconds of the oldest pending period whose evaluate_at has
+ * passed, or null if none exist. The key metric for detecting a live-but-stuck
+ * scheduler.
+ */
+export async function oldestPendingPeriodAge(db: Db, now: Date): Promise<number | null> {
+  void db;
+  void now;
+  return null;
+}

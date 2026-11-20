@@ -15,6 +15,7 @@ import {
   IllegalPeriodTransitionError,
   listPeriodsForTower,
   MAX_CLAIM_ATTEMPTS,
+  oldestPendingPeriodAge,
   PeriodNotFoundError,
   TowerNotStartedError,
   transitionPeriod,
@@ -718,5 +719,59 @@ describe('period transitions', () => {
     // @ts-expect-error an outcome is required
     const t: PeriodTransition = { to: 'evaluated' };
     void t;
+  });
+});
+
+describe('oldestPendingPeriodAge (3.17)', () => {
+  it('returns null when no pending periods are overdue', async () => {
+    const t = await tower();
+    // A pending period that is not yet due (evaluate_at in the future).
+    await rawPeriod({
+      towerId: t.id,
+      evaluateAt: at('2099-01-01T00:00:00.000Z'),
+    });
+    expect(await oldestPendingPeriodAge(db, at('2026-03-08T07:00:00.000Z'))).toBeNull();
+  });
+
+  it('returns age in seconds for the oldest overdue pending period', async () => {
+    const t = await tower();
+    const TEN_MIN_AGO = at('2026-03-08T06:50:00.000Z');
+    const NOW = at('2026-03-08T07:00:00.000Z');
+    await rawPeriod({ towerId: t.id, evaluateAt: TEN_MIN_AGO });
+
+    const age = await oldestPendingPeriodAge(db, NOW);
+
+    expect(age).toBeGreaterThanOrEqual(599);
+    expect(age).toBeLessThanOrEqual(601);
+  });
+
+  it('picks the oldest when multiple overdue pending periods exist', async () => {
+    const t = await tower();
+    const NOW = at('2026-03-08T07:00:00.000Z');
+    // 15 min old
+    await due(t.id, '2026-03-01', at('2026-03-08T06:45:00.000Z'));
+    // 5 min old
+    await due(t.id, '2026-03-02', at('2026-03-08T06:55:00.000Z'));
+
+    const age = await oldestPendingPeriodAge(db, NOW);
+
+    // Should reflect the 15-minute-old one (900 seconds).
+    expect(age).toBeGreaterThanOrEqual(899);
+    expect(age).toBeLessThanOrEqual(901);
+  });
+
+  it('ignores evaluating and evaluated periods', async () => {
+    const t = await tower();
+    const TEN_MIN_AGO = at('2026-03-08T06:50:00.000Z');
+    const NOW = at('2026-03-08T07:00:00.000Z');
+    // Insert and transition to evaluating.
+    const [p] = await rawPeriod({ towerId: t.id, evaluateAt: TEN_MIN_AGO });
+    await transitionPeriod(db, p!.id, { to: 'evaluating' }, NOW);
+
+    expect(await oldestPendingPeriodAge(db, NOW)).toBeNull();
+  });
+
+  it('returns null when there are no periods at all', async () => {
+    expect(await oldestPendingPeriodAge(db, at('2026-03-08T07:00:00.000Z'))).toBeNull();
   });
 });

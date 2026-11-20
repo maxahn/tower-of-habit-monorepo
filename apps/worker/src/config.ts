@@ -13,6 +13,7 @@ const schema = z.object({
   EXPO_ACCESS_TOKEN: z.string().min(1).optional(),
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(1).optional(),
+  HEALTHCHECKS_URL: z.string().url().optional(),
 });
 
 export type Config = z.infer<typeof schema>;
@@ -40,5 +41,6 @@ export function redactedConfig(cfg: Config): Record<string, unknown> {
     DATABASE_URL: redactedUrl,
     ...(cfg.EXPO_ACCESS_TOKEN ? { EXPO_ACCESS_TOKEN: '***' } : {}),
     ...(cfg.RESEND_API_KEY ? { RESEND_API_KEY: '***' } : {}),
+    ...(cfg.HEALTHCHECKS_URL ? { HEALTHCHECKS_URL: '***' } : {}),
   };
 }

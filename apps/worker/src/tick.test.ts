@@ -165,3 +165,37 @@ describe('runTick — skip detection', () => {
     expect(report.skipped).toBe(0);
   });
 });
+
+describe('runTick — per-evaluation structured log (3.17)', () => {
+  it('logs a structured line per successful evaluation with towerId, periodId, and durationMs', async () => {
+    const evaluate = vi.fn<TickDeps['evaluate']>().mockResolvedValue({ outcome: 'survived' });
+    const deps = makeDeps({
+      claim: vi.fn<TickDeps['claim']>().mockResolvedValue([period('p1', 't1'), period('p2', 't2')]),
+      evaluate,
+    });
+
+    await runTick(NOW, deps);
+
+    const infoCalls = (deps.logger.info as ReturnType<typeof vi.fn>).mock.calls;
+    const evalLogs = infoCalls.filter((call) => call[1] === 'evaluation complete');
+    expect(evalLogs).toHaveLength(2);
+    expect(evalLogs[0]![0]).toMatchObject({ towerId: 't1', periodId: 'p1' });
+    expect(evalLogs[1]![0]).toMatchObject({ towerId: 't2', periodId: 'p2' });
+    expect(typeof evalLogs[0]![0].durationMs).toBe('number');
+  });
+
+  it('includes outcome in the per-evaluation log when evaluate returns it', async () => {
+    const evaluate = vi.fn<TickDeps['evaluate']>().mockResolvedValue({ outcome: 'collapsed' });
+    const deps = makeDeps({
+      claim: vi.fn<TickDeps['claim']>().mockResolvedValue([period('p1', 't1')]),
+      evaluate,
+    });
+
+    await runTick(NOW, deps);
+
+    const infoCalls = (deps.logger.info as ReturnType<typeof vi.fn>).mock.calls;
+    const evalLogs = infoCalls.filter((call) => call[1] === 'evaluation complete');
+    expect(evalLogs).toHaveLength(1);
+    expect(evalLogs[0]![0]).toMatchObject({ outcome: 'collapsed' });
+  });
+});

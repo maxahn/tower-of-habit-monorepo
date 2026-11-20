@@ -1,3 +1,4 @@
+import type { HeartbeatService } from './heartbeat.js';
 import type { Logger } from './logger.js';
 import type { TickReport } from './tick.js';
 
@@ -9,6 +10,8 @@ export function startTickLoop(opts: {
   intervalMs: number;
   tick: () => Promise<TickReport>;
   logger: Logger;
+  heartbeat?: HeartbeatService;
+  onSuccess?: (report: TickReport) => Promise<void>;
 }): TickLoop {
   const { intervalMs, tick, logger } = opts;
   let timer: ReturnType<typeof setTimeout> | undefined;
