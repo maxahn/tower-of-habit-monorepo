@@ -57,8 +57,23 @@ export async function runTick(now: Date, deps: TickDeps): Promise<TickReport> {
 
   for (const period of periods) {
     try {
-      await deps.evaluate(period.towerId, period.id, now);
+      const evalStart = performance.now();
+      const result = await deps.evaluate(period.towerId, period.id, now);
+      const evalMs = Math.round((performance.now() - evalStart) * 100) / 100;
       report.evaluated++;
+      const outcome =
+        result != null && typeof result === 'object' && 'outcome' in result
+          ? (result as { outcome: string }).outcome
+          : undefined;
+      deps.logger.info(
+        {
+          towerId: period.towerId,
+          periodId: period.id,
+          durationMs: evalMs,
+          ...(outcome != null ? { outcome } : {}),
+        },
+        'evaluation complete'
+      );
     } catch (err) {
       if (isSkippable(err)) {
         report.skipped++;

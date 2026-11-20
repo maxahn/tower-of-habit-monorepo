@@ -1,4 +1,4 @@
-import { claimDuePeriods, closeDb, db } from '@tower-of-habit/db';
+import { claimDuePeriods, closeDb, db, oldestPendingPeriodAge } from '@tower-of-habit/db';
 import { run as runGraphile, type Runner, type TaskList } from 'graphile-worker';
 import { config, redactedConfig } from './config.js';
 import { deliverLoginEmail } from './email.js';
@@ -6,8 +6,10 @@ import { createWorkerEvaluator } from './evaluate.js';
 import { createExpoPushService } from './expo-push-service.js';
 import { createResendEmailService } from './resend-email-service.js';
 import { startHealthz } from './healthz.js';
+import { createHealthchecksHeartbeat, createNoopHeartbeat } from './heartbeat.js';
 import { createJsonLogger } from './logger.js';
 import { startTickLoop, type TickLoop } from './loop.js';
+import { collectAndLogMetrics, failedJobCount } from './metrics.js';
 import { processNudge } from './nudge.js';
 import { checkPushReceipts, deliverPush } from './push.js';
 import { materialisePeriods } from './sweep.js';
@@ -79,6 +81,12 @@ try {
 const healthzServer = startHealthz(config.PORT);
 logger.info({ port: config.PORT }, 'healthz listening');
 
+const heartbeat = config.HEALTHCHECKS_URL
+  ? createHealthchecksHeartbeat(config.HEALTHCHECKS_URL)
+  : createNoopHeartbeat();
+
+const metricsDeps = { oldestPendingPeriodAge, failedJobCount, logger };
+
 let loop: TickLoop | undefined;
 if (config.TICK_ENABLED) {
   const evaluate = createWorkerEvaluator(db, logger);
@@ -92,6 +100,11 @@ if (config.TICK_ENABLED) {
         logger,
       }),
     logger,
+    heartbeat,
+    onSuccess: async (report) => {
+      logger.info({ report }, 'tick metrics');
+      await collectAndLogMetrics(db, new Date(), metricsDeps);
+    },
   });
   logger.info({ intervalMs: config.TICK_INTERVAL_MS }, 'tick loop started');
 } else {

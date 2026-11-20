@@ -293,7 +293,13 @@ export async function deletePeriod(db: Db, id: string): Promise<void> {
  * scheduler.
  */
 export async function oldestPendingPeriodAge(db: Db, now: Date): Promise<number | null> {
-  void db;
-  void now;
-  return null;
+  const rows = await db
+    .select({
+      oldest: sql<string | null>`min(${towerPeriods.evaluateAt})`,
+    })
+    .from(towerPeriods)
+    .where(and(sql`${towerPeriods.state} = 'pending'`, lte(towerPeriods.evaluateAt, now)));
+  const oldest = rows[0]?.oldest;
+  if (oldest == null) return null;
+  return Math.round((now.getTime() - new Date(oldest).getTime()) / 1000);
 }

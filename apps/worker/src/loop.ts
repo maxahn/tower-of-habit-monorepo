@@ -31,14 +31,18 @@ export function startTickLoop(opts: {
       if (report.claimed > 0) {
         logger.info(
           {
+            materialised: report.materialised,
             claimed: report.claimed,
             evaluated: report.evaluated,
+            skipped: report.skipped,
             errored: report.errored,
             durationMs: report.durationMs,
           },
           'tick complete'
         );
       }
+      if (opts.heartbeat) await opts.heartbeat.ping();
+      if (opts.onSuccess) await opts.onSuccess(report);
     } catch (err) {
       logger.error({ err }, 'tick failed');
     } finally {

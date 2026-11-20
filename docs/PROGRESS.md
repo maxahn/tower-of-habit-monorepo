@@ -2,9 +2,11 @@
 
 **Next task:** 3.15 or next phase-3 ticket.
 
-**Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes).
+**Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes). healthchecks.io setup needed for dead-man's-switch (see docs/TODO.md).
 
 ## Done
+
+- 3.17 Dead-man's-switch and metrics: `HeartbeatService` interface in `apps/worker/src/heartbeat.ts` with `createHealthchecksHeartbeat` (fire-and-forget fetch) and `createNoopHeartbeat`. `oldestPendingPeriodAge` in `packages/db/src/towers/periods/periods.ts` — age in seconds of the oldest overdue pending period. `failedJobCount` and `collectAndLogMetrics` in `apps/worker/src/metrics.ts` — raw SQL against `graphile_worker.jobs` for permanently failed jobs, warns on stale age >15m or failed count >0. Per-evaluation structured logging in `runTick` (towerId, periodId, durationMs, outcome). Tick loop calls `heartbeat.ping()` and `onSuccess` callback after successful ticks; logs full TickReport including materialised/skipped counters. Config: `HEALTHCHECKS_URL` optional. All 15 previously-red tests pass; 541 DB / 83 worker tests total.
 
 - 3.14 Email delivery for login codes: `deliverLoginEmail` in `apps/worker/src/email.ts` formats code-first subject/body per ticket spec. `resend-email-service.ts` adapter wraps Resend SDK. `send_email` Graphile Worker task in `index.ts`. API-side `createEmailLoginCodeSender` enqueues job via `graphile_worker.add_job` SQL. `email_deliverability` table (citext PK) tracks bounced/complained addresses independently of users. `isEmailDeliverable` gate in `requestCode` → 422 `email_undeliverable`. Resend bounce/complaint webhook at `POST /webhooks/resend` (Svix signature verification). `assertAuthCodeLogDisabled` extracted and tested. Config: `RESEND_API_KEY`, `EMAIL_FROM` (worker), `RESEND_WEBHOOK_SECRET` (API). All 8 previously-red tests pass; 536 DB / 68 worker / 108 API integration tests total.
 

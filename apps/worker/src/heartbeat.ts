@@ -3,8 +3,15 @@ export interface HeartbeatService {
 }
 
 export function createHealthchecksHeartbeat(url: string): HeartbeatService {
-  void url;
-  throw new Error('not implemented');
+  return {
+    async ping() {
+      try {
+        await fetch(url);
+      } catch {
+        // Fire-and-forget: a ping failure must not break the tick loop.
+      }
+    },
+  };
 }
 
 export function createNoopHeartbeat(): HeartbeatService {
