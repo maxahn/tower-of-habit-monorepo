@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 3.15 or next phase-3 ticket.
+**Next task:** Next phase-3 ticket.
 
 **Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes). healthchecks.io setup needed for dead-man's-switch (see docs/TODO.md).
 
 ## Done
+
+- 3.15 Worker integration test suite: `apps/worker/src/suite.integration.test.ts` with 8 new tests covering claim concurrency (FOR UPDATE SKIP LOCKED partitioning), crash safety (stale claim re-eval after lease timeout), idempotency (double tick produces no extra side effects), outbox transactionality (rollback erases graphile jobs, commit preserves), notification dedupe (replay ensureNotification + deliverPush = no_op), backstop in hibernation (returning member swept to dormant), and hibernate-and-wake (streak preserved, resumption on a log). Added `verifyTower` oracle assertions to all 6 notification tests and 2 backstop tests. 91 total worker tests, 0 flakes in new tests over 20 runs.
 
 - 3.18 Operational runbook: `docs/runbook-phase3.md` with copy-pasteable commands for all Phase 3 ops procedures — deploy/restart worker, apply migrations, scheduler diagnostics (lagging + poison periods), re-evaluate a period by hand (2.19 internal endpoint), inspect/retry failed Graphile Worker jobs, verify/repair tower height, confirm notification delivery, invalidate stuck push tokens, dead-man's-switch. `apps/api/scripts/recompute.ts` CLI wrapper for `verifyTower`/`repairTower` from `@tower-of-habit/db` (`pnpm --filter @tower-of-habit/api recompute --tower <id> [--repair]`).
 

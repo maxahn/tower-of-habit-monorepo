@@ -1,4 +1,10 @@
-import { db, getMembership, listNotificationsForTower, memberships } from '@tower-of-habit/db';
+import {
+  db,
+  getMembership,
+  listNotificationsForTower,
+  memberships,
+  verifyTower,
+} from '@tower-of-habit/db';
 import { SCENARIO_NOW, useScenarios } from '@tower-of-habit/db/testing/vitest';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
@@ -26,6 +32,8 @@ describe('backstop sweep', () => {
 
     const m0 = await getMembership(db, s.members[0]!.membership.id);
     expect(m0!.state).toBe('active');
+
+    expect((await verifyTower(db, s.tower!.id)).ok).toBe(true);
   });
 
   it('transitions member when lastQualifyingDate is exactly 14 days ago', async () => {
@@ -43,6 +51,8 @@ describe('backstop sweep', () => {
     expect(updated!.state).toBe('dormant');
     expect(updated!.dormancyReason).toBe('backstop');
     expect(count).toBe(1);
+
+    expect((await verifyTower(db, s.tower!.id)).ok).toBe(true);
   });
 
   it('enqueues dormant notification for each transitioned member', async () => {

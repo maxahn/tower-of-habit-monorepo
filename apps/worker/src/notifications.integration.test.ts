@@ -4,6 +4,7 @@ import {
   listNotificationsForTower,
   memberships,
   recordEntry,
+  verifyTower,
 } from '@tower-of-habit/db';
 import { useScenarios, SCENARIO_NOW } from '@tower-of-habit/db/testing/vitest';
 import { allMembersDormant, memberMissedPeriods } from '@tower-of-habit/shared/testing';
@@ -43,6 +44,8 @@ describe('evaluation notification enqueueing', () => {
 
     const notifications = await listNotificationsForTower(db, tower.id);
     expect(notifications).toHaveLength(0);
+
+    expect((await verifyTower(db, tower.id)).ok).toBe(true);
   });
 
   it('collapsed evaluation produces collapse notifications for all members', async () => {
@@ -62,6 +65,8 @@ describe('evaluation notification enqueueing', () => {
     const notifUserIds = new Set(collapseNotifs.map((n) => n.userId));
     const memberUserIds = new Set(s.members.map((m) => m.user.id));
     expect(notifUserIds).toEqual(memberUserIds);
+
+    expect((await verifyTower(db, tower.id)).ok).toBe(true);
   });
 
   it('collapsed evaluation produces at_risk notification for newly at-risk member', async () => {
@@ -90,6 +95,8 @@ describe('evaluation notification enqueueing', () => {
     expect(atRiskNotifs).toHaveLength(1);
     expect(atRiskNotifs[0]!.dedupeKey).toContain(s.members[1]!.membership.id);
     expect(notifications).toHaveLength(3);
+
+    expect((await verifyTower(db, tower.id)).ok).toBe(true);
   });
 
   it('collapsed evaluation produces dormant notification for consecutive-miss member', async () => {
@@ -123,6 +130,8 @@ describe('evaluation notification enqueueing', () => {
     expect(dormantNotifs).toHaveLength(1);
     expect(dormantNotifs[0]!.dedupeKey).toContain(s.members[2]!.membership.id);
     expect(notifications).toHaveLength(5);
+
+    expect((await verifyTower(db, tower.id)).ok).toBe(true);
   });
 
   it('first hibernation produces hibernate notifications for all members', async () => {
@@ -154,6 +163,8 @@ describe('evaluation notification enqueueing', () => {
     const notifUserIds = new Set(hibernateNotifs.map((n) => n.userId));
     const memberUserIds = new Set(s.members.map((m) => m.user.id));
     expect(notifUserIds).toEqual(memberUserIds);
+
+    expect((await verifyTower(db, tower.id)).ok).toBe(true);
   });
 
   it('subsequent hibernation produces no notifications', async () => {
@@ -171,5 +182,7 @@ describe('evaluation notification enqueueing', () => {
 
     const notifications = await listNotificationsForTower(db, tower.id);
     expect(notifications).toHaveLength(0);
+
+    expect((await verifyTower(db, tower.id)).ok).toBe(true);
   });
 });
