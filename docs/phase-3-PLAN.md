@@ -12,15 +12,15 @@ Detailed tickets live in their own files: `tower-phase1-tickets.md`, `phase-2-ti
 
 ## Status
 
-| Milestone | Scope                            | State                              |
-| --------- | -------------------------------- | ---------------------------------- |
-| **M0**    | Infrastructure and tooling       | ✅ complete                        |
-| **M1**    | Data model                       | ✅ complete                        |
-| **M2**    | Evaluator and API                | ✅ complete                        |
-| **M3**    | Worker, notifications, lifecycle | 📋 specced · partially implemented |
-| **M4**    | Client foundation                | ⬜ not specced                     |
-| **M5**    | Client screens                   | ⬜ not specced                     |
-| **M6**    | Hardening and submission         | ⬜ not specced                     |
+| Milestone | Scope                            | State          |
+| --------- | -------------------------------- | -------------- |
+| **M0**    | Infrastructure and tooling       | ✅ complete    |
+| **M1**    | Data model                       | ✅ complete    |
+| **M2**    | Evaluator and API                | ✅ complete    |
+| **M3**    | Worker, notifications, lifecycle | ✅ complete    |
+| **M4**    | Client foundation                | ⬜ not specced |
+| **M5**    | Client screens                   | ⬜ not specced |
+| **M6**    | Hardening and submission         | ⬜ not specced |
 
 **C1–C6 resolved.** All six inconsistencies between Phase 1 and Phase 2 were resolved during implementation. See `phase-3-tickets.md` for details. M1 and M2 are complete; M3 has significant DB-layer and evaluator work already landed from Phase 2 (claim queries, evaluation transaction steps 1–9, dormancy state machine, base block writes, hibernation outcome).
 
@@ -87,7 +87,7 @@ C1–C6 corrections were applied during implementation: `localDate` derived serv
 
 ---
 
-## M3 — Worker, notifications, lifecycle · 📋 specced · partially implemented
+## M3 — Worker, notifications, lifecycle · ✅ complete
 
 **Goal:** remove the manual trigger. The app runs unattended and people are told before they lose a streak, not after.
 

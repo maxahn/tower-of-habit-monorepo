@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** Next phase-3 ticket.
+**Next task:** Phase 3 complete. Next milestone: M4 (client foundation).
 
 **Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes). healthchecks.io setup needed for dead-man's-switch (see docs/TODO.md).
 
 ## Done
+
+- 3.16 Time-travel scenario test: `apps/worker/src/time-travel.integration.test.ts` with 2 tests. The 40-day timeline drives `runTick(now)` with synthetic clock through the full tower lifecycle — 3 members, survivals, collapses, dormancy, voluntary absence (days 21–24), hibernation, wake, and DST fall-back (Nov 1 Edmonton MDT→MST). Verifies nudge/wobble/grace-window on day 4, two collapses with base blocks (heights 4 and 24), at_risk→dormant transitions, voluntary return via `day_elapsed` trigger, dormant-return on log, the survived-then-hibernated transition (at_risk members are counted/live on first miss after collapse), 17 exact notifications, cumulative height 31 = sum(4+24) + 3, `verifyTower` oracle at every step, and 25h DST evaluateAt gap. Sub-minimum run test proves a 2-day run produces no block while a 10-day run produces ordinal=1. 93 total worker tests, 0 flakes over 20 runs.
 
 - 3.15 Worker integration test suite: `apps/worker/src/suite.integration.test.ts` with 8 new tests covering claim concurrency (FOR UPDATE SKIP LOCKED partitioning), crash safety (stale claim re-eval after lease timeout), idempotency (double tick produces no extra side effects), outbox transactionality (rollback erases graphile jobs, commit preserves), notification dedupe (replay ensureNotification + deliverPush = no_op), backstop in hibernation (returning member swept to dormant), and hibernate-and-wake (streak preserved, resumption on a log). Added `verifyTower` oracle assertions to all 6 notification tests and 2 backstop tests. 91 total worker tests, 0 flakes in new tests over 20 runs.
 
