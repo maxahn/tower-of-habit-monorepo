@@ -3,7 +3,7 @@ import { run as runGraphile, type CronItem, type Runner, type TaskList } from 'g
 import { sweepBackstop } from './backstop.js';
 import { config, redactedConfig } from './config.js';
 import { deliverLoginEmail } from './email.js';
-import { createWorkerEvaluator } from './evaluate.js';
+import { createEvaluator } from '@tower-of-habit/api/evaluation';
 import { createExpoPushService } from './expo-push-service.js';
 import { createResendEmailService } from './resend-email-service.js';
 import { startHealthz } from './healthz.js';
@@ -99,7 +99,7 @@ const metricsDeps = { oldestPendingPeriodAge, failedJobCount, logger };
 
 let loop: TickLoop | undefined;
 if (config.TICK_ENABLED) {
-  const evaluate = createWorkerEvaluator(db, logger);
+  const evaluate = createEvaluator(db, logger);
   loop = startTickLoop({
     intervalMs: config.TICK_INTERVAL_MS,
     tick: () =>

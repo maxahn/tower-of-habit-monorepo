@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "exports": {
+    "./evaluation": "./src/evaluation/index.ts"
+  },
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=../../.env.dev src/index.ts",
     "build": "tsup src/index.ts --format esm --target node24 --clean",

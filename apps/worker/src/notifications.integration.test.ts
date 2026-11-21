@@ -10,7 +10,7 @@ import { useScenarios, SCENARIO_NOW } from '@tower-of-habit/db/testing/vitest';
 import { allMembersDormant, memberMissedPeriods } from '@tower-of-habit/shared/testing';
 import { inArray } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { createWorkerEvaluator } from './evaluate.js';
+import { createEvaluator } from '@tower-of-habit/api/evaluation';
 import type { Logger } from './logger.js';
 import { runTick } from './tick.js';
 
@@ -38,7 +38,7 @@ describe('evaluation notification enqueueing', () => {
 
     await runTick(AFTER_DAY5_EVALUATE_AT, {
       claim: (now) => claimDuePeriods(db, now),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -54,7 +54,7 @@ describe('evaluation notification enqueueing', () => {
 
     await runTick(AFTER_DAY5_EVALUATE_AT, {
       claim: (now) => claimDuePeriods(db, now),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -83,7 +83,7 @@ describe('evaluation notification enqueueing', () => {
 
     await runTick(AFTER_DAY5_EVALUATE_AT, {
       claim: (now) => claimDuePeriods(db, now),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -116,7 +116,7 @@ describe('evaluation notification enqueueing', () => {
 
     await runTick(AFTER_DAY5_EVALUATE_AT, {
       claim: (now) => claimDuePeriods(db, now),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -152,7 +152,7 @@ describe('evaluation notification enqueueing', () => {
 
     await runTick(now, {
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -176,7 +176,7 @@ describe('evaluation notification enqueueing', () => {
 
     await runTick(AFTER_DAY5_EVALUATE_AT, {
       claim: (now) => claimDuePeriods(db, now),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 

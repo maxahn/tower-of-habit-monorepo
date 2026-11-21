@@ -9,7 +9,7 @@ import { useScenarios, SCENARIO_NOW } from '@tower-of-habit/db/testing/vitest';
 import { computePeriodWindow } from '@tower-of-habit/shared';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { createWorkerEvaluator } from './evaluate.js';
+import { createEvaluator } from '@tower-of-habit/api/evaluation';
 import type { Logger } from './logger.js';
 import { processNudge } from './nudge.js';
 import { runTick } from './tick.js';
@@ -137,7 +137,7 @@ describe('nudge dispatch', () => {
 
     await runTick(evaluateAt, {
       claim: (now) => claimDuePeriods(db, now),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 

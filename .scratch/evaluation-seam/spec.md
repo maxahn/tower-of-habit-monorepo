@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Fix Evaluation Cross-Package Seam Violation
 

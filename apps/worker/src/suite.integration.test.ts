@@ -20,7 +20,7 @@ import { eq, sql } from 'drizzle-orm';
 import { runMigrations } from 'graphile-worker';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { sweepBackstop } from './backstop.js';
-import { createWorkerEvaluator } from './evaluate.js';
+import { createEvaluator } from '@tower-of-habit/api/evaluation';
 import type { Logger } from './logger.js';
 import { deliverPush, type PushMessage, type PushReceipt, type PushService } from './push.js';
 import { materialisePeriods } from './sweep.js';
@@ -66,7 +66,7 @@ describe('claim concurrency', () => {
     expect(uniqueIds.size).toBe(allIds.length);
     expect(allIds.length).toBe(2);
 
-    const evaluate = createWorkerEvaluator(db, logger);
+    const evaluate = createEvaluator(db, logger);
     for (const p of [...a, ...b]) {
       await evaluate(p.towerId, p.id, now);
     }
@@ -88,7 +88,7 @@ describe('crash safety', () => {
     const period = claimed.find((p) => p.towerId === tower.id)!;
     expect(period.state).toBe('evaluating');
 
-    const evaluate = createWorkerEvaluator(db, logger);
+    const evaluate = createEvaluator(db, logger);
     try {
       await evaluate(tower.id, period.id, now);
     } catch {
@@ -121,7 +121,7 @@ describe('crash safety', () => {
     const afterLease = new Date(now2.getTime() + 6 * 60_000);
     const report = await runTick(afterLease, {
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -151,7 +151,7 @@ describe('idempotency', () => {
     const tick = () =>
       runTick(now, {
         claim: (n) => claimDuePeriods(db, n),
-        evaluate: createWorkerEvaluator(db, logger),
+        evaluate: createEvaluator(db, logger),
         logger,
       });
 
@@ -254,7 +254,7 @@ describe('dedupe', () => {
 
     await runTick(now, {
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -312,7 +312,7 @@ describe('backstop in hibernation', () => {
     // Evaluate to trigger hibernation
     await runTick(now, {
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -364,7 +364,7 @@ describe('hibernate and wake', () => {
     // Step 1: Evaluate → hibernation
     const report1 = await runTick(now, {
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
     expect(report1.evaluated).toBeGreaterThanOrEqual(1);
@@ -402,7 +402,7 @@ describe('hibernate and wake', () => {
     const report2 = await runTick(afterNextEvaluateAt, {
       materialise: (n) => materialisePeriods(db, n, logger),
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
     expect(report2.evaluated).toBeGreaterThanOrEqual(1);

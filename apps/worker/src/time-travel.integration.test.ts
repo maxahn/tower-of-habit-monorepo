@@ -29,7 +29,7 @@ import {
 import { inArray } from 'drizzle-orm';
 import { runMigrations } from 'graphile-worker';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createWorkerEvaluator } from './evaluate.js';
+import { createEvaluator } from '@tower-of-habit/api/evaluation';
 import type { Logger } from './logger.js';
 import { processNudge } from './nudge.js';
 import { materialisePeriods } from './sweep.js';
@@ -201,7 +201,7 @@ describe('40-day timeline', () => {
       const report = await runTick(now, {
         materialise: (n) => materialisePeriods(db, n, logger),
         claim: (n) => claimDuePeriods(db, n),
-        evaluate: createWorkerEvaluator(db, logger),
+        evaluate: createEvaluator(db, logger),
         logger,
       });
       expect(report.errored).toBe(0);
@@ -616,7 +616,7 @@ describe('sub-minimum run', () => {
       await runTick(now, {
         materialise: (n) => materialisePeriods(db, n, logger),
         claim: (n) => claimDuePeriods(db, n),
-        evaluate: createWorkerEvaluator(db, logger),
+        evaluate: createEvaluator(db, logger),
         logger,
       });
     }

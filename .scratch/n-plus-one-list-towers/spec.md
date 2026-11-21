@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Fix N+1 Query in listTowersForUser
 

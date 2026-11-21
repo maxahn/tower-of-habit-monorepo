@@ -9,7 +9,7 @@ import {
 import { useScenarios, SCENARIO_NOW } from '@tower-of-habit/db/testing/vitest';
 import { allMembersDormant } from '@tower-of-habit/shared/testing';
 import { describe, expect, it } from 'vitest';
-import { createWorkerEvaluator } from './evaluate.js';
+import { createEvaluator } from '@tower-of-habit/api/evaluation';
 import type { Logger } from './logger.js';
 import { materialisePeriods } from './sweep.js';
 import { runTick } from './tick.js';
@@ -29,7 +29,7 @@ describe('runTick integration — evaluation wiring', () => {
 
     const report = await runTick(now, {
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -62,7 +62,7 @@ describe('runTick integration — evaluation wiring', () => {
 
     const report = await runTick(now, {
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -89,7 +89,7 @@ describe('runTick integration — evaluation wiring', () => {
     const report = await runTick(now, {
       materialise: (n) => materialisePeriods(db, n, logger),
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
@@ -106,7 +106,7 @@ describe('runTick integration — evaluation wiring', () => {
     const s2 = await scenarios.towerRunningFor(5);
     const now = AFTER_DAY5_EVALUATE_AT;
 
-    const realEvaluate = createWorkerEvaluator(db, logger);
+    const realEvaluate = createEvaluator(db, logger);
     const failFirstTower = async (towerId: string, periodId: string, n: Date) => {
       if (towerId === s1.tower!.id) throw new Error('simulated crash');
       return realEvaluate(towerId, periodId, n);
@@ -152,7 +152,7 @@ describe('runTick integration — evaluation wiring', () => {
 
     const report = await runTick(now, {
       claim: (n) => claimDuePeriods(db, n),
-      evaluate: createWorkerEvaluator(db, logger),
+      evaluate: createEvaluator(db, logger),
       logger,
     });
 
