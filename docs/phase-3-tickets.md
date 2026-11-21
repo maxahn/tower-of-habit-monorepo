@@ -441,29 +441,30 @@ The phase's acceptance test: one timeline, driven by calling `runTick(now)` with
 
 A 40-day script over a 3-member tower (A, B, C), asserting state **and** the exact notification set per user at each step. Running totals are part of the assertions, so they are given explicitly:
 
-| Day   | What happens                      | Outcome         | Height / streak | Notifications                                |
-| ----- | --------------------------------- | --------------- | --------------- | -------------------------------------------- |
-| 1–3   | everyone logs                     | `survived` ×3   | 3 / 3           | **none**                                     |
-| 4     | C hasn't logged at `nudgeAt`      | —               | —               | private nudge to **C only**                  |
-| 4     | still nothing at `wobbleAt`       | —               | —               | broadcast to A, B, C naming C                |
-| 4     | C logs inside the grace window    | `survived`      | 4 / 4           | none                                         |
-| 5     | C misses entirely                 | `collapsed`     | 4 / 0           | group ×3 + private at-risk to C              |
-| 5     | base block written                | —               | —               | ordinal 1, `block_height` 4, run days 1–4    |
-| 6     | C misses again, A and B log       | `survived`      | 5 / 1           | **none** — C → `dormant`, no second collapse |
-| 7–20  | A and B log, C dormant            | `survived` ×14  | 19 / 15         | none                                         |
-| 21    | B declares absence for days 21–24 | `survived`      | 20 / 16         | none — no wobble naming B                    |
-| 22–24 | A logs, B excused, C dormant      | `survived` ×3   | 23 / 19         | none                                         |
-| 25    | B's return date reached, B logs   | `survived`      | 24 / 20         | none                                         |
-| 26    | C logs once                       | `survived`      | 25 / 21         | none — C → `active`, counter 0               |
-| 27–29 | all three log                     | `survived` ×3   | 28 / 24         | none                                         |
-| 30    | nobody logs                       | `collapsed`     | 28 / 0          | group ×3 + private at-risk ×3                |
-| 30    | base block written                | —               | —               | ordinal 2, `block_height` 24, run days 6–29  |
-| 31    | nobody logs                       | `hibernated`    | 28 / 0          | one group hibernation notice                 |
-| 32–38 | nothing                           | `hibernated` ×7 | 28 / 0          | **none**                                     |
-| 39    | A logs, alone                     | `survived`      | 29 / 1          | none                                         |
-| 40    | across a DST transition           | `survived`      | 30 / 2          | none                                         |
+| Day   | What happens                      | Outcome         | Height / streak | Notifications                                                                     |
+| ----- | --------------------------------- | --------------- | --------------- | --------------------------------------------------------------------------------- |
+| 1–3   | everyone logs                     | `survived` ×3   | 3 / 3           | **none**                                                                          |
+| 4     | C hasn't logged at `nudgeAt`      | —               | —               | private nudge to **C only**                                                       |
+| 4     | still nothing at `wobbleAt`       | —               | —               | broadcast to A, B, C naming C                                                     |
+| 4     | C logs inside the grace window    | `survived`      | 4 / 4           | none                                                                              |
+| 5     | C misses entirely                 | `collapsed`     | 4 / 0           | group ×3 + private at-risk to C                                                   |
+| 5     | base block written                | —               | —               | ordinal 1, `block_height` 4, run days 1–4                                         |
+| 6     | C misses again, A and B log       | `survived`      | 5 / 1           | **none** — C → `dormant`, no second collapse                                      |
+| 7–20  | A and B log, C dormant            | `survived` ×14  | 19 / 15         | none                                                                              |
+| 21    | B declares absence for days 21–24 | `survived`      | 20 / 16         | none — no wobble naming B                                                         |
+| 22–24 | A logs, B excused, C dormant      | `survived` ×3   | 23 / 19         | none                                                                              |
+| 25    | B's return date reached, B logs   | `survived`      | 24 / 20         | none                                                                              |
+| 26    | C logs once                       | `survived`      | 25 / 21         | none — C → `active`, counter 0                                                    |
+| 27–29 | all three log                     | `survived` ×3   | 28 / 24         | none                                                                              |
+| 30    | nobody logs                       | `collapsed`     | 28 / 0          | group ×3 + private at-risk ×3                                                     |
+| 30    | base block written                | —               | —               | ordinal 2, `block_height` 24, run days 6–29                                       |
+| 31    | nobody logs                       | `survived`      | 29 / 1          | **none** — all at-risk → `dormant` during eval, but still counted for this period |
+| 32    | nothing                           | `hibernated`    | 29 / 0          | one group hibernation notice ×3                                                   |
+| 33–38 | nothing                           | `hibernated` ×6 | 29 / 0          | **none**                                                                          |
+| 39    | A logs, alone                     | `survived`      | 30 / 1          | none                                                                              |
+| 40    | across a DST transition           | `survived`      | 31 / 2          | none                                                                              |
 
-Two assertions in that table are the ones most likely to break: **day 6 sends nothing at all** (the second miss converts to dormancy instead of a collapse, so there is no group push), and **days 32–38 send nothing** (hibernation notifies once, not nightly).
+Two assertions in that table are the ones most likely to break: **day 6 sends nothing at all** (the second miss converts to dormancy instead of a collapse, so there is no group push), **day 31 is `survived` not `hibernated`** (at-risk members go dormant during evaluation but are still counted for the period), and **days 33–38 send nothing** (hibernation notifies once on day 32, not nightly).
 
 Add a second, shorter script for the sub-minimum run, which the main timeline deliberately doesn't cover: a 2-day run collapsing, asserting no base block row and **no consumed ordinal**, followed by a 10-day run producing the next ordinal with `run_start_date` immediately after the short run's collapse — and `sum(block_height) + current_streak` short of `height` by exactly those 2 days.
 
