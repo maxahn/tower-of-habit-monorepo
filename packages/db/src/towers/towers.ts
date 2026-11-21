@@ -199,21 +199,30 @@ export type TowerListItem = {
 
 /** Towers the user holds a live membership in, oldest first (GET /towers). */
 export async function listTowersForUser(db: Db, userId: string): Promise<TowerListItem[]> {
-  const mine = await db
-    .select({ tower: towers, membershipState: memberships.state })
+  const memberCounts = db
+    .select({ towerId: memberships.towerId, n: count().as('n') })
+    .from(memberships)
+    .where(ne(memberships.state, 'removed'))
+    .groupBy(memberships.towerId)
+    .as('member_counts');
+
+  const rows = await db
+    .select({
+      tower: towers,
+      membershipState: memberships.state,
+      memberCount: memberCounts.n,
+    })
     .from(memberships)
     .innerJoin(towers, eq(towers.id, memberships.towerId))
+    .leftJoin(memberCounts, eq(memberCounts.towerId, towers.id))
     .where(and(eq(memberships.userId, userId), ne(memberships.state, 'removed')))
     .orderBy(asc(towers.createdAt), asc(towers.id));
-  const out: TowerListItem[] = [];
-  for (const row of mine) {
-    const [c] = await db
-      .select({ n: count() })
-      .from(memberships)
-      .where(and(eq(memberships.towerId, row.tower.id), ne(memberships.state, 'removed')));
-    out.push({ tower: row.tower, membershipState: row.membershipState, memberCount: c?.n ?? 0 });
-  }
-  return out;
+
+  return rows.map((r) => ({
+    tower: r.tower,
+    membershipState: r.membershipState,
+    memberCount: r.memberCount ?? 0,
+  }));
 }
 
 export type TowerMemberRow = {
