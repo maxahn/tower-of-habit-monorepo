@@ -1,5 +1,6 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { Db } from '../../client.js';
+import { towers } from '../schema.js';
 import { memberships, type DormancyReason, type MembershipState } from './schema.js';
 
 export type Membership = typeof memberships.$inferSelect;
@@ -106,6 +107,38 @@ export async function updateMembership(
 
 export async function deleteMembership(db: Db, id: string): Promise<void> {
   await db.delete(memberships).where(eq(memberships.id, id));
+}
+
+export type BackstopCandidate = {
+  id: string;
+  towerId: string;
+  userId: string;
+  state: MembershipState;
+  dormancyReason: DormancyReason | null;
+  consecutiveMissedPeriods: number;
+  lastQualifyingDate: string | null;
+  joinedAt: Date;
+  voluntaryReturnDate: string | null;
+  timezone: string;
+};
+
+export async function listBackstopCandidates(db: Db): Promise<BackstopCandidate[]> {
+  return db
+    .select({
+      id: memberships.id,
+      towerId: memberships.towerId,
+      userId: memberships.userId,
+      state: memberships.state,
+      dormancyReason: memberships.dormancyReason,
+      consecutiveMissedPeriods: memberships.consecutiveMissedPeriods,
+      lastQualifyingDate: memberships.lastQualifyingDate,
+      joinedAt: memberships.joinedAt,
+      voluntaryReturnDate: memberships.voluntaryReturnDate,
+      timezone: towers.timezone,
+    })
+    .from(memberships)
+    .innerJoin(towers, eq(memberships.towerId, towers.id))
+    .where(inArray(memberships.state, ['active', 'at_risk']));
 }
 
 /** `now` stamps dormantSince. Passed in, never read from the system clock. */

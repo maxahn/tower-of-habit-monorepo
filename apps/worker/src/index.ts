@@ -1,5 +1,6 @@
 import { claimDuePeriods, closeDb, db, oldestPendingPeriodAge } from '@tower-of-habit/db';
-import { run as runGraphile, type Runner, type TaskList } from 'graphile-worker';
+import { run as runGraphile, type CronItem, type Runner, type TaskList } from 'graphile-worker';
+import { sweepBackstop } from './backstop.js';
 import { config, redactedConfig } from './config.js';
 import { deliverLoginEmail } from './email.js';
 import { createWorkerEvaluator } from './evaluate.js';
@@ -63,13 +64,22 @@ const taskList: TaskList = {
     const count = await processWobble(db, periodId, new Date());
     helpers.logger.info(`wobble: ${periodId} → ${count} notifications`);
   },
+  async backstop_sweep(_payload, helpers) {
+    const count = await sweepBackstop(db, new Date());
+    if (count > 0) helpers.logger.info(`backstop_sweep: ${count} transitions`);
+  },
 };
+
+const cronItems: CronItem[] = [
+  { task: 'backstop_sweep', match: '17 * * * *', options: { backfillPeriod: 0 } },
+];
 
 let runner: Runner | undefined;
 try {
   runner = await runGraphile({
     connectionString: config.DATABASE_URL,
     taskList,
+    parsedCronItems: (await import('graphile-worker')).parseCronItems(cronItems),
     noHandleSignals: true,
   });
   logger.info({}, 'graphile-worker started');
