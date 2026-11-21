@@ -166,14 +166,25 @@ describe('tier 0 invariant', () => {
     expect(await invariantReason(p)).toBe('not_tiered');
   });
 
-  it.each([{ type: 'binary' as const }, { type: 'numeric' as const, unit: 'km' }])(
-    'rejects adding a tier to a $type habit',
-    async (kind) => {
-      const h = await createHabit(db, { ownerId: owner(), name: 'x', ...kind });
-      expect(await invariantReason(addTier(db, h.id, BASE))).toBe('not_tiered');
-      expect(await listTiers(db, h.id)).toEqual([]);
-    }
-  );
+  it('rejects adding a tier to a binary habit', async () => {
+    const h = await createHabit(db, { ownerId: owner(), name: 'x', type: 'binary' });
+    expect(await invariantReason(addTier(db, h.id, BASE))).toBe('not_tiered');
+    expect(await listTiers(db, h.id)).toEqual([]);
+  });
+
+  // 2.12 / DECISIONS P9: numeric habits carry a ladder whose tier 0 threshold
+  // is what qualifies() checks.
+  it('allows a numeric habit to carry tiers, at create and later', async () => {
+    const h = await createHabit(db, {
+      ownerId: owner(),
+      name: 'x',
+      type: 'numeric',
+      unit: 'km',
+      tiers: [{ tierIndex: 0, label: 'Base', thresholdValue: 2 }],
+    });
+    await addTier(db, h.id, { tierIndex: 1, label: 'Far', thresholdValue: 5 });
+    expect((await listTiers(db, h.id)).map((t) => t.thresholdValue)).toEqual([2, 5]);
+  });
 
   it('rejects deleting tier 0', async () => {
     const h = await tieredHabit();

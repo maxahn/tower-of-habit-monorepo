@@ -2,7 +2,7 @@ import { config, configs } from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default config(
-  { ignores: ['**/dist/**', '**/.expo/**', '**/node_modules/**'] },
+  { ignores: ['**/dist/**', '**/.expo/**', '**/node_modules/**', '**/coverage/**'] },
   ...configs.recommended,
   // The mobile firewall.
   {
@@ -99,6 +99,62 @@ export default config(
       'packages/db/src/**/schema.ts',
       'packages/db/src/seed/**',
     ],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'Date',
+          property: 'now',
+          message: 'Take `now: Date` as a parameter instead.',
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message: 'new Date() reads the system clock. Take `now: Date` as a parameter.',
+        },
+      ],
+    },
+  },
+  // 2.10: handlers never read the clock. `now` is captured once per request by
+  // the clock middleware (context.ts) and passed to every service and
+  // evaluator call, so a request is reproducible and the test clock works.
+  // Exempt: tests and test helpers, the composition root, the logger's line
+  // timestamp, and context.ts itself (the one read per request).
+  {
+    files: ['apps/api/src/**/*.ts'],
+    ignores: [
+      '**/*.test.ts',
+      'apps/api/src/testing/**',
+      'apps/api/src/**/testing.ts',
+      'apps/api/src/index.ts',
+      'apps/api/src/logger.ts',
+      'apps/api/src/context.ts',
+    ],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'Date',
+          property: 'now',
+          message: 'Read the request instant from ctxOf(c).now / withTx (2.10).',
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message: 'new Date() reads the system clock. Use ctxOf(c).now / withTx (2.10).',
+        },
+      ],
+    },
+  },
+  // 3.2: worker handlers never read the clock. `now` is captured once per tick
+  // in the composition root and passed to every call below it.
+  {
+    files: ['apps/worker/src/**/*.ts'],
+    ignores: ['**/*.test.ts', 'apps/worker/src/index.ts', 'apps/worker/src/logger.ts'],
     rules: {
       'no-restricted-properties': [
         'error',

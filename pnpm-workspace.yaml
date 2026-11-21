@@ -12,6 +12,7 @@ catalog:
   vitest: ^3.2.7
   '@vitest/coverage-v8': ^3.2.7
   '@types/node': ^24.13.3
+  fast-check: ^4.10.2
 
 # Build scripts are blocked unless allowed here. In v11 an unapproved
 # build is an ERROR, not a warning — installs fail outright.

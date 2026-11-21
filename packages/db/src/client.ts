@@ -16,6 +16,16 @@ const client = postgres(connectionString);
 // "column does not exist" error that still typechecks.
 export const db = drizzle(client, { schema, casing: 'snake_case' });
 
+/** Readiness probe: a round trip to Postgres. Rejects when it is unreachable. */
+export async function pingDb(): Promise<void> {
+  await client`select 1`;
+}
+
+/** Closes the pool, waiting up to timeoutSeconds for running queries. For shutdown. */
+export async function closeDb(timeoutSeconds = 5): Promise<void> {
+  await client.end({ timeout: timeoutSeconds });
+}
+
 /**
  * What a service's first argument accepts: the pooled handle above, or an open
  * transaction.

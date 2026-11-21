@@ -46,12 +46,14 @@ pnpm format # Format all files
 - `pnpm migrate:dev` — runs `drizzle-kit migrate` against `packages/db` using `.env.dev`; applies pending migrations. Requires `dev:up` for host access to Postgres.
 - `pnpm migrate:test` — same, against the `tower_test` database using `.env.test`.
 - Host-run tools connect through the published port, so the `DATABASE_URL` in `.env.dev` / `.env.test` must use `localhost:5433` (not `postgres:5432`, which only resolves inside Docker, and not `5432`, which a native Postgres install may already hold).
+- `pnpm db:erd` — regenerates the schema ERD in both `docs/schema-erd.html` and the [ERD](#erd) section below from the Drizzle schema. Run after schema changes.
 - `pnpm --filter @tower-of-habit/db studio` — opens Drizzle Studio against the local database.
 
 ### Quality checks
 
 - `pnpm build`, `pnpm test`, `pnpm typecheck`, `pnpm lint`.
-- `pnpm test:coverage` — runs each package's tests with V8 coverage. Per-package reports land in `packages/*/coverage/` (open `index.html`; `lcov.info` for editor/CI tools). The db suite needs Postgres: `pnpm dev:up` then `pnpm migrate:test`.
+- `pnpm test:integration` — runs the API's integration suite (`apps/api/src/**/*.integration.test.ts`) against the real Postgres from Compose using `.env.test`: `pnpm dev:up`, `pnpm migrate:test`, then this. Tables are truncated before every test. `X-Test-Now` is honoured by the app under test, so a test can cross a period deadline without sleeping.
+- `pnpm test:coverage` — runs each package's tests with V8 coverage. Per-package reports land in `packages/*/coverage/` and `apps/api/coverage/` (open `index.html`; `lcov.info` for editor/CI tools). The db suite needs Postgres: `pnpm dev:up` then `pnpm migrate:test`.
 - `pnpm coverage:readme` — runs coverage and rewrites the table in [Coverage](#coverage) below. Run it before committing when you want the README numbers refreshed. If Postgres isn't reachable, the db row is kept and marked stale.
 
 ### Coverage
@@ -60,10 +62,11 @@ Last generated with `pnpm coverage:readme`. Coverage counts code that ran during
 
 <!-- coverage:start -->
 
-| Package | Statements | Branches | Functions | Lines | Tests                               |
-| ------- | ---------: | -------: | --------: | ----: | ----------------------------------- |
-| shared  |      98.5% |    96.7% |    100.0% | 98.5% | 50 failed, 774 passed, 1 todo (825) |
-| db      |      92.0% |    94.7% |     90.6% | 92.0% | 473 passed (473)                    |
+| Package | Statements | Branches | Functions | Lines | Tests              |
+| ------- | ---------: | -------: | --------: | ----: | ------------------ |
+| shared  |      99.2% |    97.9% |    100.0% | 99.2% | 1613 passed (1613) |
+| db      |      93.3% |    92.9% |     92.3% | 93.3% | 541 passed (541)   |
+| api     |      53.5% |    90.1% |     84.3% | 53.5% | 173 passed (173)   |
 
 <!-- coverage:end -->
 
@@ -74,6 +77,168 @@ Last generated with `pnpm coverage:readme`. Coverage counts code that ran during
 - `pnpm add -D <package-name>` — adds a dev dependency to the root of the monorepo.
 - `pnpm add <package-name>` — adds a dependency to the root of the monorepo.
 
+### ERD
+
+<!-- erd:start -->
+
+```mermaid
+erDiagram
+    towers ||--o{ base_blocks : "towerId [cascade]"
+    habits ||--o{ entries : "habitId [cascade]"
+    habits ||--o{ habit_tiers : "habitId [cascade]"
+    users ||--o{ habits : "ownerId [cascade]"
+    towers ||--o{ memberships : "towerId [cascade]"
+    users ||--o{ memberships : "userId [no action]"
+    habits ||--o{ memberships : "habitId [no action]"
+    users ||--o{ notifications : "userId [cascade]"
+    towers ||--o{ notifications : "towerId [cascade]"
+    users ||--o{ push_tokens : "userId [cascade]"
+    users ||--o{ sessions : "userId [cascade]"
+    towers ||--o{ tower_periods : "towerId [cascade]"
+    users ||--o{ tower_periods : "freebieGrantedBy [no action]"
+    users ||--o{ towers : "hostId [restrict]"
+
+    auth_codes {
+        text id
+        text email
+        text codeHash
+        int attemptCount
+        timestamp expiresAt
+        timestamp consumedAt "nullable"
+        timestamp createdAt
+    }
+    base_blocks {
+        text id
+        text towerId FK
+        int ordinal
+        text runStartDate
+        text runEndDate
+        int blockHeight
+        jsonb roster
+        timestamp createdAt
+    }
+    entries {
+        text id
+        text habitId FK
+        text localDate
+        int tierReached
+        int numericValue "nullable"
+        timestamp loggedAt
+        bool countsTowardQuota
+        text clientEntryId "nullable"
+        timestamp createdAt
+    }
+    habit_tiers {
+        text id
+        text habitId FK
+        int tierIndex
+        text label
+        int thresholdValue "nullable"
+    }
+    habits {
+        text id
+        text ownerId FK
+        text name
+        text type
+        text unit "nullable"
+        text periodUnit
+        int periodLength
+        int quota
+        text lifecycle
+        timestamp startedAt "nullable"
+        timestamp archivedAt "nullable"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    memberships {
+        text id
+        text towerId FK
+        text userId FK
+        text habitId FK
+        text state
+        int consecutiveMissedPeriods
+        text lastQualifyingDate "nullable"
+        timestamp dormantSince "nullable"
+        text dormancyReason "nullable"
+        text voluntaryReturnDate "nullable"
+        timestamp joinedAt
+    }
+    notifications {
+        text id
+        text userId FK
+        text towerId FK
+        text type
+        text dedupeKey
+        timestamp scheduledFor
+        text status
+        int attempts
+        timestamp sentAt "nullable"
+        text error "nullable"
+        timestamp createdAt
+    }
+    push_tokens {
+        text id
+        text userId FK
+        text token
+        text platform
+        timestamp createdAt
+        timestamp lastSeenAt
+        timestamp invalidatedAt "nullable"
+    }
+    sessions {
+        text id
+        text userId FK
+        text tokenHash
+        text userAgent "nullable"
+        timestamp createdAt
+        timestamp lastSeenAt
+        timestamp expiresAt
+        timestamp revokedAt "nullable"
+    }
+    tower_periods {
+        text id
+        text towerId FK
+        text periodStart
+        text periodEnd
+        timestamp deadlineAt
+        timestamp evaluateAt
+        text state
+        text outcome "nullable"
+        timestamp evaluatedAt "nullable"
+        timestamp claimedAt "nullable"
+        int attempts
+        text freebieSource "nullable"
+        text freebieGrantedBy FK "nullable"
+        timestamp createdAt
+    }
+    towers {
+        text id
+        text hostId FK
+        text name
+        text periodUnit
+        int periodLength
+        int quota
+        text deadlineTime
+        text timezone
+        int weekResetDay "nullable"
+        text joinCode
+        int wobbleLeadMinutes
+        int nudgeLeadMinutes
+        int graceWindowMinutes
+        text lifecycle
+        int height
+        int currentStreak
+        timestamp startedAt "nullable"
+        timestamp createdAt
+    }
+    users {
+        text id
+        text email
+        text timezone
+        text displayName "nullable"
+        timestamp createdAt
+        timestamp updatedAt
+    }
 ```
 
-```
+<!-- erd:end -->

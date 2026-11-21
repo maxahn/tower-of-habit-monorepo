@@ -8,3 +8,5 @@ export * from './factories.js';
 export * from './derive.js';
 export * from './scenarios.js';
 export * from './clock.js';
+export * from './dst-fixtures.js';
+export * from './evaluator-fixtures.js';

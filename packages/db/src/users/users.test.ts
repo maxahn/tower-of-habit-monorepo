@@ -2,7 +2,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
 import { db, pgError } from '../test-utils.js';
 import { users } from './schema.js';
-import { findUserByEmail } from './users.js';
+import { createUser, findUserByEmail } from './users.js';
 
 const created: string[] = [];
 
@@ -11,10 +11,7 @@ afterEach(async () => {
 });
 
 async function insertUser(email: string) {
-  const [u] = await db
-    .insert(users)
-    .values({ email, passwordHash: 'x', displayName: 'Tester' })
-    .returning();
+  const [u] = await db.insert(users).values({ email, displayName: 'Tester' }).returning();
   created.push(u!.id);
   return u!;
 }
@@ -69,5 +66,25 @@ describe('users.email citext', () => {
     const email = `${'a'.repeat(64)}@${'b'.repeat(251)}.com`;
     expect(email).toHaveLength(320);
     await expect(insertUser(email)).resolves.toMatchObject({ email });
+  });
+});
+
+describe('users timezone + displayName (2.9: passwordless)', () => {
+  it('defaults timezone to UTC', async () => {
+    expect((await insertUser(mixedCaseEmail())).timezone).toBe('UTC');
+  });
+
+  it('allows a null displayName (set later in onboarding)', async () => {
+    const [u] = await db.insert(users).values({ email: mixedCaseEmail() }).returning();
+    created.push(u!.id);
+    expect(u!.displayName).toBeNull();
+  });
+
+  // RED until Pass 3: createUser is a stub.
+  it('createUser inserts an OTP user with email + timezone and no display name', async () => {
+    const email = `otp.${crypto.randomUUID()}@example.com`;
+    const u = await createUser(db, { email, timezone: 'America/New_York' });
+    created.push(u.id);
+    expect(u).toMatchObject({ email, timezone: 'America/New_York', displayName: null });
   });
 });

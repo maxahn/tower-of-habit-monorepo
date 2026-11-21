@@ -125,6 +125,23 @@ export function recomputeTowerState(periods: readonly RecomputePeriod[]): Recomp
   return { height, currentStreak: height, blocks, issues };
 }
 
+/**
+ * The first period of the current run (the one `height` counts), or null when
+ * nothing has survived since the last collapse. The same fold as
+ * recomputeTowerState, read for one value: the evaluator's
+ * TowerConfig.runStartDate (2.4) and the base block's run bounds (2.6).
+ */
+export function currentRunStart(periods: readonly RecomputePeriod[]): LocalDate | null {
+  const sorted = [...periods].sort((a, b) => a.periodStart.localeCompare(b.periodStart));
+  let runStart: LocalDate | null = null;
+  for (const p of sorted) {
+    if (p.state !== 'evaluated') continue;
+    if (p.outcome === 'survived') runStart ??= p.periodStart;
+    else if (p.outcome === 'collapsed') runStart = null;
+  }
+  return runStart;
+}
+
 export type TowerDivergence = {
   /** e.g. 'height', 'currentStreak', 'blocks.length', 'blocks[0].runEndDate'. */
   field: string;

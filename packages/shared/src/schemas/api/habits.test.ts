@@ -13,7 +13,18 @@ import {
 // ownerId comes from the authenticated session, never from the body.
 
 const BINARY = { name: 'Meditate', type: 'binary' } as const;
-const NUMERIC = { name: 'Read', type: 'numeric', unit: 'pages', quota: 1 } as const;
+// 2.12 / DECISIONS P9: a numeric habit carries a ladder whose tier 0 threshold
+// is what the tower checks (qualifies()).
+const NUMERIC = {
+  name: 'Read',
+  type: 'numeric',
+  unit: 'pages',
+  quota: 1,
+  tiers: [
+    { tierIndex: 0, label: 'Base', thresholdValue: 10 },
+    { tierIndex: 1, label: 'Deep', thresholdValue: 30 },
+  ],
+} as const;
 const TIERED = {
   name: 'Run',
   type: 'tiered',
@@ -79,13 +90,42 @@ describe('createHabitRequestSchema', () => {
     expect(createHabitRequestSchema.safeParse(body).success).toBe(false);
   });
 
-  it.each([
-    ['binary', BINARY],
-    ['numeric', NUMERIC],
-  ])('rejects tiers on a %s habit', (_, body) => {
-    expect(createHabitRequestSchema.safeParse({ ...body, tiers: TIERED.tiers }).success).toBe(
+  it('rejects tiers on a binary habit', () => {
+    expect(createHabitRequestSchema.safeParse({ ...BINARY, tiers: TIERED.tiers }).success).toBe(
       false
     );
+  });
+
+  // 2.12: numeric ladders.
+  it('requires tiers with a tier 0 threshold on a numeric habit', () => {
+    const { tiers, ...rest } = NUMERIC;
+    void tiers;
+    expect(createHabitRequestSchema.safeParse(rest).success).toBe(false);
+    expect(
+      createHabitRequestSchema.safeParse({
+        ...NUMERIC,
+        tiers: [{ tierIndex: 0, label: 'Base', thresholdValue: null }],
+      }).success
+    ).toBe(false);
+  });
+
+  it('requires strictly increasing thresholds on a numeric habit', () => {
+    const body = {
+      ...NUMERIC,
+      tiers: [
+        { tierIndex: 0, label: 'Base', thresholdValue: 10 },
+        { tierIndex: 1, label: 'Same', thresholdValue: 10 },
+      ],
+    };
+    expect(createHabitRequestSchema.safeParse(body).success).toBe(false);
+  });
+
+  it.each([
+    ['tiered', TIERED],
+    ['numeric', NUMERIC],
+  ])('requires contiguous tier indexes from 0 on a %s habit', (_, body) => {
+    const tiers = [body.tiers[0], { tierIndex: 2, label: 'Gap', thresholdValue: 50 }];
+    expect(createHabitRequestSchema.safeParse({ ...body, tiers }).success).toBe(false);
   });
 
   it('rejects an unknown habit type', () => {

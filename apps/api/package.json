@@ -9,18 +9,25 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "test:integration": "vitest run -c vitest.integration.config.ts",
+    "recompute": "tsx scripts/recompute.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.0",
     "@tower-of-habit/db": "workspace:*",
     "@tower-of-habit/shared": "workspace:*",
     "hono": "^4.9.0",
+    "ioredis": "^6.0.0",
+    "svix": "^2.10.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "drizzle-orm": "^0.44.7",
     "tsup": "^8.5.0",
     "tsx": "^4.20.0",
     "typescript": "catalog:",

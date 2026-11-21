@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tower of Habit — Schema ERD</title>
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --fg: #1c1917;
+      --muted: #78716c;
+      --surface: #ffffff;
+      --border: #e7e5e4;
+      --accent: #7c3aed;
+      --accent-soft: #ede9fe;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0c0a09;
+        --fg: #e7e5e4;
+        --muted: #a8a29e;
+        --surface: #1c1917;
+        --border: #292524;
+        --accent: #a78bfa;
+        --accent-soft: #1e1338;
+        color-scheme: dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0c0a09;
+      --fg: #e7e5e4;
+      --muted: #a8a29e;
+      --surface: #1c1917;
+      --border: #292524;
+      --accent: #a78bfa;
+      --accent-soft: #1e1338;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      padding-left: max(16px, env(safe-area-inset-left, 0px));
+      padding-right: max(16px, env(safe-area-inset-right, 0px));
+      padding-block: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.8125rem;
+      margin-bottom: 2rem;
+      font-variant-numeric: tabular-nums;
+    }
+    h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin: 2.5rem 0 0.75rem;
+    }
+    .diagram-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      min-width: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    td code {
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.75rem;
+    }
+    .stats {
+      color: var(--muted);
+      font-size: 0.6875rem;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tower of Habit — Schema ERD</h1>
+  <p class="subtitle">12 tables &middot; 12 enums &middot; 14 foreign keys &middot; auto-generated from Drizzle</p>
+
+  <h2>Entity Relationships</h2>
+  <div class="diagram-wrap">
+    <pre class="mermaid">
+erDiagram
+    towers ||--o{ base_blocks : "towerId [cascade]"
+    habits ||--o{ entries : "habitId [cascade]"
+    habits ||--o{ habit_tiers : "habitId [cascade]"
+    users ||--o{ habits : "ownerId [cascade]"
+    towers ||--o{ memberships : "towerId [cascade]"
+    users ||--o{ memberships : "userId [no action]"
+    habits ||--o{ memberships : "habitId [no action]"
+    users ||--o{ notifications : "userId [cascade]"
+    towers ||--o{ notifications : "towerId [cascade]"
+    users ||--o{ push_tokens : "userId [cascade]"
+    users ||--o{ sessions : "userId [cascade]"
+    towers ||--o{ tower_periods : "towerId [cascade]"
+    users ||--o{ tower_periods : "freebieGrantedBy [no action]"
+    users ||--o{ towers : "hostId [restrict]"
+
+    auth_codes {
+        text id
+        text email
+        text codeHash
+        int attemptCount
+        timestamp expiresAt
+        timestamp consumedAt "nullable"
+        timestamp createdAt
+    }
+    base_blocks {
+        text id
+        text towerId FK
+        int ordinal
+        text runStartDate
+        text runEndDate
+        int blockHeight
+        jsonb roster
+        timestamp createdAt
+    }
+    entries {
+        text id
+        text habitId FK
+        text localDate
+        int tierReached
+        int numericValue "nullable"
+        timestamp loggedAt
+        bool countsTowardQuota
+        text clientEntryId "nullable"
+        timestamp createdAt
+    }
+    habit_tiers {
+        text id
+        text habitId FK
+        int tierIndex
+        text label
+        int thresholdValue "nullable"
+    }
+    habits {
+        text id
+        text ownerId FK
+        text name
+        text type
+        text unit "nullable"
+        text periodUnit
+        int periodLength
+        int quota
+        text lifecycle
+        timestamp startedAt "nullable"
+        timestamp archivedAt "nullable"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    memberships {
+        text id
+        text towerId FK
+        text userId FK
+        text habitId FK
+        text state
+        int consecutiveMissedPeriods
+        text lastQualifyingDate "nullable"
+        timestamp dormantSince "nullable"
+        text dormancyReason "nullable"
+        text voluntaryReturnDate "nullable"
+        timestamp joinedAt
+    }
+    notifications {
+        text id
+        text userId FK
+        text towerId FK
+        text type
+        text dedupeKey
+        timestamp scheduledFor
+        text status
+        int attempts
+        timestamp sentAt "nullable"
+        text error "nullable"
+        timestamp createdAt
+    }
+    push_tokens {
+        text id
+        text userId FK
+        text token
+        text platform
+        timestamp createdAt
+        timestamp lastSeenAt
+        timestamp invalidatedAt "nullable"
+    }
+    sessions {
+        text id
+        text userId FK
+        text tokenHash
+        text userAgent "nullable"
+        timestamp createdAt
+        timestamp lastSeenAt
+        timestamp expiresAt
+        timestamp revokedAt "nullable"
+    }
+    tower_periods {
+        text id
+        text towerId FK
+        text periodStart
+        text periodEnd
+        timestamp deadlineAt
+        timestamp evaluateAt
+        text state
+        text outcome "nullable"
+        timestamp evaluatedAt "nullable"
+        timestamp claimedAt "nullable"
+        int attempts
+        text freebieSource "nullable"
+        text freebieGrantedBy FK "nullable"
+        timestamp createdAt
+    }
+    towers {
+        text id
+        text hostId FK
+        text name
+        text periodUnit
+        int periodLength
+        int quota
+        text deadlineTime
+        text timezone
+        int weekResetDay "nullable"
+        text joinCode
+        int wobbleLeadMinutes
+        int nudgeLeadMinutes
+        int graceWindowMinutes
+        text lifecycle
+        int height
+        int currentStreak
+        timestamp startedAt "nullable"
+        timestamp createdAt
+    }
+    users {
+        text id
+        text email
+        text timezone
+        text displayName "nullable"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    </pre>
+  </div>
+
+  <h2>Enum Types</h2>
+  <div class="diagram-wrap">
+    <table>
+      <thead><tr><th>Enum</th><th>Values</th></tr></thead>
+      <tbody>
+      <tr><td><code>dormancy_reason</code></td><td><code>consecutive_miss</code>, <code>backstop</code>, <code>voluntary</code></td></tr>
+      <tr><td><code>freebie_source</code></td><td><code>earned</code>, <code>host_granted</code>, <code>system</code></td></tr>
+      <tr><td><code>habit_lifecycle</code></td><td><code>draft</code>, <code>active</code>, <code>paused</code>, <code>archived</code></td></tr>
+      <tr><td><code>habit_type</code></td><td><code>binary</code>, <code>numeric</code>, <code>tiered</code></td></tr>
+      <tr><td><code>membership_state</code></td><td><code>active</code>, <code>at_risk</code>, <code>dormant</code>, <code>removed</code></td></tr>
+      <tr><td><code>notification_status</code></td><td><code>pending</code>, <code>sent</code>, <code>failed</code>, <code>skipped</code></td></tr>
+      <tr><td><code>notification_type</code></td><td><code>nudge</code>, <code>wobble</code>, <code>collapse</code>, <code>dormant</code>, <code>returned</code>, <code>member_joined</code>, <code>tower_started</code>, <code>tower_archived</code>, <code>block_completed</code>, <code>host_transferred</code></td></tr>
+      <tr><td><code>period_outcome</code></td><td><code>survived</code>, <code>collapsed</code>, <code>hibernated</code>, <code>freebie</code></td></tr>
+      <tr><td><code>period_state</code></td><td><code>pending</code>, <code>evaluating</code>, <code>evaluated</code></td></tr>
+      <tr><td><code>period_unit</code></td><td><code>day</code>, <code>week</code></td></tr>
+      <tr><td><code>push_platform</code></td><td><code>ios</code>, <code>android</code></td></tr>
+      <tr><td><code>tower_lifecycle</code></td><td><code>draft</code>, <code>active</code>, <code>paused</code>, <code>archived</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="stats">Generated 2026-11-18 06:27 UTC</p>
+</body>
+</html>

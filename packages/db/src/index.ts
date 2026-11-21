@@ -11,3 +11,6 @@ export * from './towers/blocks/blocks.js';
 export * from './towers/recompute.js';
 export * from './users/push-tokens/push-tokens.js';
 export * from './notifications/notifications.js';
+export * from './auth/auth-codes.js';
+export * from './auth/sessions.js';
+export * from './auth/email-deliverability.js';

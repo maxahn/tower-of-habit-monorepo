@@ -24,7 +24,6 @@ export function useTestOwner(): () => string {
       .insert(users)
       .values({
         email: `${crypto.randomUUID()}@test.local`,
-        passwordHash: 'x',
         displayName: 'Tester',
       })
       .returning();

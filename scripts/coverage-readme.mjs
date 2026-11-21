@@ -23,6 +23,8 @@ const END = '<!-- coverage:end -->';
 const PACKAGES = [
   { name: 'shared', dir: 'packages/shared' },
   { name: 'db', dir: 'packages/db', needsDb: true },
+  // Uses fakes for Postgres and Redis, so it always runs.
+  { name: 'api', dir: 'apps/api' },
 ];
 
 const METRICS = ['statements', 'branches', 'functions', 'lines'];

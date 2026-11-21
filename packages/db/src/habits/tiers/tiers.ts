@@ -1,9 +1,8 @@
 import { and, asc, eq, ne, notExists } from 'drizzle-orm';
-import type { db as appDb } from '../../client.js';
+import type { Db } from '../../client.js';
 import { habits } from '../schema.js';
 import { habitTiers } from './schema.js';
 
-type Db = typeof appDb;
 export type HabitTier = typeof habitTiers.$inferSelect;
 export type NewHabitTier = Omit<typeof habitTiers.$inferInsert, 'id' | 'habitId'>;
 export type HabitTierPatch = Partial<NewHabitTier>;
@@ -11,7 +10,7 @@ export type HabitTierPatch = Partial<NewHabitTier>;
 export const BASE_TIER_INDEX = 0;
 
 export type TierInvariantReason =
-  | 'not_tiered' // tiers on a binary/numeric habit
+  | 'not_tiered' // tiers on a binary habit
   | 'missing_base_tier' // tiered habit created without tier 0
   | 'base_tier_required'; // attempt to delete or re-index tier 0
 
@@ -48,7 +47,8 @@ export async function getTier(db: Db, id: string): Promise<HabitTier | undefined
 export async function addTier(db: Db, habitId: string, input: NewHabitTier): Promise<HabitTier> {
   const [habit] = await db.select({ type: habits.type }).from(habits).where(eq(habits.id, habitId));
   // Missing habit falls through to the FK violation, same as other inserts.
-  if (habit && habit.type !== 'tiered') throw new TierInvariantError('not_tiered', habitId);
+  // Numeric habits carry a ladder too (2.12 / DECISIONS P9).
+  if (habit && habit.type === 'binary') throw new TierInvariantError('not_tiered', habitId);
   const [row] = await db
     .insert(habitTiers)
     .values({ ...input, habitId })
@@ -93,6 +93,29 @@ export async function deleteTier(db: Db, id: string): Promise<void> {
   const existing = await getTier(db, id);
   // Deleting something already gone is a no-op, matching deleteHabit.
   if (existing) throw new TierInvariantError('base_tier_required', existing.habitId);
+}
+
+/**
+ * 2.12: replace the ladder wholesale. Partial edits invite gaps, so there is
+ * no per-tier endpoint; the whole list is validated (tier 0 present, habit not
+ * binary) and swapped in one transaction. The caller (API) has already run
+ * tierLadderIssues for contiguity and numeric thresholds.
+ */
+export async function replaceTiers(
+  db: Db,
+  habitId: string,
+  tiers: readonly NewHabitTier[]
+): Promise<HabitTier[]> {
+  const [habit] = await db.select({ type: habits.type }).from(habits).where(eq(habits.id, habitId));
+  if (habit && habit.type === 'binary') throw new TierInvariantError('not_tiered', habitId);
+  if (!tiers.some((t) => t.tierIndex === BASE_TIER_INDEX)) {
+    throw new TierInvariantError('missing_base_tier', habitId);
+  }
+  return db.transaction(async (tx) => {
+    await tx.delete(habitTiers).where(eq(habitTiers.habitId, habitId));
+    await tx.insert(habitTiers).values(tiers.map((t) => ({ ...t, habitId })));
+    return listTiers(tx, habitId);
+  });
 }
 
 /** Tiered habits with no tier-0 row. Should always be empty; used to assert the invariant. */

@@ -1,0 +1,1 @@
+ALTER TABLE "memberships" ADD COLUMN "voluntary_absence_days_used" integer DEFAULT 0 NOT NULL;

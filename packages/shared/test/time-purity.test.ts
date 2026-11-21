@@ -12,3 +12,22 @@ describe('src/time reads no clock', () => {
     expect(src).not.toMatch(/performance\.now\s*\(/);
   });
 });
+
+// 2.3 / 2.4 / 2.5 / 2.6 (and the collapse log helper): the evaluator must return the same result for the same input
+// regardless of ambient state (2.4 takes `now` as input), so the same scan,
+// plus randomness.
+describe('src/evaluator reads no clock or randomness', () => {
+  it.each(['qualifies.ts', 'evaluate.ts', 'dormancy.ts', 'base-block.ts', 'collapse-log.ts'])(
+    '%s',
+    (file) => {
+      const src = readFileSync(new URL(`../src/evaluator/${file}`, import.meta.url), 'utf8');
+      expect(src).not.toMatch(/Date\.now\s*\(/);
+      expect(src).not.toMatch(/new Date\(\s*\)/);
+      expect(src).not.toMatch(/performance\.now\s*\(/);
+      expect(src).not.toMatch(/Math\.random\s*\(/);
+      // A stub that only throws reads no clock either, so the scan must not
+      // pass until the real implementation replaces it.
+      expect(src).not.toMatch(/not implemented/);
+    }
+  );
+});

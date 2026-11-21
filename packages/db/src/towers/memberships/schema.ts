@@ -59,6 +59,7 @@ export const memberships = pgTable(
     dormancyReason: dormancyReasonEnum(),
     // v1.1. Added now: a nullable column is free, a migration on a live table isn't.
     voluntaryReturnDate: date({ mode: 'string' }),
+    voluntaryAbsenceDaysUsed: integer().notNull().default(0),
     joinedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

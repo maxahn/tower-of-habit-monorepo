@@ -1,11 +1,10 @@
 import { and, asc, desc, eq, inArray, lt, lte, or, sql } from 'drizzle-orm';
 import { civilInZone, resolvePeriodWindow } from '@tower-of-habit/shared';
-import type { db as appDb } from '../../client.js';
+import type { Db } from '../../client.js';
 import { towers } from '../schema.js';
 import { TowerNotFoundError } from '../towers.js';
 import { towerPeriods, type PeriodOutcome, type PeriodState } from './schema.js';
 
-type Db = typeof appDb;
 export type TowerPeriod = typeof towerPeriods.$inferSelect;
 // State, outcome, timestamps and attempts are scheduler-owned: they change only
 // through claimDuePeriods and transitionPeriod.
@@ -99,6 +98,26 @@ export async function ensurePeriod(db: Db, input: NewTowerPeriod): Promise<Tower
     })
     .returning();
   return row!;
+}
+
+/**
+ * 2.19: the manual evaluation's claim, in the same shape the Phase 3 tick will
+ * use: `SELECT … FOR UPDATE SKIP LOCKED` on the one period named. Undefined
+ * when the row does not exist, belongs to another tower, or is locked by a
+ * concurrent evaluation. Call inside the evaluation transaction: the lock is
+ * held until it commits.
+ */
+export async function lockPeriodForEvaluation(
+  db: Db,
+  periodId: string,
+  towerId: string
+): Promise<TowerPeriod | undefined> {
+  const [row] = await db
+    .select()
+    .from(towerPeriods)
+    .where(and(eq(towerPeriods.id, periodId), eq(towerPeriods.towerId, towerId)))
+    .for('update', { skipLocked: true });
+  return row;
 }
 
 export async function getPeriod(db: Db, id: string): Promise<TowerPeriod | undefined> {
@@ -266,4 +285,21 @@ export async function transitionPeriod(
 
 export async function deletePeriod(db: Db, id: string): Promise<void> {
   await db.delete(towerPeriods).where(eq(towerPeriods.id, id));
+}
+
+/**
+ * 3.17: age in seconds of the oldest pending period whose evaluate_at has
+ * passed, or null if none exist. The key metric for detecting a live-but-stuck
+ * scheduler.
+ */
+export async function oldestPendingPeriodAge(db: Db, now: Date): Promise<number | null> {
+  const rows = await db
+    .select({
+      oldest: sql<string | null>`min(${towerPeriods.evaluateAt})`,
+    })
+    .from(towerPeriods)
+    .where(and(sql`${towerPeriods.state} = 'pending'`, lte(towerPeriods.evaluateAt, now)));
+  const oldest = rows[0]?.oldest;
+  if (oldest == null) return null;
+  return Math.round((now.getTime() - new Date(oldest).getTime()) / 1000);
 }

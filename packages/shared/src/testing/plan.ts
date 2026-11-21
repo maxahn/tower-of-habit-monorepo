@@ -35,7 +35,6 @@ export type PeriodState = PeriodStatus;
 export type UserRecord = {
   id: string;
   email: string;
-  passwordHash: string;
   displayName: string;
 };
 

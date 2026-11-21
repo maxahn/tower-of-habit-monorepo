@@ -24,8 +24,6 @@ export const FACTORY_DEADLINE_TIME = '22:00';
 // Stays Edmonton through tzdata 2026c (Alberta permanent UTC-6): the zone is
 // still valid, only its rules changed. See src/time/TZDATA.md.
 export const FACTORY_TIMEZONE = 'America/Edmonton';
-/** Not a real hash. Seed and test users can't log in until auth lands. */
-export const FACTORY_PASSWORD_HASH = 'factory-not-a-real-hash';
 
 const DISPLAY_NAMES = ['Sam', 'Alex', 'Riley', 'Jordan', 'Casey', 'Morgan', 'Quinn', 'Avery'];
 
@@ -110,7 +108,6 @@ export function factories({ seed = 1, now }: { seed?: number; now: Date }): Fact
       return {
         id: userId,
         email: input.email ?? `user-${userId.slice(0, 8)}@factory.test`,
-        passwordHash: input.passwordHash ?? FACTORY_PASSWORD_HASH,
         displayName: input.displayName ?? DISPLAY_NAMES[n % DISPLAY_NAMES.length]!,
       };
     },

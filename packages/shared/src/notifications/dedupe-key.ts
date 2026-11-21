@@ -53,6 +53,9 @@ export const NOTIFICATION_TYPES = [
   'tower_archived',
   'block_completed',
   'host_transferred',
+  // Phase 3 additions.
+  'hibernate',
+  'at_risk',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -106,12 +109,13 @@ const SEPARATOR = ':';
  * or event table to key them on.
  */
 export type NotificationEvent =
-  | { type: 'nudge' | 'wobble' | 'collapse'; periodId: string; userId: string }
+  | { type: 'nudge' | 'wobble' | 'collapse' | 'hibernate'; periodId: string; userId: string }
   | { type: 'dormant' | 'returned'; membershipId: string }
   | { type: 'member_joined'; membershipId: string; userId: string }
   | { type: 'block_completed'; blockId: string; userId: string }
   | { type: 'tower_started' | 'tower_archived'; towerId: string; userId: string }
-  | { type: 'host_transferred'; periodId: string; userId: string };
+  | { type: 'host_transferred'; periodId: string; userId: string }
+  | { type: 'at_risk'; membershipId: string; periodId: string };
 
 export class InvalidDedupeKeyInputError extends Error {
   constructor(
@@ -143,11 +147,18 @@ export function buildDedupeKey(event: NotificationEvent): string {
     case 'nudge':
     case 'wobble':
     case 'collapse':
+    case 'hibernate':
     case 'host_transferred':
       return [
         event.type,
         segment('periodId', event.periodId),
         segment('userId', event.userId),
+      ].join(SEPARATOR);
+    case 'at_risk':
+      return [
+        event.type,
+        segment('membershipId', event.membershipId),
+        segment('periodId', event.periodId),
       ].join(SEPARATOR);
     case 'dormant':
     case 'returned':
