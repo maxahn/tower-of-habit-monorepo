@@ -1,21 +1,39 @@
-const { getDefaultConfig } = require("expo/metro-config");
-const path = require("path");
+const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
+const path = require('path');
 
 const projectRoot = __dirname;
-const workspaceRoot = path.resolve(projectRoot, "../..");
+const workspaceRoot = path.resolve(projectRoot, '../..');
 
 const config = getDefaultConfig(projectRoot);
 
-// Watch the whole workspace so edits to packages/shared trigger reloads.
 config.watchFolders = [workspaceRoot];
 
-// Resolve from both the app and the root node_modules.
 config.resolver.nodeModulesPaths = [
-  path.resolve(projectRoot, "node_modules"),
-  path.resolve(workspaceRoot, "node_modules"),
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-// Don't walk up past the workspace root looking for modules.
 config.resolver.disableHierarchicalLookup = true;
 
-module.exports = config;
+// packages/shared uses "type": "module" with .js extension imports in TS
+// source (Node ESM convention). Enable package exports so Metro reads the
+// "exports" field and resolves from the TS source directly.
+config.resolver.unstable_enablePackageExports = true;
+
+// When resolving a bare .js import inside a .ts source file, also try .ts/.tsx.
+// This handles `export * from './time/local-date.js'` in shared/src/index.ts.
+config.resolver.sourceExts = [...(config.resolver.sourceExts || []), 'cjs'];
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName.endsWith('.js')) {
+    const tsName = moduleName.replace(/\.js$/, '.ts');
+    try {
+      return context.resolveRequest(context, tsName, platform);
+    } catch {
+      // fall through to default
+    }
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
+module.exports = withNativeWind(config, { input: './global.css' });

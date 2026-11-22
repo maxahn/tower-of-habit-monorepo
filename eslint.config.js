@@ -174,7 +174,7 @@ export default config(
     },
   },
   {
-    files: ['**/metro.config.js'],
+    files: ['**/metro.config.js', '**/tailwind.config.js', '**/babel.config.js'],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
     },
