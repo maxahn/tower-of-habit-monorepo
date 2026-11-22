@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** Phase 3 complete. Next milestone: M4 (client foundation).
+**Next task:** M4 (client foundation) specced. Start with ticket 4.1 (Expo + router + NativeWind wiring). See `docs/phase-4-PLAN.md` and `docs/phase-4-tickets.md`.
 
 **Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes). healthchecks.io setup needed for dead-man's-switch (see docs/TODO.md).
 

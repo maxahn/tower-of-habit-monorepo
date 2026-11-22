@@ -18,7 +18,7 @@ Detailed tickets live in their own files: `tower-phase1-tickets.md`, `phase-2-ti
 | **M1**    | Data model                       | ✅ complete    |
 | **M2**    | Evaluator and API                | ✅ complete    |
 | **M3**    | Worker, notifications, lifecycle | ✅ complete    |
-| **M4**    | Client foundation                | ⬜ not specced |
+| **M4**    | Client foundation                | ⬜ specced     |
 | **M5**    | Client screens                   | ⬜ not specced |
 | **M6**    | Hardening and submission         | ⬜ not specced |
 
@@ -134,34 +134,17 @@ C1–C6 corrections were applied during implementation: `localDate` derived serv
 
 ---
 
-## M4 — Client foundation · ⬜ not specced
+## M4 — Client foundation · ⬜ specced
+
+**Detailed plan:** `phase-4-PLAN.md` · **Tickets:** `phase-4-tickets.md`
 
 **Goal:** an Expo app that authenticates, navigates, and talks to the API — no tower UI yet.
 
-**Tasks (provisional)**
+11 tickets (8 client + 3 interleaved backend). 4.8 (change-of-email) deferred to M6.
 
-- `4.1` Expo + expo-router + NativeWind v4 / Tailwind 3 wiring
-- `4.2` React Native Reusables components copied in and themed
-- `4.3` TanStack Query client, typed against `packages/shared` zod schemas
-- `4.4` OTP login and verify screens, token in `expo-secure-store`
-- `4.5` session restore, refresh and sign-out; 401 → re-auth without losing navigation state
-- `4.6` push token registration, permission prompt, token POST to the API
-- `4.7` ESLint `no-restricted-imports` barrier enforcing no server code in `apps/mobile`
-- `4.8` change-of-email flow (unblocked by 3.14)
-- `4.9` EAS build profiles for dev, preview and production
+**Exit gate:** a real device logs in with an emailed code, completes profile setup, registers a push token, receives a test push, and survives a cold restart still signed in. A mid-session 401 triggers a silent refresh and retry.
 
-**Acceptance criteria**
-
-- [ ] `packages/shared` types import into the client with no database driver pulled in
-- [ ] Login survives an app restart and a cold boot
-- [ ] A 401 mid-session returns the user to login without a crash or a stuck spinner
-- [ ] Push permission denial is handled: the app works, notifications are off, and the state is visible in settings
-- [ ] The import barrier fails CI when server-only code is imported into the client
-- [ ] An internal preview build installs on a physical device
-
-**Exit gate:** a real device logs in with an emailed code, registers a push token, receives a test push, and survives a cold restart still signed in.
-
-**Estimate:** 8–12 days.
+**Estimate:** 10–14 days.
 
 ---
 
