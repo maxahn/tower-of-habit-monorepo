@@ -11,7 +11,7 @@
 | Ticket  | Scope                                      | State          |
 | ------- | ------------------------------------------ | -------------- |
 | **4.1** | Expo + router + NativeWind wiring          | ✅ complete    |
-| **4.2** | React Native Reusables components          | ⬜ not started |
+| **4.2** | React Native Reusables components          | ✅ complete    |
 | **B1**  | `isNewUser` flag (post-login-onboarding)   | ⬜ not started |
 | **4.3** | TanStack Query + `apiFetch` wrapper        | ⬜ not started |
 | **4.4** | OTP login + verify + profile setup         | ⬜ not started |

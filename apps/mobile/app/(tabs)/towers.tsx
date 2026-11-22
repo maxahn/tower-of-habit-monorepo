@@ -1,10 +1,13 @@
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '~/components/ui/text';
 
 export default function TowersScreen() {
   return (
-    <View className="flex-1 items-center justify-center bg-white dark:bg-neutral-950">
-      <Text className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Towers</Text>
-      <Text className="mt-2 text-neutral-500">Your towers will appear here</Text>
+    <View className="flex-1 items-center justify-center bg-background">
+      <Text variant="h3">Towers</Text>
+      <Text variant="muted" className="mt-2">
+        Your towers will appear here
+      </Text>
     </View>
   );
 }
