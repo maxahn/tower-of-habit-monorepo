@@ -5,7 +5,7 @@ Detailed plan: `docs/phase-5-PLAN.md` · Tickets: `docs/phase-5-tickets.md`
 ## Tasks
 
 - [x] **5.1** Habit creation + tier ladder editor
-- [ ] **5.2** Habit list + standalone habit view
+- [x] **5.2** Habit list + standalone habit view
 - [ ] **5.3** Logging: binary, numeric, tier picker
 - [ ] **5.4** Tower creation + deadline picker
 - [ ] **5.5** Lobby: code sharing, members, start

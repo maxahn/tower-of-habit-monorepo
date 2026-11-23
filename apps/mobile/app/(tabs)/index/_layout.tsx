@@ -13,6 +13,8 @@ export default function HabitsLayout() {
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="create" options={{ title: 'New Habit', presentation: 'modal' }} />
+      <Stack.Screen name="[id]" options={{ title: 'Habit' }} />
+      <Stack.Screen name="edit" options={{ title: 'Edit Habit', presentation: 'modal' }} />
     </Stack>
   );
 }
