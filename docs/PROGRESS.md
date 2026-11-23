@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** 4.6 complete. Next: ticket 4.7 (ESLint import barrier). See `docs/phase-4-PLAN.md` and `docs/phase-4-tickets.md`.
+**Next task:** 4.7 complete. Next: ticket B3 (auth codes cleanup job). See `docs/phase-4-PLAN.md` and `docs/phase-4-tickets.md`.
 
 **Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes). healthchecks.io setup needed for dead-man's-switch (see docs/TODO.md).
 

@@ -18,7 +18,7 @@
 | **B2**  | Session token rotation                     | ✅ complete    |
 | **4.5** | Session restore + refresh-retry + sign-out | ✅ complete    |
 | **4.6** | Push token registration                    | ✅ complete    |
-| **4.7** | ESLint import barrier                      | ⬜ not started |
+| **4.7** | ESLint import barrier                      | ✅ complete    |
 | **B3**  | Auth codes cleanup job                     | ⬜ not started |
 | **4.9** | EAS build profiles (finish)                | ⬜ not started |
 
