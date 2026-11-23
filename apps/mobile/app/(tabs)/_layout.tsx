@@ -28,6 +28,7 @@ export default function TabLayout() {
         options={{
           title: 'Towers',
           tabBarLabel: 'Towers',
+          headerShown: false,
         }}
       />
       <Tabs.Screen
