@@ -20,6 +20,7 @@ export default function TabLayout() {
         options={{
           title: 'Habits',
           tabBarLabel: 'Habits',
+          headerShown: false,
         }}
       />
       <Tabs.Screen
