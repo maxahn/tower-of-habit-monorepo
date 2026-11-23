@@ -88,3 +88,15 @@ export async function consumeCode(db: Db, id: string): Promise<AuthCode | undefi
     .returning();
   return row;
 }
+
+/**
+ * Deletes auth codes whose expiresAt is older than `retentionSeconds` ago.
+ * Returns the number of deleted rows.
+ */
+export async function deleteExpiredAuthCodes(db: Db, retentionSeconds: number): Promise<number> {
+  const result = await db
+    .delete(authCodes)
+    .where(sql`${authCodes.expiresAt} + make_interval(secs => ${retentionSeconds}) < now()`)
+    .returning({ id: authCodes.id });
+  return result.length;
+}

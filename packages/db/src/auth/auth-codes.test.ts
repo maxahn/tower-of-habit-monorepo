@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { db } from '../test-utils.js';
 import {
   consumeCode,
+  deleteExpiredAuthCodes,
   findLiveCodeForEmail,
   insertAuthCode,
   invalidateCodesForEmail,
@@ -113,5 +114,72 @@ describe('invalidateCodesForEmail (one live code per email)', () => {
     await rawCode({ email });
     await invalidateCodesForEmail(db, email);
     expect(await findLiveCodeForEmail(db, email)).toBeUndefined();
+  });
+});
+
+describe('deleteExpiredAuthCodes', () => {
+  it('deletes codes whose expiresAt + retention is in the past', async () => {
+    const email = freshEmail();
+    // Expired 2 hours ago — well past 1-hour retention
+    const old = await rawCode({
+      email,
+      createdAt: new Date(Date.now() - 3 * 3600_000),
+      expiresAt: new Date(Date.now() - 2 * 3600_000),
+    });
+    const deleted = await deleteExpiredAuthCodes(db, 3600);
+    expect(deleted).toBeGreaterThanOrEqual(1);
+    // Verify the row is gone
+    const [row] = await db
+      .select()
+      .from(authCodes)
+      .where(inArray(authCodes.id, [old.id]));
+    expect(row).toBeUndefined();
+    // Remove from cleanup tracker since already deleted
+    created.splice(created.indexOf(old.id), 1);
+  });
+
+  it('deletes consumed codes older than retention', async () => {
+    const email = freshEmail();
+    const old = await rawCode({
+      email,
+      createdAt: new Date(Date.now() - 3 * 3600_000),
+      expiresAt: new Date(Date.now() - 2 * 3600_000),
+      consumedAt: new Date(Date.now() - 2 * 3600_000),
+    });
+    const deleted = await deleteExpiredAuthCodes(db, 3600);
+    expect(deleted).toBeGreaterThanOrEqual(1);
+    const [row] = await db
+      .select()
+      .from(authCodes)
+      .where(inArray(authCodes.id, [old.id]));
+    expect(row).toBeUndefined();
+    created.splice(created.indexOf(old.id), 1);
+  });
+
+  it('preserves codes within the retention window', async () => {
+    const email = freshEmail();
+    // Expired 30 minutes ago — within the 1-hour retention
+    const recent = await rawCode({
+      email,
+      createdAt: new Date(Date.now() - 40 * 60_000),
+      expiresAt: new Date(Date.now() - 30 * 60_000),
+    });
+    await deleteExpiredAuthCodes(db, 3600);
+    const [row] = await db
+      .select()
+      .from(authCodes)
+      .where(inArray(authCodes.id, [recent.id]));
+    expect(row).toBeDefined();
+  });
+
+  it('preserves live (not yet expired) codes', async () => {
+    const email = freshEmail();
+    const live = await rawCode({ email });
+    await deleteExpiredAuthCodes(db, 3600);
+    const [row] = await db
+      .select()
+      .from(authCodes)
+      .where(inArray(authCodes.id, [live.id]));
+    expect(row).toBeDefined();
   });
 });

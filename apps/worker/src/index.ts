@@ -1,4 +1,10 @@
-import { claimDuePeriods, closeDb, db, oldestPendingPeriodAge } from '@tower-of-habit/db';
+import {
+  claimDuePeriods,
+  closeDb,
+  db,
+  deleteExpiredAuthCodes,
+  oldestPendingPeriodAge,
+} from '@tower-of-habit/db';
 import { run as runGraphile, type CronItem, type Runner, type TaskList } from 'graphile-worker';
 import { sweepBackstop } from './backstop.js';
 import { config, redactedConfig } from './config.js';
@@ -68,10 +74,15 @@ const taskList: TaskList = {
     const count = await sweepBackstop(db, new Date());
     if (count > 0) helpers.logger.info(`backstop_sweep: ${count} transitions`);
   },
+  async cleanup_auth_codes(_payload, helpers) {
+    const deleted = await deleteExpiredAuthCodes(db, 86_400);
+    helpers.logger.info(`cleanup_auth_codes: ${deleted} rows deleted`);
+  },
 };
 
 const cronItems: CronItem[] = [
   { task: 'backstop_sweep', match: '17 * * * *', options: { backfillPeriod: 0 } },
+  { task: 'cleanup_auth_codes', match: '0 3 * * *', options: { backfillPeriod: 0 } },
 ];
 
 let runner: Runner | undefined;

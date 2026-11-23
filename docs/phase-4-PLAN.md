@@ -19,7 +19,7 @@
 | **4.5** | Session restore + refresh-retry + sign-out | ✅ complete    |
 | **4.6** | Push token registration                    | ✅ complete    |
 | **4.7** | ESLint import barrier                      | ✅ complete    |
-| **B3**  | Auth codes cleanup job                     | ⬜ not started |
+| **B3**  | Auth codes cleanup job                     | ✅ complete    |
 | **4.9** | EAS build profiles (finish)                | ⬜ not started |
 
 4.8 (change-of-email) deferred to M6.
