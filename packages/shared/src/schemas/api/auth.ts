@@ -39,5 +39,6 @@ export type SessionUser = z.infer<typeof sessionUserSchema>;
 export const verifyCodeResponseSchema = z.strictObject({
   token: z.string(),
   user: sessionUserSchema,
+  isNewUser: z.boolean(),
 });
 export type VerifyCodeResponse = z.infer<typeof verifyCodeResponseSchema>;

@@ -41,7 +41,7 @@ export type AuthUser = {
 };
 
 /** verify-code success: the raw bearer token (returned once) plus the user. */
-export type VerifiedSession = { token: string; user: AuthUser };
+export type VerifiedSession = { token: string; user: AuthUser; isNewUser: boolean };
 
 /** What the session middleware needs from a live session. */
 export type SessionIdentity = { userId: string; sessionId: string };
@@ -127,9 +127,12 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
         const consumed = await consumeCode(tx, live.id);
         if (!consumed) return null;
 
-        const user =
-          (await findUserByEmail(tx, email)) ??
-          (await createUser(tx, { email, timezone: input.timezone }));
+        let isNewUser = false;
+        let user = await findUserByEmail(tx, email);
+        if (!user) {
+          user = await createUser(tx, { email, timezone: input.timezone });
+          isNewUser = true;
+        }
 
         const token = generateSessionToken();
         await createSession(tx, {
@@ -139,7 +142,7 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
           ttlSeconds: sessionTtlSeconds,
         });
 
-        return { token, user };
+        return { token, user, isNewUser };
       });
     },
 

@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** 4.2 complete. Next: ticket B1 (`isNewUser` flag for post-login-onboarding). See `docs/phase-4-PLAN.md` and `docs/phase-4-tickets.md`.
+**Next task:** B1 complete. Next: ticket 4.3 (TanStack Query + `apiFetch` wrapper). See `docs/phase-4-PLAN.md` and `docs/phase-4-tickets.md`.
 
 **Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes). healthchecks.io setup needed for dead-man's-switch (see docs/TODO.md).
 

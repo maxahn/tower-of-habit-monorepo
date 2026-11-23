@@ -78,6 +78,7 @@ export function createFakeAuthService(): FakeAuthService {
       }
       live.consumed = true;
 
+      let isNewUser = false;
       let user = usersByEmail.get(email);
       if (!user) {
         const now = new Date();
@@ -90,11 +91,12 @@ export function createFakeAuthService(): FakeAuthService {
           updatedAt: now,
         };
         usersByEmail.set(email, user);
+        isNewUser = true;
       }
 
       const token = nextId('token');
       sessions.set(token, { userId: user.id, sessionId: nextId('session'), revoked: false });
-      return { token, user };
+      return { token, user, isNewUser };
     },
 
     async authenticate(rawToken): Promise<SessionIdentity | null> {

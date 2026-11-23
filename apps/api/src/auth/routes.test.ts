@@ -106,7 +106,7 @@ describe('POST /auth/request-code', () => {
 describe('POST /auth/verify-code', () => {
   it('returns 200 with { token, user } on success', async () => {
     const authService = fakeService({
-      verifyCode: vi.fn(async () => ({ token: 'tok-abc', user: USER })),
+      verifyCode: vi.fn(async () => ({ token: 'tok-abc', user: USER, isNewUser: false })),
     });
     const { app } = publicApp(authService);
 
@@ -128,7 +128,7 @@ describe('POST /auth/verify-code', () => {
   });
 
   it('defaults timezone to UTC when omitted', async () => {
-    const verifyCode = vi.fn(async () => ({ token: 't', user: USER }));
+    const verifyCode = vi.fn(async () => ({ token: 't', user: USER, isNewUser: false }));
     const { app } = publicApp(fakeService({ verifyCode }));
 
     await app.request('/v1/auth/verify-code', json({ email: 'me@example.com', code: '123456' }));
@@ -257,6 +257,7 @@ describe('end-to-end: request → verify → authenticated route → logout', ()
     const session = verifyCodeResponseSchema.parse(await verified.json());
     expect(session.user.email).toBe('me@example.com');
     expect(session.user.timezone).toBe('America/New_York');
+    expect(session.isNewUser).toBe(true);
 
     const authHeader = { authorization: `Bearer ${session.token}` };
 
@@ -272,6 +273,27 @@ describe('end-to-end: request → verify → authenticated route → logout', ()
     const afterLogout = await app.request('/v1/me', { headers: authHeader });
     expect(afterLogout.status).toBe(401);
     expect((await readErrorBody(afterLogout)).error.code).toBe('unauthenticated');
+  });
+
+  it('returns isNewUser: false for a returning user', async () => {
+    const { app, authService } = flowApp();
+
+    // First login: creates the user.
+    await app.request('/v1/auth/request-code', json({ email: 'me@example.com' }));
+    const first = await app.request(
+      '/v1/auth/verify-code',
+      json({ email: 'me@example.com', code: authService.sender.sent[0]!.code })
+    );
+    expect(verifyCodeResponseSchema.parse(await first.json()).isNewUser).toBe(true);
+
+    // Second login: same email, new code → existing user.
+    await app.request('/v1/auth/request-code', json({ email: 'me@example.com' }));
+    const second = await app.request(
+      '/v1/auth/verify-code',
+      json({ email: 'me@example.com', code: authService.sender.sent[1]!.code })
+    );
+    expect(second.status).toBe(200);
+    expect(verifyCodeResponseSchema.parse(await second.json()).isNewUser).toBe(false);
   });
 
   it('rejects reuse of a consumed code (single-use) with 401 invalid_code', async () => {
