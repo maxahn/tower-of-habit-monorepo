@@ -197,7 +197,7 @@ export default function EditHabitScreen() {
 
           {/* Submit */}
           <Button
-            onPress={handleSubmit(onSubmit)}
+            onPress={() => handleSubmit(onSubmit)()}
             disabled={updateHabit.isPending}
             className="mt-2"
           >

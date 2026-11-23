@@ -264,7 +264,7 @@ export default function CreateHabitScreen() {
 
           {/* Submit */}
           <Button
-            onPress={handleSubmit(onSubmit)}
+            onPress={() => handleSubmit(onSubmit)()}
             disabled={createHabit.isPending}
             className="mt-2"
           >

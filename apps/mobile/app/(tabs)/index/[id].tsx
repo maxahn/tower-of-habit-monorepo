@@ -103,7 +103,9 @@ export default function HabitDetailScreen() {
         data={entries}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <EntryRow entry={item} />}
-        onRefresh={refetch}
+        onRefresh={() => {
+          refetch();
+        }}
         refreshing={isRefetching}
         contentContainerStyle={{ paddingBottom: 24 }}
         ListHeaderComponent={

@@ -96,7 +96,9 @@ export default function HabitsScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <HabitRow habit={item} />}
         contentContainerStyle={{ paddingTop: 12, paddingBottom: 24 }}
-        onRefresh={refetch}
+        onRefresh={() => {
+          refetch();
+        }}
         refreshing={isRefetching}
         ListHeaderComponent={
           <View className="mb-3 flex-row items-center justify-between px-4">

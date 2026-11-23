@@ -6,9 +6,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  TextInput,
   View,
+  TextInput,
 } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 import type { VerifyCodeResponse } from '@tower-of-habit/shared';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
@@ -28,7 +29,7 @@ export default function VerifyScreen() {
   const [resendCooldown, setResendCooldown] = useState(COOLDOWN_SECONDS);
   const [failCount, setFailCount] = useState(0);
 
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const inputRefs = useRef<(TextInputInstance | null)[]>([]);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 

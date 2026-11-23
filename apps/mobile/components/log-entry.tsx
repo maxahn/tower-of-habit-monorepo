@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { Alert, Pressable, TextInput, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 import type { HabitResponse, HabitTierResponse, LogEntryRequest } from '@tower-of-habit/shared';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
@@ -17,7 +18,7 @@ export function LogEntry({ habit, tiers, towerId }: Props) {
   const logEntry = useLogEntry(habit.id, towerId);
   const [cooldown, setCooldown] = useState(false);
   const [numericText, setNumericText] = useState('');
-  const numericRef = useRef<TextInput>(null);
+  const numericRef = useRef<TextInputInstance>(null);
 
   const disabled = logEntry.isPending || cooldown;
 

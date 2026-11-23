@@ -30,7 +30,14 @@ export default function TowersListScreen() {
         data={towers}
         keyExtractor={(item) => item.tower.id}
         contentContainerClassName="px-4 pt-4 pb-24"
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => {
+              refetch();
+            }}
+          />
+        }
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center pt-24">
             <Text variant="h3">No towers yet</Text>

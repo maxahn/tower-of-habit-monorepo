@@ -365,7 +365,7 @@ export default function CreateTowerScreen() {
 
           {/* Submit */}
           <Button
-            onPress={handleSubmit(onSubmit)}
+            onPress={() => handleSubmit(onSubmit)()}
             disabled={createTower.isPending || !selectedHabitId}
             className="mt-2"
           >
