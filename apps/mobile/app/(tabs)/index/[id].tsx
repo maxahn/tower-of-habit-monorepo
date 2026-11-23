@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Alert, FlatList, Pressable, View } from 'react-native';
 import { Text } from '~/components/ui/text';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
+import { LogEntry } from '~/components/log-entry';
 import { useArchiveHabit, useHabit, useHabitEntries } from '~/lib/hooks/use-habits';
 import type { EntryResponse } from '@tower-of-habit/shared';
 
@@ -114,6 +115,9 @@ export default function HabitDetailScreen() {
                 <Text className="text-sm text-muted-foreground">Current Streak</Text>
               </CardContent>
             </Card>
+
+            {/* Logging */}
+            {!isArchived && <LogEntry habit={habit} tiers={tiers} towerId={tower?.id} />}
 
             {/* Info */}
             <Card>
