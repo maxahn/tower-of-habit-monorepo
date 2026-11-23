@@ -9,6 +9,7 @@
       "distribution": "internal",
       "channel": "dev",
       "env": {
+        "APP_VARIANT": "dev",
         "API_URL": "http://localhost:3000"
       },
       "ios": {
@@ -32,6 +33,7 @@
       "distribution": "internal",
       "channel": "staging",
       "env": {
+        "APP_VARIANT": "staging",
         "API_URL": "https://staging.towerofhabit.com"
       },
       "ios": {

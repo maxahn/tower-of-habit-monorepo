@@ -1,8 +1,21 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
+const IS_DEV = process.env.APP_VARIANT === 'dev';
+const IS_STAGING = process.env.APP_VARIANT === 'staging';
+
+const appName = IS_DEV ? '(Dev) TOH' : IS_STAGING ? '(Staging) TOH' : 'Tower of Habit';
+
+const bundleId = IS_DEV
+  ? 'com.mxahn.toh.dev'
+  : IS_STAGING
+    ? 'com.mxahn.toh.staging'
+    : 'com.mxahn.toh';
+
+const scheme = IS_DEV ? 'towerofhabit-dev' : IS_STAGING ? 'towerofhabit-staging' : 'towerofhabit';
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Tower of Habit',
+  name: appName,
   slug: 'mobile',
   version: '1.0.0',
   orientation: 'portrait',
@@ -10,12 +23,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.mxahn.dev.toh',
+    bundleIdentifier: bundleId,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
+    package: bundleId,
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/android-icon-foreground.png',
@@ -41,7 +55,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   owner: 'mxahn',
-  scheme: 'towerofhabit',
+  scheme,
   plugins: [
     'expo-router',
     'expo-splash-screen',
