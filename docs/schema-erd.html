@@ -108,7 +108,7 @@
 </head>
 <body>
   <h1>Tower of Habit — Schema ERD</h1>
-  <p class="subtitle">12 tables &middot; 12 enums &middot; 14 foreign keys &middot; auto-generated from Drizzle</p>
+  <p class="subtitle">13 tables &middot; 12 enums &middot; 14 foreign keys &middot; auto-generated from Drizzle</p>
 
   <h2>Entity Relationships</h2>
   <div class="diagram-wrap">
@@ -147,6 +147,11 @@ erDiagram
         int blockHeight
         jsonb roster
         timestamp createdAt
+    }
+    email_deliverability {
+        text email
+        text reason
+        timestamp markedAt
     }
     entries {
         text id
@@ -192,6 +197,7 @@ erDiagram
         timestamp dormantSince "nullable"
         text dormancyReason "nullable"
         text voluntaryReturnDate "nullable"
+        int voluntaryAbsenceDaysUsed
         timestamp joinedAt
     }
     notifications {
@@ -220,6 +226,8 @@ erDiagram
         text id
         text userId FK
         text tokenHash
+        text previousTokenHash "nullable"
+        timestamp rotatedAt "nullable"
         text userAgent "nullable"
         timestamp createdAt
         timestamp lastSeenAt
@@ -284,7 +292,7 @@ erDiagram
       <tr><td><code>habit_type</code></td><td><code>binary</code>, <code>numeric</code>, <code>tiered</code></td></tr>
       <tr><td><code>membership_state</code></td><td><code>active</code>, <code>at_risk</code>, <code>dormant</code>, <code>removed</code></td></tr>
       <tr><td><code>notification_status</code></td><td><code>pending</code>, <code>sent</code>, <code>failed</code>, <code>skipped</code></td></tr>
-      <tr><td><code>notification_type</code></td><td><code>nudge</code>, <code>wobble</code>, <code>collapse</code>, <code>dormant</code>, <code>returned</code>, <code>member_joined</code>, <code>tower_started</code>, <code>tower_archived</code>, <code>block_completed</code>, <code>host_transferred</code></td></tr>
+      <tr><td><code>notification_type</code></td><td><code>nudge</code>, <code>wobble</code>, <code>collapse</code>, <code>dormant</code>, <code>returned</code>, <code>member_joined</code>, <code>tower_started</code>, <code>tower_archived</code>, <code>block_completed</code>, <code>host_transferred</code>, <code>hibernate</code>, <code>at_risk</code></td></tr>
       <tr><td><code>period_outcome</code></td><td><code>survived</code>, <code>collapsed</code>, <code>hibernated</code>, <code>freebie</code></td></tr>
       <tr><td><code>period_state</code></td><td><code>pending</code>, <code>evaluating</code>, <code>evaluated</code></td></tr>
       <tr><td><code>period_unit</code></td><td><code>day</code>, <code>week</code></td></tr>
@@ -294,6 +302,6 @@ erDiagram
     </table>
   </div>
 
-  <p class="stats">Generated 2026-11-18 06:27 UTC</p>
+  <p class="stats">Generated 2026-11-23 22:00 UTC</p>
 </body>
 </html>

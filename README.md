@@ -117,6 +117,11 @@ erDiagram
         jsonb roster
         timestamp createdAt
     }
+    email_deliverability {
+        text email
+        text reason
+        timestamp markedAt
+    }
     entries {
         text id
         text habitId FK
@@ -161,6 +166,7 @@ erDiagram
         timestamp dormantSince "nullable"
         text dormancyReason "nullable"
         text voluntaryReturnDate "nullable"
+        int voluntaryAbsenceDaysUsed
         timestamp joinedAt
     }
     notifications {
@@ -189,6 +195,8 @@ erDiagram
         text id
         text userId FK
         text tokenHash
+        text previousTokenHash "nullable"
+        timestamp rotatedAt "nullable"
         text userAgent "nullable"
         timestamp createdAt
         timestamp lastSeenAt
