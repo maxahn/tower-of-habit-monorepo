@@ -9,7 +9,7 @@ Detailed plan: `docs/phase-5-PLAN.md` · Tickets: `docs/phase-5-tickets.md`
 - [x] **5.3** Logging: binary, numeric, tier picker
 - [x] **5.4** Tower creation + deadline picker
 - [x] **5.5** Lobby: code sharing, members, start
-- [ ] **5.6** Join by code
+- [x] **5.6** Join by code
 - [ ] **5.7** Tower home: height, streak, members, period
 - [ ] **5.8** Countdown timer anchored to deadline_at
 - [ ] **5.9** Tower animation (Reanimated; Skia deferred)

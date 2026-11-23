@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   CreateTowerRequest,
   HabitDetailResponse,
+  JoinTowerRequest,
   TowerDetailResponse,
   TowerListResponse,
 } from '@tower-of-habit/shared';
@@ -86,6 +87,19 @@ export function useStartTower(towerId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: towerKeys.detail(towerId) });
       queryClient.invalidateQueries({ queryKey: towerKeys.list() });
+    },
+  });
+}
+
+export function useJoinTower() {
+  const { apiClient } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: JoinTowerRequest) =>
+      apiClient.apiFetch<TowerDetailResponse>('/v1/towers/join', { json: data }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: towerKeys.list() });
+      queryClient.invalidateQueries({ queryKey: habitKeys.list() });
     },
   });
 }

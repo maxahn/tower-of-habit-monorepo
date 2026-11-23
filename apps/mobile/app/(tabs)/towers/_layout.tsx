@@ -13,6 +13,7 @@ export default function TowersLayout() {
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="create" options={{ title: 'New Tower', presentation: 'modal' }} />
+      <Stack.Screen name="join" options={{ title: 'Join Tower', presentation: 'modal' }} />
       <Stack.Screen name="[id]" options={{ headerShown: false }} />
     </Stack>
   );

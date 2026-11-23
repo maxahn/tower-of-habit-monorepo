@@ -1,11 +1,12 @@
 # Progress
 
-**Next task:** 5.6 — Join by code
+**Next task:** 5.7 — Tower home: height, streak, members, period (blocked by height-reset bug fix)
 
-**Blockers:** None.
+**Blockers:** Height-reset bug (`.scratch/height-reset-bug/`) must be fixed before 5.7 — `tower.height` currently resets on collapse but should be cumulative.
 
 ## Done
 
+- 5.6 Join by code: Created `towers/join.tsx` modal with 8-character code input (auto-uppercase, strips non-alphanumeric, formats as `XXXX-XXXX`), habit picker (same eligible-habits pattern as tower creation), and `useJoinTower` hook calling `POST /towers/join`. Error handling distinguishes 404 (invalid code), 409 (already member), 429 (rate limited). On success, navigates to the tower's detail screen. Also added "Join Tower" button to the towers list (both empty state and FAB row) and color-coded lifecycle badges (draft=blue, active=green, paused=amber, archived=grey).
 - 5.5 Lobby: code sharing, members, start: Created tower detail route (`towers/[id]/_layout.tsx`, `towers/[id]/index.tsx`) with discriminated union handling for lobby vs active tower. Created `Lobby` component with join code display (formatted as `XXXX-XXXX`), copy button (`expo-clipboard`), native share sheet, member list with host badge and habit type badges. Host can remove members (with confirmation dialog) and start the tower (disabled until >= 2 members). Non-host members can leave (navigates back to tower list). Added `useRemoveMember`, `useLeaveTower`, `useStartTower` hooks. Tower list items now navigate to the detail screen on press. Active tower view has a placeholder for 5.7.
 - 5.4 Tower creation + deadline picker: Converted towers tab from single file to stack navigator (`towers/_layout.tsx`, `towers/index.tsx`, `towers/create.tsx`). Created `DeadlinePicker` component with tap-to-expand hour/minute grid, defaults to 22:00, warns on odd hours (midnight–6 AM). Created `use-towers.ts` hooks (`useTowers`, `useTower`, `useCreateTower`, `useEligibleHabits`). `useEligibleHabits` fetches active habits not already in a tower by checking each habit's detail for the `tower` field. Tower creation form has name, habit picker (only eligible habits), period unit/length, quota, deadline time, timezone (auto-detected), grace window, week reset day (weekly only), and expandable advanced settings showing wobble/nudge defaults. Habit picker shows "Create a habit first" prompt when no eligible habits exist.
 - 5.3 Logging: binary, numeric, tier picker: Created `LogEntry` component with three modes — binary (single "Done" button), numeric (number input with threshold hint), tiered (vertical tier list with tap-to-log). Created `useLogEntry` hook with optimistic cache update and rollback on error. Generates `clientEntryId` (UUID) for idempotency. 1-second cooldown prevents double-taps. Integrated into habit detail screen above entry history. Invalidates habit detail and tower queries on settle.

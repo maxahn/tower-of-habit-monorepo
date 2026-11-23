@@ -1,8 +1,16 @@
 import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
+import type { TowerStatus } from '@tower-of-habit/shared';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { useTowers } from '~/lib/hooks/use-towers';
+
+const LIFECYCLE_BADGE: Record<TowerStatus, { bg: string; text: string }> = {
+  draft: { bg: 'bg-blue-500/15', text: 'text-blue-600' },
+  active: { bg: 'bg-green-500/15', text: 'text-green-600' },
+  paused: { bg: 'bg-amber-500/15', text: 'text-amber-600' },
+  archived: { bg: 'bg-muted', text: 'text-muted-foreground' },
+};
 
 export default function TowersListScreen() {
   const { data, isLoading, refetch, isRefetching } = useTowers();
@@ -29,9 +37,18 @@ export default function TowersListScreen() {
             <Text variant="muted" className="mt-2 text-center">
               Create a tower to build streaks with friends, or join one with a code.
             </Text>
-            <Button onPress={() => router.push('./create' as never)} className="mt-6">
-              <Text>Create Tower</Text>
-            </Button>
+            <View className="mt-6 flex-row gap-3">
+              <Button onPress={() => router.push('./create' as never)} className="flex-1">
+                <Text>Create Tower</Text>
+              </Button>
+              <Button
+                variant="outline"
+                onPress={() => router.push('./join' as never)}
+                className="flex-1"
+              >
+                <Text>Join Tower</Text>
+              </Button>
+            </View>
           </View>
         }
         renderItem={({ item }) => (
@@ -41,8 +58,14 @@ export default function TowersListScreen() {
           >
             <View className="flex-row items-center justify-between">
               <Text className="text-lg font-semibold text-foreground">{item.tower.name}</Text>
-              <View className="rounded-full bg-muted px-2.5 py-0.5">
-                <Text className="text-xs text-muted-foreground">{item.tower.lifecycle}</Text>
+              <View
+                className={`rounded-full px-2.5 py-0.5 ${(LIFECYCLE_BADGE[item.tower.lifecycle as TowerStatus] ?? LIFECYCLE_BADGE.archived).bg}`}
+              >
+                <Text
+                  className={`text-xs ${(LIFECYCLE_BADGE[item.tower.lifecycle as TowerStatus] ?? LIFECYCLE_BADGE.archived).text}`}
+                >
+                  {item.tower.lifecycle}
+                </Text>
               </View>
             </View>
             <View className="mt-2 flex-row gap-4">
@@ -59,9 +82,16 @@ export default function TowersListScreen() {
       />
 
       {towers.length > 0 && (
-        <View className="absolute bottom-8 right-6">
+        <View className="absolute bottom-8 right-6 flex-row gap-3">
+          <Button
+            variant="outline"
+            onPress={() => router.push('./join' as never)}
+            className="rounded-full px-5"
+          >
+            <Text>Join</Text>
+          </Button>
           <Button onPress={() => router.push('./create' as never)} className="rounded-full px-5">
-            <Text>+ New Tower</Text>
+            <Text>+ New</Text>
           </Button>
         </View>
       )}
