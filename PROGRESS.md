@@ -1,11 +1,12 @@
 # Progress
 
-**Next task:** 5.5 — Lobby: code sharing, members, start
+**Next task:** 5.6 — Join by code
 
 **Blockers:** None.
 
 ## Done
 
+- 5.5 Lobby: code sharing, members, start: Created tower detail route (`towers/[id]/_layout.tsx`, `towers/[id]/index.tsx`) with discriminated union handling for lobby vs active tower. Created `Lobby` component with join code display (formatted as `XXXX-XXXX`), copy button (`expo-clipboard`), native share sheet, member list with host badge and habit type badges. Host can remove members (with confirmation dialog) and start the tower (disabled until >= 2 members). Non-host members can leave (navigates back to tower list). Added `useRemoveMember`, `useLeaveTower`, `useStartTower` hooks. Tower list items now navigate to the detail screen on press. Active tower view has a placeholder for 5.7.
 - 5.4 Tower creation + deadline picker: Converted towers tab from single file to stack navigator (`towers/_layout.tsx`, `towers/index.tsx`, `towers/create.tsx`). Created `DeadlinePicker` component with tap-to-expand hour/minute grid, defaults to 22:00, warns on odd hours (midnight–6 AM). Created `use-towers.ts` hooks (`useTowers`, `useTower`, `useCreateTower`, `useEligibleHabits`). `useEligibleHabits` fetches active habits not already in a tower by checking each habit's detail for the `tower` field. Tower creation form has name, habit picker (only eligible habits), period unit/length, quota, deadline time, timezone (auto-detected), grace window, week reset day (weekly only), and expandable advanced settings showing wobble/nudge defaults. Habit picker shows "Create a habit first" prompt when no eligible habits exist.
 - 5.3 Logging: binary, numeric, tier picker: Created `LogEntry` component with three modes — binary (single "Done" button), numeric (number input with threshold hint), tiered (vertical tier list with tap-to-log). Created `useLogEntry` hook with optimistic cache update and rollback on error. Generates `clientEntryId` (UUID) for idempotency. 1-second cooldown prevents double-taps. Integrated into habit detail screen above entry history. Invalidates habit detail and tower queries on settle.
 - 5.2 Habit list + standalone habit view: Rewrote habits index as FlatList with type badges, period info, archived-at-bottom sorting, pull-to-refresh. Added `[id].tsx` detail screen with streak card, habit info, tier ladder, tower association, entry history (reverse-chronological), edit/archive actions. Added `edit.tsx` modal for updating habit fields (name, unit, period, quota) via `PATCH /habits/:id`. Added `useHabitEntries`, `useUpdateHabit`, `useArchiveHabit` hooks. Archive shows confirmation dialog.

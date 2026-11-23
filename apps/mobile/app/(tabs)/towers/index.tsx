@@ -35,7 +35,10 @@ export default function TowersListScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <Pressable className="mb-3 rounded-xl border border-border bg-card p-4">
+          <Pressable
+            onPress={() => router.push(`./${item.tower.id}` as never)}
+            className="mb-3 rounded-xl border border-border bg-card p-4"
+          >
             <View className="flex-row items-center justify-between">
               <Text className="text-lg font-semibold text-foreground">{item.tower.name}</Text>
               <View className="rounded-full bg-muted px-2.5 py-0.5">

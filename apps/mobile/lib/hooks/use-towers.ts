@@ -44,6 +44,51 @@ export function useCreateTower() {
   });
 }
 
+export function useRemoveMember(towerId: string) {
+  const { apiClient } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (membershipId: string) =>
+      apiClient.apiFetch(`/v1/towers/${towerId}/memberships/${membershipId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: towerKeys.detail(towerId) });
+    },
+  });
+}
+
+export function useLeaveTower(towerId: string) {
+  const { apiClient } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (membershipId: string) =>
+      apiClient.apiFetch(`/v1/towers/${towerId}/memberships/${membershipId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: towerKeys.list() });
+      queryClient.invalidateQueries({ queryKey: towerKeys.detail(towerId) });
+      queryClient.invalidateQueries({ queryKey: habitKeys.list() });
+    },
+  });
+}
+
+export function useStartTower(towerId: string) {
+  const { apiClient } = useAuth();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiClient.apiFetch<TowerDetailResponse>(`/v1/towers/${towerId}/start`, {
+        method: 'POST',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: towerKeys.detail(towerId) });
+      queryClient.invalidateQueries({ queryKey: towerKeys.list() });
+    },
+  });
+}
+
 /**
  * Fetches active habits that aren't already in a tower.
  * Uses the detail endpoint for each habit to check the tower field.
