@@ -36,7 +36,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   owner: 'mxahn',
   scheme: 'towerofhabit',
-  plugins: ['expo-router', 'expo-splash-screen'],
+  plugins: [
+    'expo-router',
+    'expo-splash-screen',
+    [
+      'expo-notifications',
+      {
+        icon: './assets/icon.png',
+        color: '#E6F4FE',
+      },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
   },

@@ -13,6 +13,7 @@ import { mountHabitRoutes } from './habits/routes.js';
 import type { ReadinessChecks } from './health.js';
 import type { Logger } from './logger.js';
 import { mountMeRoutes } from './me/routes.js';
+import { mountPushTokenRoutes } from './push-tokens/routes.js';
 import type { ClientIpResolver } from './rate-limit/client-ip.js';
 import type { RateLimiter } from './rate-limit/limiter.js';
 import { writeCeiling } from './rate-limit/write-ceiling.js';
@@ -88,6 +89,7 @@ export function composeApp(deps: ComposeDeps): Hono<AppEnv> {
       mountHabitRoutes(api, { db: deps.db });
       mountTowerRoutes(api, { db: deps.db, rateLimit });
       mountEntryRoutes(api, { db: deps.db });
+      mountPushTokenRoutes(api, { db: deps.db });
     },
   });
 }

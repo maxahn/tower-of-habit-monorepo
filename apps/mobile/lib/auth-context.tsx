@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { AppState } from 'react-native';
 import type { SessionUser, MeResponse } from '@tower-of-habit/shared';
 import { createApiClient, type ApiClient } from './api-client';
+import { refreshPushTokenIfNeeded } from './push';
 
 const TOKEN_KEY = 'tower_session_token';
 const EXPIRES_AT_KEY = 'tower_session_expires_at';
@@ -118,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (new Date(expiresAt).getTime() - Date.now() < SEVEN_DAYS_MS) {
         apiClient.refreshToken().catch(() => {});
       }
+      refreshPushTokenIfNeeded(apiClient).catch(() => {});
     });
     return () => subscription.remove();
   }, [apiClient]);
