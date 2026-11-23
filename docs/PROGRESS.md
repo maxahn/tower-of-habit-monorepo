@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** 4.4 complete. Next: ticket B2 (session token rotation backend). See `docs/phase-4-PLAN.md` and `docs/phase-4-tickets.md`.
+**Next task:** B2 complete. Next: ticket 4.5 (session restore + refresh-retry + sign-out). See `docs/phase-4-PLAN.md` and `docs/phase-4-tickets.md`.
 
 **Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes). healthchecks.io setup needed for dead-man's-switch (see docs/TODO.md).
 

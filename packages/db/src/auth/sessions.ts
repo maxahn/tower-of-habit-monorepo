@@ -12,6 +12,13 @@ export type NewSession = {
   ttlSeconds: number;
 };
 
+export type RefreshSessionInput = {
+  sessionId: string;
+  oldTokenHash: string;
+  newTokenHash: string;
+  ttlSeconds: number;
+};
+
 /** Inserts a session with expires_at = now() + ttlSeconds (database clock). */
 export async function createSession(db: Db, input: NewSession): Promise<Session> {
   const [row] = await db
@@ -103,4 +110,67 @@ export async function revokeAllForUser(db: Db, userId: string): Promise<Session[
     .set({ revokedAt: sql`now()` })
     .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)))
     .returning();
+}
+
+/**
+ * Atomically rotates a session's token: moves the current hash to
+ * previousTokenHash, sets the new hash, extends expiresAt, and records
+ * rotatedAt. CAS on the old token hash guards against concurrent rotations.
+ */
+export async function refreshSession(
+  db: Db,
+  input: RefreshSessionInput
+): Promise<Session | undefined> {
+  const [row] = await db
+    .update(sessions)
+    .set({
+      tokenHash: input.newTokenHash,
+      previousTokenHash: input.oldTokenHash,
+      rotatedAt: sql`now()`,
+      lastSeenAt: sql`now()`,
+      expiresAt: sql`now() + make_interval(secs => ${input.ttlSeconds})`,
+    })
+    .where(
+      and(
+        eq(sessions.id, input.sessionId),
+        eq(sessions.tokenHash, input.oldTokenHash),
+        isNull(sessions.revokedAt),
+        sql`${sessions.expiresAt} > now()`
+      )
+    )
+    .returning();
+  return row;
+}
+
+/**
+ * Finds a live session whose previousTokenHash matches and returns whether the
+ * rotation is within the grace window (30 seconds). Used for reuse detection.
+ */
+export async function findSessionByPreviousHash(
+  db: Db,
+  tokenHash: string
+): Promise<(Session & { withinGrace: boolean }) | undefined> {
+  const [row] = await db
+    .select({
+      id: sessions.id,
+      userId: sessions.userId,
+      tokenHash: sessions.tokenHash,
+      previousTokenHash: sessions.previousTokenHash,
+      rotatedAt: sessions.rotatedAt,
+      userAgent: sessions.userAgent,
+      createdAt: sessions.createdAt,
+      lastSeenAt: sessions.lastSeenAt,
+      expiresAt: sessions.expiresAt,
+      revokedAt: sessions.revokedAt,
+      withinGrace: sql<boolean>`${sessions.rotatedAt} > now() - interval '30 seconds'`,
+    })
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.previousTokenHash, tokenHash),
+        isNull(sessions.revokedAt),
+        sql`${sessions.expiresAt} > now()`
+      )
+    );
+  return row;
 }

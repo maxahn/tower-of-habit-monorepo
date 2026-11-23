@@ -35,6 +35,7 @@ function fakeService(overrides: Partial<AuthService> = {}): AuthService {
     requestCode: vi.fn(async () => undefined),
     verifyCode: vi.fn(async () => null),
     authenticate: vi.fn(async () => null),
+    refreshSession: vi.fn(async () => null),
     revokeSession: vi.fn(async () => undefined),
     revokeAllSessions: vi.fn(async () => undefined),
     ...overrides,
@@ -213,6 +214,46 @@ describe('authenticated auth routes', () => {
     expect(res.status).toBe(401);
     expect((await readErrorBody(res)).error.code).toBe('unauthenticated');
   });
+
+  it('POST /auth/refresh returns a new token on success', async () => {
+    const expiresAt = new Date('2026-12-16T19:00:00.000Z');
+    const authService = fakeService({
+      refreshSession: vi.fn(async () => ({ token: 'new-tok', expiresAt })),
+    });
+    const app = authedApp(
+      authService,
+      vi.fn(async () => ({ userId: 'u1', sessionId: 's1' }))
+    );
+
+    const res = await app.request('/v1/auth/refresh', {
+      method: 'POST',
+      headers: { authorization: 'Bearer old-tok' },
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.token).toBe('new-tok');
+    expect(body.expiresAt).toBe(expiresAt.toISOString());
+    expect(authService.refreshSession).toHaveBeenCalledWith('old-tok');
+  });
+
+  it('POST /auth/refresh returns 401 when session is gone', async () => {
+    const authService = fakeService({
+      refreshSession: vi.fn(async () => null),
+    });
+    const app = authedApp(
+      authService,
+      vi.fn(async () => ({ userId: 'u1', sessionId: 's1' }))
+    );
+
+    const res = await app.request('/v1/auth/refresh', {
+      method: 'POST',
+      headers: { authorization: 'Bearer expired-tok' },
+    });
+
+    expect(res.status).toBe(401);
+    expect((await readErrorBody(res)).error.code).toBe('unauthenticated');
+  });
 });
 
 describe('end-to-end: request → verify → authenticated route → logout', () => {
@@ -313,6 +354,41 @@ describe('end-to-end: request → verify → authenticated route → logout', ()
     );
     expect(second.status).toBe(401);
     expect((await readErrorBody(second)).error.code).toBe('invalid_code');
+  });
+
+  it('refreshes a session token: new token works, old token is rejected after grace window', async () => {
+    const { app, authService } = flowApp();
+
+    // Log in.
+    await app.request('/v1/auth/request-code', json({ email: 'me@example.com' }));
+    const verified = await app.request(
+      '/v1/auth/verify-code',
+      json({ email: 'me@example.com', code: authService.sender.sent[0]!.code })
+    );
+    const { token: oldToken } = verifyCodeResponseSchema.parse(await verified.json());
+
+    // Refresh.
+    const refreshRes = await app.request('/v1/auth/refresh', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${oldToken}` },
+    });
+    expect(refreshRes.status).toBe(200);
+    const { token: newToken } = await refreshRes.json();
+    expect(newToken).not.toBe(oldToken);
+
+    // New token works.
+    const me = await app.request('/v1/me', {
+      headers: { authorization: `Bearer ${newToken}` },
+    });
+    expect(me.status).toBe(200);
+
+    // Old token can no longer be used to refresh (it's not the current token).
+    const refreshAgain = await app.request('/v1/auth/refresh', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${oldToken}` },
+    });
+    // Old token can't refresh (it's no longer the current token).
+    expect(refreshAgain.status).toBe(401);
   });
 });
 

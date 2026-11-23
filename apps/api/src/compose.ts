@@ -21,7 +21,7 @@ import { mountResendWebhook } from './webhooks/resend.js';
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
 export const CODE_TTL_SECONDS = 10 * 60; // 10 minutes
-export const SESSION_TTL_SECONDS = 90 * SECONDS_PER_DAY; // 90 days
+export const SESSION_TTL_SECONDS = 30 * SECONDS_PER_DAY; // 30 days
 
 /**
  * Everything the app needs from the outside world. index.ts fills this with

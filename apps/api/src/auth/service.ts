@@ -4,11 +4,13 @@ import {
   createUser,
   findLiveCodeForEmail,
   findLiveSessionByHash,
+  findSessionByPreviousHash,
   findUserByEmail,
   insertAuthCode,
   invalidateCodesForEmail,
   isEmailDeliverable,
   recordFailedAttempt,
+  refreshSession as dbRefreshSession,
   revokeAllForUser,
   revokeSession,
   touchLastSeen,
@@ -43,6 +45,9 @@ export type AuthUser = {
 /** verify-code success: the raw bearer token (returned once) plus the user. */
 export type VerifiedSession = { token: string; user: AuthUser; isNewUser: boolean };
 
+/** refresh success: the new raw bearer token plus its expiry. */
+export type RefreshedSession = { token: string; expiresAt: Date };
+
 /** What the session middleware needs from a live session. */
 export type SessionIdentity = { userId: string; sessionId: string };
 
@@ -67,6 +72,8 @@ export interface AuthService {
   verifyCode(input: VerifyCodeInput): Promise<VerifiedSession | null>;
   /** Resolves a raw bearer token to its session identity, or null. */
   authenticate(rawToken: string): Promise<SessionIdentity | null>;
+  /** Rotates the session token. Returns the new token + expiry, or null if the session is gone. */
+  refreshSession(rawToken: string): Promise<RefreshedSession | null>;
   /** Revokes one session (logout). Idempotent. */
   revokeSession(sessionId: string): Promise<void>;
   /** Revokes every session for the user. */
@@ -78,7 +85,7 @@ export type AuthServiceDeps = {
   sender: LoginCodeSender;
   /** Code lifetime. Spec: 10 minutes. */
   codeTtlSeconds: number;
-  /** Session lifetime. Spec: 90 days. */
+  /** Session lifetime. Spec: 30 days, extended on each refresh. */
   sessionTtlSeconds: number;
 };
 
@@ -147,11 +154,43 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
     },
 
     async authenticate(rawToken) {
-      const session = await findLiveSessionByHash(db, hashToken(rawToken));
+      const hashed = hashToken(rawToken);
+      const session = await findLiveSessionByHash(db, hashed);
+      if (session) {
+        await touchLastSeen(db, session.id);
+        return { userId: session.userId, sessionId: session.id };
+      }
+
+      // Not a current token — check if it's a rotated-out previous token.
+      const prev = await findSessionByPreviousHash(db, hashed);
+      if (!prev) return null;
+
+      // Grace window (30 s, computed by DB clock): in-flight requests on the
+      // old token during rotation are allowed. After that, reuse → revoke.
+      if (prev.withinGrace) {
+        await touchLastSeen(db, prev.id);
+        return { userId: prev.userId, sessionId: prev.id };
+      }
+
+      await revokeSession(db, prev.id);
+      return null;
+    },
+
+    async refreshSession(rawToken) {
+      const oldHash = hashToken(rawToken);
+      const session = await findLiveSessionByHash(db, oldHash);
       if (!session) return null;
-      // Refreshes last_seen_at at most once per hour (the query's own guard).
-      await touchLastSeen(db, session.id);
-      return { userId: session.userId, sessionId: session.id };
+
+      const newToken = generateSessionToken();
+      const newHash = hashToken(newToken);
+      const refreshed = await dbRefreshSession(db, {
+        sessionId: session.id,
+        oldTokenHash: oldHash,
+        newTokenHash: newHash,
+        ttlSeconds: sessionTtlSeconds,
+      });
+      if (!refreshed) return null;
+      return { token: newToken, expiresAt: refreshed.expiresAt };
     },
 
     async revokeSession(sessionId) {

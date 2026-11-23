@@ -52,39 +52,30 @@ export const authCodes = pgTable(
   ]
 );
 
-// A session: 90 days, refreshed last_seen_at at most hourly, revocable.
+// A session: 30 days, rotatable via /auth/refresh, revocable.
 export const sessions = pgTable(
   'sessions',
   {
     id: uuid().primaryKey().defaultRandom(),
-    // Cascade: a session with no user has nothing to authenticate, and it keeps
-    // account deletion from being blocked by a session row (same reasoning as
-    // push_tokens.user_id).
     userId: uuid()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    // SHA-256 hex of a 32-byte CSPRNG token. Unique: lookup is by this hash, and
-    // a collision would let two raw tokens resolve to one session. The raw token
-    // is never stored. Named explicitly (like push_tokens_token_unique) so tests
-    // can assert the 23505 by constraint name.
     tokenHash: varchar({ length: SHA256_HEX_LENGTH })
       .notNull()
       .unique('sessions_token_hash_unique'),
-    // Optional: the client's User-Agent at creation, for a "your devices" screen.
-    // Nullable because it is advisory, not load-bearing.
+    // On refresh the old hash moves here. A request matching this hash within
+    // the grace window (30 s) is allowed; after that it triggers revocation
+    // (reuse detection — the theft signal).
+    previousTokenHash: varchar({ length: SHA256_HEX_LENGTH }),
+    // DB clock when the last rotation happened. Null until first refresh.
+    rotatedAt: timestamp({ withTimezone: true }),
     userAgent: varchar({ length: 400 }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    // A registration IS a sighting, so NOT NULL with the same default as
-    // created_at. Bumped by touchLastSeen at most once per hour (DB clock).
     lastSeenAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    // created_at + 90 days, DATABASE clock (see expires_after_created CHECK).
     expiresAt: timestamp({ withTimezone: true }).notNull(),
-    // Null = live. Set by logout (this session) or revoke-all (every session).
     revokedAt: timestamp({ withTimezone: true }),
   },
   (table) => [
-    // FK columns aren't indexed automatically; the user cascade and
-    // revokeAllForUser both scan user_id.
     index('sessions_user_id_idx').on(table.userId),
     check('sessions_expires_after_created', sql`${table.expiresAt} > ${table.createdAt}`),
     check('sessions_last_seen_not_before_created', sql`${table.lastSeenAt} >= ${table.createdAt}`),

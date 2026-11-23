@@ -2,6 +2,7 @@ import type { LoginCodeSender } from './sender.js';
 import type {
   AuthService,
   AuthUser,
+  RefreshedSession,
   SessionIdentity,
   VerifiedSession,
   VerifyCodeInput,
@@ -51,7 +52,16 @@ export function createFakeAuthService(): FakeAuthService {
   const sender = createFakeSender();
   const codes = new Map<string, { code: string; attempts: number; consumed: boolean }>();
   const usersByEmail = new Map<string, AuthUser>();
-  const sessions = new Map<string, { userId: string; sessionId: string; revoked: boolean }>();
+  const sessions = new Map<
+    string,
+    {
+      userId: string;
+      sessionId: string;
+      revoked: boolean;
+      previousToken?: string;
+      rotatedAt?: number;
+    }
+  >();
 
   let codeCounter = 100000; // keeps generated codes six digits
   let idCounter = 0;
@@ -101,8 +111,33 @@ export function createFakeAuthService(): FakeAuthService {
 
     async authenticate(rawToken): Promise<SessionIdentity | null> {
       const session = sessions.get(rawToken);
+      if (session && !session.revoked) {
+        return { userId: session.userId, sessionId: session.sessionId };
+      }
+
+      // Reuse detection: check if any session has this as its previous token.
+      for (const [, s] of sessions) {
+        if (s.revoked || s.previousToken !== rawToken) continue;
+        const GRACE_MS = 30_000;
+        if (s.rotatedAt && Date.now() - s.rotatedAt <= GRACE_MS) {
+          return { userId: s.userId, sessionId: s.sessionId };
+        }
+        s.revoked = true;
+        return null;
+      }
+      return null;
+    },
+
+    async refreshSession(rawToken): Promise<RefreshedSession | null> {
+      const session = sessions.get(rawToken);
       if (!session || session.revoked) return null;
-      return { userId: session.userId, sessionId: session.sessionId };
+
+      const newToken = nextId('token');
+      sessions.delete(rawToken);
+      session.previousToken = rawToken;
+      session.rotatedAt = Date.now();
+      sessions.set(newToken, session);
+      return { token: newToken, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) };
     },
 
     async revokeSession(sessionId) {

@@ -15,7 +15,7 @@
 | **B1**  | `isNewUser` flag (post-login-onboarding)   | ✅ complete    |
 | **4.3** | TanStack Query + `apiFetch` wrapper        | ✅ complete    |
 | **4.4** | OTP login + verify + profile setup         | ✅ complete    |
-| **B2**  | Session token rotation                     | ⬜ not started |
+| **B2**  | Session token rotation                     | ✅ complete    |
 | **4.5** | Session restore + refresh-retry + sign-out | ⬜ not started |
 | **4.6** | Push token registration                    | ⬜ not started |
 | **4.7** | ESLint import barrier                      | ⬜ not started |

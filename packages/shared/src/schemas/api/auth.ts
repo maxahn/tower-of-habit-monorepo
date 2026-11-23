@@ -42,3 +42,10 @@ export const verifyCodeResponseSchema = z.strictObject({
   isNewUser: z.boolean(),
 });
 export type VerifyCodeResponse = z.infer<typeof verifyCodeResponseSchema>;
+
+/** POST /auth/refresh success body: the new bearer token plus its expiry. */
+export const refreshResponseSchema = z.strictObject({
+  token: z.string(),
+  expiresAt: timestamp,
+});
+export type RefreshResponse = z.infer<typeof refreshResponseSchema>;

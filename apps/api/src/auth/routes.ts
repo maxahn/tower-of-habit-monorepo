@@ -88,10 +88,24 @@ export function mountPublicAuthRoutes(api: Hono<AppEnv>, deps: PublicAuthRouteDe
 /**
  * Authenticated routes. Mounted on the /v1 router that runs behind the session
  * middleware, so userId and sessionId are always set.
+ *   POST /auth/refresh              → { token, expiresAt }, rotates the session token
  *   POST /auth/logout               → 204, revokes the current session
  *   POST /auth/sessions/revoke-all  → 204, revokes every session for the user
  */
 export function mountAuthedAuthRoutes(api: Hono<AppEnv>, deps: { authService: AuthService }): void {
+  api.post('/auth/refresh', async (c) => {
+    const header = c.req.header('authorization');
+    const rawToken = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
+    if (!rawToken) {
+      throw new DomainError(401, 'unauthenticated', 'Missing or invalid session');
+    }
+    const result = await deps.authService.refreshSession(rawToken);
+    if (!result) {
+      throw new DomainError(401, 'unauthenticated', 'Session expired or revoked');
+    }
+    return c.json(result, 200);
+  });
+
   api.post('/auth/logout', async (c) => {
     await deps.authService.revokeSession(c.get('sessionId'));
     return c.body(null, 204);
