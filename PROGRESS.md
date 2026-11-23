@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 5.7 — Tower home: height, streak, members, period
+**Next task:** 5.8 — Countdown timer anchored to deadline_at
 
 **Blockers:** None
 
 ## Done
+
+- 5.7 Tower home: height, streak, members, period: Created `TowerHome` component (`components/tower-home.tsx`) with header showing current streak, total height (blocks + current run), and block count. `usePeriodPreview` hook fetches `GET /towers/:id/period` for live period status (open/wobbling/survived/collapsed) and member standings. Period card shows dates, deadline, and status badge. Wobble warning highlights outstanding members. `MemberRow` component (`components/member-row.tsx`) shows display name, habit, membership state badge (active/at_risk/dormant), and standing indicator (met/short/excused). "Log" shortcut navigates active/at_risk users to their habit detail. Pull-to-refresh reloads both tower detail and period preview. Also fixed the height-reset bug (blocker): `tower.height` is now cumulative across all runs, `tower.currentStreak` resets on collapse.
 
 - 5.6 Join by code: Created `towers/join.tsx` modal with 8-character code input (auto-uppercase, strips non-alphanumeric, formats as `XXXX-XXXX`), habit picker (same eligible-habits pattern as tower creation), and `useJoinTower` hook calling `POST /towers/join`. Error handling distinguishes 404 (invalid code), 409 (already member), 429 (rate limited). On success, navigates to the tower's detail screen. Also added "Join Tower" button to the towers list (both empty state and FAB row) and color-coded lifecycle badges (draft=blue, active=green, paused=amber, archived=grey).
 - 5.5 Lobby: code sharing, members, start: Created tower detail route (`towers/[id]/_layout.tsx`, `towers/[id]/index.tsx`) with discriminated union handling for lobby vs active tower. Created `Lobby` component with join code display (formatted as `XXXX-XXXX`), copy button (`expo-clipboard`), native share sheet, member list with host badge and habit type badges. Host can remove members (with confirmation dialog) and start the tower (disabled until >= 2 members). Non-host members can leave (navigates back to tower list). Added `useRemoveMember`, `useLeaveTower`, `useStartTower` hooks. Tower list items now navigate to the detail screen on press. Active tower view has a placeholder for 5.7.

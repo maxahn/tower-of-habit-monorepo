@@ -3,6 +3,7 @@ import type {
   CreateTowerRequest,
   HabitDetailResponse,
   JoinTowerRequest,
+  PeriodPreviewResponse,
   TowerDetailResponse,
   TowerListResponse,
 } from '@tower-of-habit/shared';
@@ -13,6 +14,7 @@ export const towerKeys = {
   all: ['towers'] as const,
   list: () => [...towerKeys.all, 'list'] as const,
   detail: (id: string) => [...towerKeys.all, 'detail', id] as const,
+  period: (id: string) => [...towerKeys.all, 'period', id] as const,
 };
 
 export function useTowers() {
@@ -30,6 +32,16 @@ export function useTower(id: string, options?: { refetchInterval?: number }) {
     queryFn: () => apiClient.apiFetch<TowerDetailResponse>(`/v1/towers/${id}`),
     enabled: !!id,
     refetchInterval: options?.refetchInterval,
+  });
+}
+
+export function usePeriodPreview(towerId: string, options?: { enabled?: boolean }) {
+  const { apiClient } = useAuth();
+  return useQuery({
+    queryKey: towerKeys.period(towerId),
+    queryFn: () => apiClient.apiFetch<PeriodPreviewResponse>(`/v1/towers/${towerId}/period`),
+    enabled: !!towerId && (options?.enabled ?? true),
+    refetchInterval: 10_000,
   });
 }
 
