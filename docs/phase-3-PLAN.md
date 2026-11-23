@@ -18,8 +18,8 @@ Detailed tickets live in their own files: `tower-phase1-tickets.md`, `phase-2-ti
 | **M1**    | Data model                       | ✅ complete    |
 | **M2**    | Evaluator and API                | ✅ complete    |
 | **M3**    | Worker, notifications, lifecycle | ✅ complete    |
-| **M4**    | Client foundation                | ⬜ specced     |
-| **M5**    | Client screens                   | ⬜ not specced |
+| **M4**    | Client foundation                | ✅ complete    |
+| **M5**    | Client screens                   | ⬜ specced     |
 | **M6**    | Hardening and submission         | ⬜ not specced |
 
 **C1–C6 resolved.** All six inconsistencies between Phase 1 and Phase 2 were resolved during implementation. See `phase-3-tickets.md` for details. M1 and M2 are complete; M3 has significant DB-layer and evaluator work already landed from Phase 2 (claim queries, evaluation transaction steps 1–9, dormancy state machine, base block writes, hibernation outcome).
@@ -148,27 +148,13 @@ C1–C6 corrections were applied during implementation: `localDate` derived serv
 
 ---
 
-## M5 — Client screens · ⬜ not specced
+## M5 — Client screens · ⬜ specced
+
+**Detailed plan:** `phase-5-PLAN.md` · **Tickets:** `phase-5-tickets.md`
 
 **Goal:** the product. This is the milestone where the mechanic becomes something people feel rather than something an endpoint reports.
 
-**Tasks (provisional)**
-
-- `5.1` habit creation, including the tier ladder editor
-- `5.2` tower creation with `5.6`'s deadline picker, timezone, and grace window
-- `5.3` lobby: code sharing, member list, remove, start
-- `5.4` join by code
-- `5.5` logging: binary, numeric, tier picker; optimistic write with the 2.16 convergence rule
-- `5.6` deadline picker defaulting to 22:00, with the odd-local-hour warning for distant members
-- `5.7` tower home: height, streak, member status row, wobble state
-- `5.8` countdown anchored to `deadline_at` and nothing else
-- `5.9` tower animation behind a boundary — Reanimated first, Skia deferred
-- `5.10` base block history: the strata view, tap a layer for that run's roster
-- `5.11` standalone habit view with its own streak — the solo mode and the day-one retention story
-- `5.12` dormancy and absence UI: at-risk state, declare an absence, greyed-out member with return date
-- `5.13` "you're holding this up alone" state
-- `5.14` empty states and first-run onboarding
-- `5.15` offline and flaky-connection handling, retry with the idempotency key
+15 tickets: habits first (create, list, log), then towers (create, lobby, join, home, countdown, animation, history), then lifecycle UI (dormancy, solo warning), then polish (empty states, offline, settings).
 
 **Acceptance criteria**
 

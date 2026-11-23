@@ -1,6 +1,6 @@
 # Progress
 
-**Next task:** Phase 4 complete. All tickets done. Next: Phase 5 planning.
+**Next task:** 5.1 — Habit creation + tier ladder editor (Phase 5 specced, see `phase-5-PLAN.md` and `phase-5-tickets.md`).
 
 **Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes). healthchecks.io setup needed for dead-man's-switch (see docs/TODO.md).
 
