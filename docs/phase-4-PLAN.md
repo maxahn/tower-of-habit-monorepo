@@ -13,7 +13,7 @@
 | **4.1** | Expo + router + NativeWind wiring          | ✅ complete    |
 | **4.2** | React Native Reusables components          | ✅ complete    |
 | **B1**  | `isNewUser` flag (post-login-onboarding)   | ✅ complete    |
-| **4.3** | TanStack Query + `apiFetch` wrapper        | ⬜ not started |
+| **4.3** | TanStack Query + `apiFetch` wrapper        | ✅ complete    |
 | **4.4** | OTP login + verify + profile setup         | ⬜ not started |
 | **B2**  | Session token rotation                     | ⬜ not started |
 | **4.5** | Session restore + refresh-retry + sign-out | ⬜ not started |
