@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 5.8 — Countdown timer anchored to deadline_at
+**Next task:** 5.9 — Tower animation (Reanimated; Skia deferred)
 
 **Blockers:** None
 
 ## Done
+
+- 5.8 Countdown timer anchored to deadline_at: Created `Countdown` component (`components/countdown.tsx`) that takes a `deadlineAt` ISO timestamp and displays a live days:hours:minutes:seconds countdown updating every second. Visual urgency tiers: normal (> 24h), attention (< 24h, amber background/border), urgent (< 1h, red background/border). Past deadline shows "Past deadline — evaluating…" instead of negative numbers. Interval cleans up on unmount and resets when `deadlineAt` changes. Integrated into `TowerHome` below the period card.
 
 - 5.7 Tower home: height, streak, members, period: Created `TowerHome` component (`components/tower-home.tsx`) with header showing current streak, total height (blocks + current run), and block count. `usePeriodPreview` hook fetches `GET /towers/:id/period` for live period status (open/wobbling/survived/collapsed) and member standings. Period card shows dates, deadline, and status badge. Wobble warning highlights outstanding members. `MemberRow` component (`components/member-row.tsx`) shows display name, habit, membership state badge (active/at_risk/dormant), and standing indicator (met/short/excused). "Log" shortcut navigates active/at_risk users to their habit detail. Pull-to-refresh reloads both tower detail and period preview. Also fixed the height-reset bug (blocker): `tower.height` is now cumulative across all runs, `tower.currentStreak` resets on collapse.
 

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import type { TowerActiveResponse, PeriodPreviewResponse } from '@tower-of-habit/shared';
+import { Countdown } from '~/components/countdown';
 import { MemberRow } from '~/components/member-row';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
@@ -106,6 +107,9 @@ export function TowerHome({
           </CardContent>
         </Card>
       )}
+
+      {/* Countdown */}
+      {data.currentPeriod && <Countdown deadlineAt={data.currentPeriod.deadlineAt} />}
 
       {/* Wobble warning */}
       {preview?.periodStatus === 'wobbling' && preview.outstanding.length > 0 && (
