@@ -28,6 +28,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: './assets/favicon.png',
     bundler: 'metro',
   },
+  runtimeVersion: { policy: 'fingerprint' as const },
+  updates: {
+    url: 'https://u.expo.dev/1236b489-89d7-4c92-8bd3-4bbf4a48076b',
+    checkAutomatically: 'ON_LOAD' as const,
+    fallbackToCacheTimeout: 0,
+  },
   extra: {
     apiUrl: process.env.API_URL ?? 'http://localhost:3000',
     eas: {

@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** B3 complete. Next: ticket 4.9 (EAS build profiles). See `docs/phase-4-PLAN.md` and `docs/phase-4-tickets.md`.
+**Next task:** Phase 4 complete. All tickets done. Next: Phase 5 planning.
 
 **Blockers:** Resend account + DNS setup needed for real email delivery (see 3.14 setup notes). healthchecks.io setup needed for dead-man's-switch (see docs/TODO.md).
 
 ## Done
+
+- 4.9 EAS build profiles: added `expo-updates` config to `app.config.ts` (fingerprint runtime version, EAS Update URL, ON_LOAD check). Split `dev` EAS profile into `dev` (physical device) and `dev:simulator` (iOS Simulator). Added `update:staging` and `update:production` scripts. Created `docs/mobile-dev.md` with build commands, OTA update workflow, and troubleshooting.
 
 - 3.16 Time-travel scenario test: `apps/worker/src/time-travel.integration.test.ts` with 2 tests. The 40-day timeline drives `runTick(now)` with synthetic clock through the full tower lifecycle — 3 members, survivals, collapses, dormancy, voluntary absence (days 21–24), hibernation, wake, and DST fall-back (Nov 1 Edmonton MDT→MST). Verifies nudge/wobble/grace-window on day 4, two collapses with base blocks (heights 4 and 24), at_risk→dormant transitions, voluntary return via `day_elapsed` trigger, dormant-return on log, the survived-then-hibernated transition (at_risk members are counted/live on first miss after collapse), 17 exact notifications, cumulative height 31 = sum(4+24) + 3, `verifyTower` oracle at every step, and 25h DST evaluateAt gap. Sub-minimum run test proves a 2-day run produces no block while a 10-day run produces ordinal=1. 93 total worker tests, 0 flakes over 20 runs.
 

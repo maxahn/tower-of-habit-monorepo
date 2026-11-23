@@ -8,19 +8,19 @@
 
 ## Status
 
-| Ticket  | Scope                                      | State          |
-| ------- | ------------------------------------------ | -------------- |
-| **4.1** | Expo + router + NativeWind wiring          | ✅ complete    |
-| **4.2** | React Native Reusables components          | ✅ complete    |
-| **B1**  | `isNewUser` flag (post-login-onboarding)   | ✅ complete    |
-| **4.3** | TanStack Query + `apiFetch` wrapper        | ✅ complete    |
-| **4.4** | OTP login + verify + profile setup         | ✅ complete    |
-| **B2**  | Session token rotation                     | ✅ complete    |
-| **4.5** | Session restore + refresh-retry + sign-out | ✅ complete    |
-| **4.6** | Push token registration                    | ✅ complete    |
-| **4.7** | ESLint import barrier                      | ✅ complete    |
-| **B3**  | Auth codes cleanup job                     | ✅ complete    |
-| **4.9** | EAS build profiles (finish)                | ⬜ not started |
+| Ticket  | Scope                                      | State       |
+| ------- | ------------------------------------------ | ----------- |
+| **4.1** | Expo + router + NativeWind wiring          | ✅ complete |
+| **4.2** | React Native Reusables components          | ✅ complete |
+| **B1**  | `isNewUser` flag (post-login-onboarding)   | ✅ complete |
+| **4.3** | TanStack Query + `apiFetch` wrapper        | ✅ complete |
+| **4.4** | OTP login + verify + profile setup         | ✅ complete |
+| **B2**  | Session token rotation                     | ✅ complete |
+| **4.5** | Session restore + refresh-retry + sign-out | ✅ complete |
+| **4.6** | Push token registration                    | ✅ complete |
+| **4.7** | ESLint import barrier                      | ✅ complete |
+| **B3**  | Auth codes cleanup job                     | ✅ complete |
+| **4.9** | EAS build profiles (finish)                | ✅ complete |
 
 4.8 (change-of-email) deferred to M6.
 

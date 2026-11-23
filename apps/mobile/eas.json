@@ -12,6 +12,15 @@
         "API_URL": "http://localhost:3000"
       },
       "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "dev:simulator": {
+      "extends": "dev",
+      "ios": {
         "resourceClass": "m-medium",
         "simulator": true
       },

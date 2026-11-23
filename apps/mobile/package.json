@@ -43,8 +43,11 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build:dev": "eas build --profile dev",
+    "build:dev:simulator": "eas build --profile dev:simulator",
     "build:staging": "eas build --profile staging",
     "build:production": "eas build --profile production",
+    "update:staging": "eas update --channel staging",
+    "update:production": "eas update --channel production",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
