@@ -1,8 +1,8 @@
 # Progress
 
-**Next task:** 5.7 — Tower home: height, streak, members, period (blocked by height-reset bug fix)
+**Next task:** 5.7 — Tower home: height, streak, members, period
 
-**Blockers:** Height-reset bug (`.scratch/height-reset-bug/`) must be fixed before 5.7 — `tower.height` currently resets on collapse but should be cumulative.
+**Blockers:** None
 
 ## Done
 

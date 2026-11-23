@@ -30,6 +30,7 @@ function towerFor(row: ZoneWindowRow): TowerConfig {
     ...zoneRowSchedule(row),
     quota: 1,
     height: HEIGHT,
+    currentStreak: HEIGHT,
     runStartDate: addDays(row.start, -HEIGHT),
   };
 }

@@ -69,15 +69,17 @@ const arbTower = (periodStart: LocalDate): fc.Arbitrary<TowerConfig> =>
       wobbleLeadMinutes: fc.integer({ min: 0, max: 360 }),
       nudgeLeadMinutes: fc.integer({ min: 0, max: 720 }),
       quota: fc.constant(1),
-      height: fc.integer({ min: 0, max: 20 }),
-      // Sometimes null even with a height, to probe the block guard.
+      currentStreak: fc.integer({ min: 0, max: 20 }),
+      extraHeight: fc.integer({ min: 0, max: 20 }),
+      // Sometimes null even with a currentStreak, to probe the block guard.
       hasRun: fc.boolean(),
     })
-    .map(({ hasRun, ...t }) => ({
+    .map(({ hasRun, extraHeight, ...t }) => ({
       ...t,
+      height: t.currentStreak + extraHeight,
       periodUnit: 'day' as const,
       weekResetDay: null,
-      runStartDate: hasRun && t.height > 0 ? addDays(periodStart, -t.height) : null,
+      runStartDate: hasRun && t.currentStreak > 0 ? addDays(periodStart, -t.currentStreak) : null,
     }));
 
 const arbMember = (i: number): fc.Arbitrary<MemberPeriodState> =>

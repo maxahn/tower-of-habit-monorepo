@@ -66,12 +66,17 @@ describe('recomputeTowerState', () => {
   });
 
   it(`a run shorter than MIN_BLOCK_DAYS (${MIN_BLOCK_DAYS}) leaves no block`, () => {
-    expect(recomputeTowerState(ledger('SSCS'))).toMatchObject({ height: 1, blocks: [] });
+    expect(recomputeTowerState(ledger('SSCS'))).toMatchObject({
+      height: 3,
+      currentStreak: 1,
+      blocks: [],
+    });
   });
 
-  it('a collapse closes a long enough run into a block, then resets', () => {
+  it('a collapse closes a long enough run into a block; height stays cumulative', () => {
     expect(recomputeTowerState(ledger('SSSCSS'))).toMatchObject({
-      height: 2,
+      height: 5,
+      currentStreak: 2,
       blocks: [{ runStartDate: day(1), runEndDate: day(3), blockHeight: 3 }],
     });
   });
@@ -79,7 +84,8 @@ describe('recomputeTowerState', () => {
   it('hibernation pauses the run without extending or closing it', () => {
     const r = recomputeTowerState(ledger('SSHHSC'));
     expect(r.blocks).toEqual([{ runStartDate: day(1), runEndDate: day(5), blockHeight: 3 }]);
-    expect(r.height).toBe(0);
+    expect(r.height).toBe(3);
+    expect(r.currentStreak).toBe(0);
   });
 
   it('a trailing hibernation does not move run_end', () => {
@@ -94,11 +100,20 @@ describe('recomputeTowerState', () => {
     ]);
   });
 
-  it('back-to-back collapses leave no empty blocks', () => {
-    expect(recomputeTowerState(ledger('SSSCCCSSSSC')).blocks).toEqual([
+  it('back-to-back collapses leave no empty blocks; height is cumulative', () => {
+    const r = recomputeTowerState(ledger('SSSCCCSSSSC'));
+    expect(r.blocks).toEqual([
       { runStartDate: day(1), runEndDate: day(3), blockHeight: 3 },
       { runStartDate: day(7), runEndDate: day(10), blockHeight: 4 },
     ]);
+    expect(r.height).toBe(7);
+    expect(r.currentStreak).toBe(0);
+  });
+
+  it('survive 3, collapse, survive 2 → height=5 (cumulative), currentStreak=2', () => {
+    const r = recomputeTowerState(ledger('SSSCSS'));
+    expect(r.height).toBe(5);
+    expect(r.currentStreak).toBe(2);
   });
 
   it('sorts by period_start and does not mutate its input', () => {
@@ -127,9 +142,10 @@ describe('recomputeTowerState', () => {
 });
 
 describe('diffTowerState', () => {
+  // SSSCSS: 5 total survived (height=5), current run = 2 (currentStreak=2)
   const recomputed = recomputeTowerState(ledger('SSSCSS'));
   const stored: StoredTowerState = {
-    height: 2,
+    height: 5,
     currentStreak: 2,
     blocks: [{ runStartDate: day(1), runEndDate: day(3), blockHeight: 3 }],
   };
@@ -141,7 +157,7 @@ describe('diffTowerState', () => {
   it('reports every differing field', () => {
     expect(
       diffTowerState(recomputed, {
-        height: 5,
+        height: 9,
         currentStreak: 2,
         blocks: [
           { runStartDate: day(1), runEndDate: day(4), blockHeight: 3 },
@@ -149,7 +165,7 @@ describe('diffTowerState', () => {
         ],
       })
     ).toEqual([
-      { field: 'height', expected: 2, actual: 5 },
+      { field: 'height', expected: 5, actual: 9 },
       { field: 'blocks.length', expected: 1, actual: 2 },
       { field: 'blocks[0].runEndDate', expected: day(3), actual: day(4) },
       { field: 'blocks[1].runStartDate', expected: null, actual: day(5) },

@@ -29,10 +29,10 @@ export { MIN_BLOCK_DAYS };
  *     miss #2 -> dormant (consecutive_miss) INSTEAD of collapsing.
  *   - Outcome: collapsed if any member hit miss #1; otherwise hibernated if no
  *     live member remains; otherwise survived.
- *   - survived: height and current_streak + 1, and the period joins the run.
- *     collapsed: the run closes (a block if >= MIN_BLOCK_DAYS) and both reset
- *     to 0. hibernated: neither moves; the run is paused, not closed.
- *   - height == current_streak under v1 daily rules.
+ *   - survived: height + 1, current_streak + 1, and the period joins the run.
+ *     collapsed: the run closes (a block if >= MIN_BLOCK_DAYS), current_streak
+ *     resets to 0, height stays (cumulative). hibernated: neither moves; the
+ *     run is paused, not closed.
  *   - Dormant members stay dormant: returning is a user action, not a log.
  *
  * Mutates the plan's records in place and returns the plan.
@@ -65,13 +65,14 @@ export function deriveTowerState(plan: ScenarioPlan): ScenarioPlan {
   resetRun();
   plan.blocks = [];
 
-  let height = 0;
+  let cumulativeHeight = 0;
+  let runHeight = 0;
   // A holder rather than `let run = null`: TS narrows a let to null across the
   // closure below and loses the assignments inside it.
   const run: { start: LocalDate | null; end: LocalDate | null } = { start: null, end: null };
 
   const closeRun = () => {
-    if (run.start && run.end && height >= MIN_BLOCK_DAYS) {
+    if (run.start && run.end && runHeight >= MIN_BLOCK_DAYS) {
       const roster: BlockRosterMember[] = plan.memberships
         .filter((m) => runStats.get(m)!.totalDays > 0)
         .map((m) => {
@@ -89,14 +90,14 @@ export function deriveTowerState(plan: ScenarioPlan): ScenarioPlan {
         towerId: tower.id,
         runStartDate: run.start,
         runEndDate: run.end,
-        blockHeight: height,
+        blockHeight: runHeight,
         roster,
       };
       plan.blocks.push(block);
     }
     run.start = null;
     run.end = null;
-    height = 0;
+    runHeight = 0;
     resetRun();
   };
 
@@ -146,7 +147,8 @@ export function deriveTowerState(plan: ScenarioPlan): ScenarioPlan {
     if (outcome === 'collapsed') {
       closeRun();
     } else if (outcome === 'survived') {
-      height += 1;
+      cumulativeHeight += 1;
+      runHeight += 1;
       run.start ??= p.periodStart;
       run.end = p.periodEnd;
       for (const c of contributions) {
@@ -160,7 +162,7 @@ export function deriveTowerState(plan: ScenarioPlan): ScenarioPlan {
     }
   }
 
-  tower.height = height;
-  tower.currentStreak = height;
+  tower.height = cumulativeHeight;
+  tower.currentStreak = runHeight;
   return plan;
 }

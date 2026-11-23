@@ -2,8 +2,10 @@ import { DEFAULT_NUDGE_LEAD_MINUTES, DEFAULT_WOBBLE_LEAD_MINUTES } from '@tower-
 import { eq } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  closeTowerRun,
   createTower,
   deleteTower,
+  extendTowerRun,
   generateJoinCode,
   InvalidTimeZoneError,
   isValidTimeZone,
@@ -265,5 +267,35 @@ describe('towers constraints', () => {
     const e = await pgError(db.delete(users).where(eq(users.id, owner())));
     expect(e).toMatchObject({ code: '23503', constraint_name: 'towers_host_id_users_id_fk' });
     expect(await db.select().from(towers).where(eq(towers.id, t.id))).toHaveLength(1);
+  });
+});
+
+describe('extendTowerRun / closeTowerRun: height is cumulative, currentStreak resets', () => {
+  it('extend 3 times, then close → height stays 3, currentStreak resets to 0', async () => {
+    const t = await tower();
+    await extendTowerRun(db, t.id);
+    await extendTowerRun(db, t.id);
+    await extendTowerRun(db, t.id);
+    const afterExtend = await extendTowerRun(db, t.id).then(() =>
+      db
+        .select()
+        .from(towers)
+        .where(eq(towers.id, t.id))
+        .then(([r]) => r!)
+    );
+    expect(afterExtend).toMatchObject({ height: 4, currentStreak: 4 });
+
+    const afterClose = await closeTowerRun(db, t.id);
+    expect(afterClose).toMatchObject({ height: 4, currentStreak: 0 });
+  });
+
+  it('extend after close → height continues from previous, currentStreak starts fresh', async () => {
+    const t = await tower();
+    await extendTowerRun(db, t.id);
+    await extendTowerRun(db, t.id);
+    await extendTowerRun(db, t.id);
+    await closeTowerRun(db, t.id);
+    const afterRestart = await extendTowerRun(db, t.id);
+    expect(afterRestart).toMatchObject({ height: 4, currentStreak: 1 });
   });
 });

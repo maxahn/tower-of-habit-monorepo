@@ -141,7 +141,7 @@ export async function extendTowerRun(db: Db, id: string): Promise<Tower> {
 export async function closeTowerRun(db: Db, id: string): Promise<Tower> {
   const [row] = await db
     .update(towers)
-    .set({ height: 0, currentStreak: 0 })
+    .set({ currentStreak: 0 })
     .where(eq(towers.id, id))
     .returning();
   if (!row) throw new TowerNotFoundError(id);

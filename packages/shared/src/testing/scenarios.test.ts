@@ -32,7 +32,7 @@ describe('towerRunningFor', () => {
       consecutiveMissedPeriods: 1,
       lastQualifyingDate: '2026-10-25',
     });
-    expect(s.tower).toMatchObject({ height: 0, currentStreak: 0 });
+    expect(s.tower).toMatchObject({ height: 10, currentStreak: 0 });
     // The collapse closed a 10-day run, which leaves a block.
     expect(s.blocks).toEqual([
       expect.objectContaining({
@@ -66,7 +66,8 @@ describe('towerRunningFor', () => {
       consecutiveMissedPeriods: 2,
       dormantSince: s.periods.at(-2)!.evaluateAt,
     });
-    expect(s.tower!.height).toBe(1);
+    expect(s.tower!.height).toBe(6);
+    expect(s.tower!.currentStreak).toBe(1);
   });
 
   it('allMembersDormant: collapse, then hibernation', () => {
@@ -158,7 +159,8 @@ describe('towerWithBaseBlocks', () => {
       expect(b.blockHeight).toBeGreaterThanOrEqual(3);
       expect(b.blockHeight).toBeLessThanOrEqual(daysBetween(b.runStartDate, b.runEndDate) + 1);
     }
-    expect(s.tower!.height).toBe(2);
+    expect(s.tower!.currentStreak).toBe(2);
+    expect(s.tower!.height).toBeGreaterThan(s.tower!.currentStreak);
     expect(s.memberships.every((m) => m.state === 'active')).toBe(true);
   });
 

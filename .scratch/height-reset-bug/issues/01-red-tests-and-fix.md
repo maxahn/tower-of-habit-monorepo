@@ -1,4 +1,4 @@
-Status: open
+Status: done
 Type: task
 Priority: blocker (before 5.7)
 

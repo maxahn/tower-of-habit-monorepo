@@ -106,7 +106,7 @@ describe('POST /v1/internal/towers/:towerId/periods/:periodId/evaluate', () => {
     const body = await ok(await evaluate(s.tower.id, p4.id, day(4).closed));
 
     expect(body.outcome).toBe('collapsed');
-    expect(body.tower).toEqual({ height: 0, currentStreak: 0 });
+    expect(body.tower).toEqual({ height: 3, currentStreak: 0 });
     expect(body.baseBlock).toMatchObject({
       ordinal: 1,
       runStartDate: day(1).date,

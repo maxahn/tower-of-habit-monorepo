@@ -543,6 +543,7 @@ describe('a return mid-period is effective from the open period start', () => {
       weekResetDay: null,
       quota: 1,
       height: 0,
+      currentStreak: 0,
       runStartDate: null,
     };
     const window = computePeriodWindow(tower, DAY);

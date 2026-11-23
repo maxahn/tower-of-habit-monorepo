@@ -255,6 +255,7 @@ describe('run bounds, heightDays and periodsSurvived', () => {
       weekResetDay: null,
       quota: 1,
       height: RUN_DAYS,
+      currentStreak: RUN_DAYS,
       runStartDate: RUN_START,
     };
     const window = computePeriodWindow(tower, COLLAPSE_DAY);

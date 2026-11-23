@@ -25,6 +25,7 @@ const TOWER: TowerConfig = {
   weekResetDay: null,
   quota: 1,
   height: 5,
+  currentStreak: 5,
   runStartDate: '2026-03-05',
 };
 

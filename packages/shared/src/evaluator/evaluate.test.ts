@@ -36,6 +36,7 @@ const TOWER: TowerConfig = {
   weekResetDay: null,
   quota: 1,
   height: 0,
+  currentStreak: 0,
   runStartDate: null,
 };
 
@@ -498,9 +499,12 @@ describe('slack = daysRemaining - daysNeeded (daily: always 0 when short)', () =
 // ---------------------------------------------------------------------------
 
 describe('baseBlock on collapse, only when the run meets MIN_BLOCK_DAYS', () => {
-  it('height == MIN_BLOCK_DAYS → a block covering the run up to the previous period', () => {
+  it('currentStreak == MIN_BLOCK_DAYS → a block covering the run up to the previous period', () => {
     const runStartDate = addDays(PERIOD_START, -MIN_BLOCK_DAYS);
-    const out = evaluate(WINDOW.evaluateAt, [short('a')], { height: MIN_BLOCK_DAYS, runStartDate });
+    const out = evaluate(WINDOW.evaluateAt, [short('a')], {
+      currentStreak: MIN_BLOCK_DAYS,
+      runStartDate,
+    });
     expect(out.periodStatus).toBe('collapsed');
     expect(out.baseBlock).toEqual({
       runStartDate,
@@ -509,14 +513,14 @@ describe('baseBlock on collapse, only when the run meets MIN_BLOCK_DAYS', () => 
     });
   });
 
-  it('a long run carries its full height', () => {
-    const height = MIN_BLOCK_DAYS + 7;
-    const runStartDate = addDays(PERIOD_START, -height);
-    const out = evaluate(WINDOW.evaluateAt, [short('a')], { height, runStartDate });
+  it('a long run carries its full currentStreak', () => {
+    const currentStreak = MIN_BLOCK_DAYS + 7;
+    const runStartDate = addDays(PERIOD_START, -currentStreak);
+    const out = evaluate(WINDOW.evaluateAt, [short('a')], { currentStreak, runStartDate });
     expect(out.baseBlock).toEqual({
       runStartDate,
       runEndDate: '2026-03-09',
-      blockHeight: height,
+      blockHeight: currentStreak,
     });
   });
 
@@ -524,20 +528,50 @@ describe('baseBlock on collapse, only when the run meets MIN_BLOCK_DAYS', () => 
     ['MIN_BLOCK_DAYS - 1', MIN_BLOCK_DAYS - 1, addDays(PERIOD_START, -(MIN_BLOCK_DAYS - 1))],
     ['1', 1, addDays(PERIOD_START, -1)],
     ['0 (no run)', 0, null],
-  ] as const)('height %s → collapsed with no baseBlock', (_label, height, runStartDate) => {
-    const out = evaluate(WINDOW.evaluateAt, [short('a')], { height, runStartDate });
-    expect(out.periodStatus).toBe('collapsed');
-    expect(out).not.toHaveProperty('baseBlock');
-  });
+  ] as const)(
+    'currentStreak %s → collapsed with no baseBlock',
+    (_label, currentStreak, runStartDate) => {
+      const out = evaluate(WINDOW.evaluateAt, [short('a')], { currentStreak, runStartDate });
+      expect(out.periodStatus).toBe('collapsed');
+      expect(out).not.toHaveProperty('baseBlock');
+    }
+  );
 
   it.each([
     ['open', BEFORE_WOBBLE, [short('a')]],
     ['wobbling', WINDOW.wobbleAt, [short('a')]],
     ['survived', WINDOW.evaluateAt, [met('a')]],
   ] as const)('%s never sets baseBlock, even on a long run', (status, now, members) => {
-    const out = evaluate(now, [...members], { height: 50, runStartDate: '2026-01-19' });
+    const out = evaluate(now, [...members], { currentStreak: 50, runStartDate: '2026-01-19' });
     expect(out.periodStatus).toBe(status);
     expect(out).not.toHaveProperty('baseBlock');
+  });
+});
+
+describe('baseBlock uses currentStreak (run height), not cumulative height', () => {
+  it('high cumulative height but low currentStreak → no block', () => {
+    const out = evaluate(WINDOW.evaluateAt, [short('a')], {
+      height: 100,
+      currentStreak: MIN_BLOCK_DAYS - 1,
+      runStartDate: addDays(PERIOD_START, -(MIN_BLOCK_DAYS - 1)),
+    });
+    expect(out.periodStatus).toBe('collapsed');
+    expect(out).not.toHaveProperty('baseBlock');
+  });
+
+  it('currentStreak >= MIN_BLOCK_DAYS creates a block regardless of cumulative height', () => {
+    const runStartDate = addDays(PERIOD_START, -MIN_BLOCK_DAYS);
+    const out = evaluate(WINDOW.evaluateAt, [short('a')], {
+      height: 100,
+      currentStreak: MIN_BLOCK_DAYS,
+      runStartDate,
+    });
+    expect(out.periodStatus).toBe('collapsed');
+    expect(out.baseBlock).toEqual({
+      runStartDate,
+      runEndDate: addDays(PERIOD_START, -1),
+      blockHeight: MIN_BLOCK_DAYS,
+    });
   });
 });
 
@@ -575,7 +609,10 @@ describe('determinism and purity', () => {
       short('d', { excused: true }),
       short('e', dormant),
     ],
-    { height: MIN_BLOCK_DAYS + 1, runStartDate: addDays(PERIOD_START, -(MIN_BLOCK_DAYS + 1)) }
+    {
+      currentStreak: MIN_BLOCK_DAYS + 1,
+      runStartDate: addDays(PERIOD_START, -(MIN_BLOCK_DAYS + 1)),
+    }
   );
 
   it('identical input → deeply equal output', () => {
@@ -709,7 +746,7 @@ function sweepGrid(w: EvaluationWindow): string[] {
   );
 }
 
-const RUN = { height: MIN_BLOCK_DAYS + 2, runStartDate: '2026-02-01' } as const;
+const RUN = { currentStreak: MIN_BLOCK_DAYS + 2, runStartDate: '2026-02-01' } as const;
 
 const windows: [string, EvaluationWindow, Partial<TowerConfig>][] = [
   ['Edmonton daily', WINDOW, {}],

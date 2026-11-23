@@ -51,9 +51,11 @@ export type { MembershipTransition } from './dormancy.js';
 export type TowerConfig = PeriodScheduleConfig & {
   /** Qualifying days each member needs in a period. Daily towers: 1. */
   quota: number;
-  /** Survived periods in the current run, BEFORE this period. */
+  /** Cumulative height across all runs (never resets on collapse). */
   height: number;
-  /** First period of the current run; null when height is 0. */
+  /** Survived periods in the current run, BEFORE this period (resets on collapse). */
+  currentStreak: number;
+  /** First period of the current run; null when currentStreak is 0. */
   runStartDate: LocalDate | null;
 };
 
@@ -198,11 +200,11 @@ export function evaluatePeriod(input: EvaluationInput): EvaluationOutput {
     nextPeriodStart: addDays(w.periodEnd, 1),
   };
   // A collapse closes the run of survived periods before this one.
-  if (collapsed && tower.height >= MIN_BLOCK_DAYS && tower.runStartDate !== null) {
+  if (collapsed && tower.currentStreak >= MIN_BLOCK_DAYS && tower.runStartDate !== null) {
     out.baseBlock = {
       runStartDate: tower.runStartDate,
       runEndDate: addDays(w.periodStart, -1),
-      blockHeight: tower.height,
+      blockHeight: tower.currentStreak,
     };
   }
   return out;

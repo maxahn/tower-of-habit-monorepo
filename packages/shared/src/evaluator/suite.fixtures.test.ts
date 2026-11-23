@@ -145,6 +145,7 @@ const TOWER: TowerConfig = {
   weekResetDay: null,
   quota: 1,
   height: 0,
+  currentStreak: 0,
   runStartDate: null,
 };
 const WINDOW = computePeriodWindow(TOWER, '2026-03-10');
@@ -209,9 +210,11 @@ describe('evaluatePeriod input validation', () => {
   });
 });
 
-describe('baseBlock guard: height alone is not enough', () => {
-  it('height >= MIN_BLOCK_DAYS with runStartDate null → collapsed, no block', () => {
-    const out = evaluatePeriod(input({}, { height: MIN_BLOCK_DAYS + 1, runStartDate: null }));
+describe('baseBlock guard: currentStreak alone is not enough', () => {
+  it('currentStreak >= MIN_BLOCK_DAYS with runStartDate null → collapsed, no block', () => {
+    const out = evaluatePeriod(
+      input({}, { currentStreak: MIN_BLOCK_DAYS + 1, runStartDate: null })
+    );
     expect(out.periodStatus).toBe('collapsed');
     expect(out.baseBlock).toBeUndefined();
   });

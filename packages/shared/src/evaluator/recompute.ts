@@ -83,7 +83,8 @@ export function recomputeTowerState(periods: readonly RecomputePeriod[]): Recomp
   const blocks: BlockBoundaries[] = [];
   const issues: string[] = [];
 
-  let height = 0;
+  let cumulativeHeight = 0;
+  let runHeight = 0;
   let runStart: LocalDate | null = null;
   let runEnd: LocalDate | null = null;
   let firstUndecided: LocalDate | null = null;
@@ -100,15 +101,16 @@ export function recomputeTowerState(periods: readonly RecomputePeriod[]): Recomp
     }
     switch (p.outcome) {
       case 'survived':
-        height += 1;
+        cumulativeHeight += 1;
+        runHeight += 1;
         runStart ??= p.periodStart;
         runEnd = p.periodEnd;
         break;
       case 'collapsed':
-        if (runStart !== null && runEnd !== null && height >= MIN_BLOCK_DAYS) {
-          blocks.push({ runStartDate: runStart, runEndDate: runEnd, blockHeight: height });
+        if (runStart !== null && runEnd !== null && runHeight >= MIN_BLOCK_DAYS) {
+          blocks.push({ runStartDate: runStart, runEndDate: runEnd, blockHeight: runHeight });
         }
-        height = 0;
+        runHeight = 0;
         runStart = null;
         runEnd = null;
         break;
@@ -122,7 +124,7 @@ export function recomputeTowerState(periods: readonly RecomputePeriod[]): Recomp
     }
   }
 
-  return { height, currentStreak: height, blocks, issues };
+  return { height: cumulativeHeight, currentStreak: runHeight, blocks, issues };
 }
 
 /**

@@ -80,6 +80,7 @@ export async function loadEvaluationInput(
       weekResetDay: tower.weekResetDay,
       quota: tower.quota,
       height: tower.height,
+      currentStreak: tower.currentStreak,
       runStartDate: currentRunStart(periods),
     },
     window,

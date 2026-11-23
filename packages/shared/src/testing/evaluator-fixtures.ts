@@ -165,8 +165,8 @@ export function runEvaluatorFixture(fixture: EvaluatorFixture): FixtureResult {
   const output = evaluatePeriod({ now, tower, window, members: evaluatedMembers });
 
   const draft =
-    output.periodStatus === 'collapsed' && tower.height >= 1 && tower.runStartDate !== null
-      ? draftFor(tower.runStartDate, tower.height, snapshots)
+    output.periodStatus === 'collapsed' && tower.currentStreak >= 1 && tower.runStartDate !== null
+      ? draftFor(tower.runStartDate, tower.currentStreak, snapshots)
       : null;
 
   return { window, now, eventTransitions, evaluatedMembers, output, draft };
@@ -278,6 +278,7 @@ const TOWER: TowerConfig = {
   weekResetDay: null,
   quota: 1,
   height: 0,
+  currentStreak: 0,
   runStartDate: null,
 };
 
@@ -285,6 +286,7 @@ const TOWER: TowerConfig = {
 const withRun = (height: number): TowerConfig => ({
   ...TOWER,
   height,
+  currentStreak: height,
   runStartDate: height > 0 ? addDays(PERIOD_START, -height) : null,
 });
 
