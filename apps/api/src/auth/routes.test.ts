@@ -107,7 +107,12 @@ describe('POST /auth/request-code', () => {
 describe('POST /auth/verify-code', () => {
   it('returns 200 with { token, user } on success', async () => {
     const authService = fakeService({
-      verifyCode: vi.fn(async () => ({ token: 'tok-abc', user: USER, isNewUser: false })),
+      verifyCode: vi.fn(async () => ({
+        token: 'tok-abc',
+        expiresAt: new Date('2026-12-22'),
+        user: USER,
+        isNewUser: false,
+      })),
     });
     const { app } = publicApp(authService);
 
@@ -129,7 +134,12 @@ describe('POST /auth/verify-code', () => {
   });
 
   it('defaults timezone to UTC when omitted', async () => {
-    const verifyCode = vi.fn(async () => ({ token: 't', user: USER, isNewUser: false }));
+    const verifyCode = vi.fn(async () => ({
+      token: 't',
+      expiresAt: new Date('2026-12-22'),
+      user: USER,
+      isNewUser: false,
+    }));
     const { app } = publicApp(fakeService({ verifyCode }));
 
     await app.request('/v1/auth/verify-code', json({ email: 'me@example.com', code: '123456' }));

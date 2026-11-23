@@ -23,7 +23,7 @@ export class NetworkError extends Error {
 export type ApiClientConfig = {
   baseUrl: string;
   getToken: () => string | null;
-  setToken: (token: string) => void;
+  setToken: (token: string, expiresAt?: string) => void;
   signOut: () => void;
 };
 
@@ -39,6 +39,7 @@ export type FetchOptions = {
 
 export type ApiClient = {
   apiFetch: <T = unknown>(path: string, options?: FetchOptions) => Promise<T>;
+  refreshToken: () => Promise<boolean>;
 };
 
 export function createApiClient(config: ApiClientConfig): ApiClient {
@@ -74,25 +75,28 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     try {
       const res = await rawFetch('/v1/auth/refresh', { method: 'POST' });
       if (!res.ok) return false;
-      const body = (await res.json()) as { token: string };
-      setToken(body.token);
+      const body = (await res.json()) as { token: string; expiresAt: string };
+      setToken(body.token, body.expiresAt);
       return true;
     } catch {
       return false;
     }
   }
 
+  async function refreshToken(): Promise<boolean> {
+    if (!refreshPromise) {
+      refreshPromise = tryRefresh().finally(() => {
+        refreshPromise = null;
+      });
+    }
+    return refreshPromise;
+  }
+
   async function apiFetch<T = unknown>(path: string, options: FetchOptions = {}): Promise<T> {
     let res = await rawFetch(path, options);
 
     if (res.status === 401 && !options.public) {
-      // Coalesce concurrent refresh attempts.
-      if (!refreshPromise) {
-        refreshPromise = tryRefresh().finally(() => {
-          refreshPromise = null;
-        });
-      }
-      const refreshed = await refreshPromise;
+      const refreshed = await refreshToken();
       if (refreshed) {
         res = await rawFetch(path, options);
       } else {
@@ -133,5 +137,5 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     return body as T;
   }
 
-  return { apiFetch };
+  return { apiFetch, refreshToken };
 }

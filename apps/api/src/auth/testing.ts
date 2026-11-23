@@ -105,8 +105,9 @@ export function createFakeAuthService(): FakeAuthService {
       }
 
       const token = nextId('token');
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       sessions.set(token, { userId: user.id, sessionId: nextId('session'), revoked: false });
-      return { token, user, isNewUser };
+      return { token, expiresAt, user, isNewUser };
     },
 
     async authenticate(rawToken): Promise<SessionIdentity | null> {

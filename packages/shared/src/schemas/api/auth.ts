@@ -38,6 +38,7 @@ export type SessionUser = z.infer<typeof sessionUserSchema>;
 /** POST /auth/verify-code success body: the raw bearer token plus the user. */
 export const verifyCodeResponseSchema = z.strictObject({
   token: z.string(),
+  expiresAt: timestamp,
   user: sessionUserSchema,
   isNewUser: z.boolean(),
 });

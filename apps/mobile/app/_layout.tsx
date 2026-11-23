@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Redirect, Slot } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ErrorBoundary } from '~/components/error-boundary';
@@ -28,6 +28,13 @@ export default function RootLayout() {
 
 function AuthGate() {
   const { state } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (state.status === 'unauthenticated') {
+      queryClient.clear();
+    }
+  }, [state.status, queryClient]);
 
   if (state.status === 'loading') return null;
   if (state.status === 'unauthenticated') return <Redirect href="/(auth)/login" />;

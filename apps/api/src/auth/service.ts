@@ -43,7 +43,12 @@ export type AuthUser = {
 };
 
 /** verify-code success: the raw bearer token (returned once) plus the user. */
-export type VerifiedSession = { token: string; user: AuthUser; isNewUser: boolean };
+export type VerifiedSession = {
+  token: string;
+  expiresAt: Date;
+  user: AuthUser;
+  isNewUser: boolean;
+};
 
 /** refresh success: the new raw bearer token plus its expiry. */
 export type RefreshedSession = { token: string; expiresAt: Date };
@@ -142,14 +147,14 @@ export function createAuthService(deps: AuthServiceDeps): AuthService {
         }
 
         const token = generateSessionToken();
-        await createSession(tx, {
+        const session = await createSession(tx, {
           userId: user.id,
           tokenHash: hashToken(token),
           userAgent: input.userAgent ?? null,
           ttlSeconds: sessionTtlSeconds,
         });
 
-        return { token, user, isNewUser };
+        return { token, expiresAt: session.expiresAt, user, isNewUser };
       });
     },
 

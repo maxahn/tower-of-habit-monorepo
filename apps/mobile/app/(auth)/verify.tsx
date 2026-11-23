@@ -72,7 +72,7 @@ export default function VerifyScreen() {
         },
         public: true,
       });
-      signIn(result.token, result.user, result.isNewUser);
+      signIn(result.token, result.expiresAt, result.user, result.isNewUser);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 401) {
