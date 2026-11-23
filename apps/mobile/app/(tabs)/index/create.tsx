@@ -257,8 +257,8 @@ export default function CreateHabitScreen() {
             <TierLadderEditor
               tiers={tiers}
               onChange={setTiers}
-              showThreshold={habitType === 'numeric'}
-              thresholdLabel={habitType === 'numeric' ? 'Min value' : undefined}
+              showThreshold
+              thresholdLabel={habitType === 'numeric' ? 'Min value' : 'Threshold (optional)'}
             />
           )}
 

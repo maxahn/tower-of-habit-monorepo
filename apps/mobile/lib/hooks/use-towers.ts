@@ -22,12 +22,13 @@ export function useTowers() {
   });
 }
 
-export function useTower(id: string) {
+export function useTower(id: string, options?: { refetchInterval?: number }) {
   const { apiClient } = useAuth();
   return useQuery({
     queryKey: towerKeys.detail(id),
     queryFn: () => apiClient.apiFetch<TowerDetailResponse>(`/v1/towers/${id}`),
     enabled: !!id,
+    refetchInterval: options?.refetchInterval,
   });
 }
 

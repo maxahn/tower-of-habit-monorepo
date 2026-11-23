@@ -111,7 +111,11 @@ export function Lobby({ data, onLeave }: { data: TowerLobbyResponse; onLeave?: (
       {
         text: 'Leave',
         style: 'destructive',
-        onPress: () => leaveTower.mutate(myMembership.membershipId, { onSuccess: onLeave }),
+        onPress: () =>
+          leaveTower.mutate(myMembership.membershipId, {
+            onSuccess: onLeave,
+            onError: (err) => Alert.alert('Error', err.message),
+          }),
       },
     ]);
   }
@@ -154,7 +158,11 @@ export function Lobby({ data, onLeave }: { data: TowerLobbyResponse; onLeave?: (
                 isHost={memberIsHost}
                 isSelf={memberIsSelf}
                 viewerIsHost={isHost}
-                onRemove={() => removeMember.mutate(member.membershipId)}
+                onRemove={() =>
+                  removeMember.mutate(member.membershipId, {
+                    onError: (err) => Alert.alert('Error', err.message),
+                  })
+                }
               />
             );
           })}
@@ -164,7 +172,14 @@ export function Lobby({ data, onLeave }: { data: TowerLobbyResponse; onLeave?: (
       {/* Actions */}
       <View className="mt-8">
         {isHost ? (
-          <Button onPress={() => startTower.mutate()} disabled={!canStart || startTower.isPending}>
+          <Button
+            onPress={() =>
+              startTower.mutate(undefined, {
+                onError: (err) => Alert.alert('Error', err.message),
+              })
+            }
+            disabled={!canStart || startTower.isPending}
+          >
             <Text>
               {startTower.isPending
                 ? 'Starting...'

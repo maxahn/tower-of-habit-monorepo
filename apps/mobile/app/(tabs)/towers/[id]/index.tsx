@@ -6,7 +6,9 @@ import { useTower } from '~/lib/hooks/use-towers';
 
 export default function TowerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data, isLoading, refetch, isRefetching } = useTower(id);
+  const { data, isLoading, refetch, isRefetching } = useTower(id, {
+    refetchInterval: 10_000,
+  });
 
   if (isLoading || !data) {
     return (
