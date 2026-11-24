@@ -17,11 +17,9 @@ import {
   createTowerRequestSchema,
   declareAbsenceRequestSchema,
   joinTowerRequestSchema,
-  type PeriodPreviewResponse,
   type TowerListResponse,
 } from '@tower-of-habit/shared';
-import { evaluatePeriod } from '@tower-of-habit/shared/evaluator';
-import { loadEvaluationInput } from '../evaluation/input.js';
+import { previewTowerPeriod } from '../evaluation/service.js';
 import type { Hono } from 'hono';
 import type { AppEnv } from '../app.js';
 import { withTx, type TxRunner } from '../context.js';
@@ -248,39 +246,7 @@ export function mountTowerRoutes(api: Hono<AppEnv>, deps: TowerRouteDeps): void 
       if (!period) {
         throw new DomainError(409, 'tower_not_started', 'The tower has no period');
       }
-      const loaded = await loadEvaluationInput(tx, tower, period, ctx.now);
-      const out = evaluatePeriod(loaded.input);
-      const body: PeriodPreviewResponse = {
-        period: period as unknown as PeriodPreviewResponse['period'],
-        window: loaded.window,
-        now: ctx.now.toISOString(),
-        periodStatus: out.periodStatus,
-        quota: tower.quota,
-        members: loaded.memberships.map((m, i) => {
-          const o = out.perMember[i]!;
-          return {
-            membershipId: m.id,
-            userId: m.userId,
-            displayName: loaded.names.get(m.id) ?? null,
-            state: m.state,
-            qualifyingDays: loaded.input.members[i]!.qualifyingDays,
-            standing: o.standing,
-            daysNeeded: o.daysNeeded,
-            daysRemaining: o.daysRemaining,
-            slack: o.slack,
-          };
-        }),
-        outstanding:
-          out.periodStatus === 'wobbling'
-            ? out.perMember.filter((o) => o.standing === 'short').map((o) => o.membershipId)
-            : [],
-        height: tower.height,
-        currentStreak: tower.currentStreak,
-        soloActive:
-          loaded.memberships.filter((m) => m.state === 'active' || m.state === 'at_risk').length ===
-          1,
-      };
-      return c.json(body);
+      return c.json(await previewTowerPeriod(tx, tower, period, ctx.now));
     })
   );
 

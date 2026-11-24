@@ -228,77 +228,70 @@ flowchart TD
         <!-- ═══════════════════════════════════════════════════ -->
         <article class="space-y-5">
           <div class="flex items-start justify-between">
-            <h2 class="text-2xl font-bold heading">2. Absorb evaluation input assembly into the evaluation orchestrator</h2>
-            <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Strong</span>
+            <h2 class="text-2xl font-bold heading">2. Extract <code class="mono text-xs">previewTowerPeriod</code> into the evaluation module</h2>
+            <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Done ✓</span>
           </div>
 
           <div class="file-scatter">
-            <span class="file-chip hot">apps/api/src/evaluation/service.ts</span>
-            <span class="file-chip hot">apps/api/src/evaluation/input.ts</span>
-            <span class="file-chip">apps/api/src/evaluation/notifications.ts</span>
-            <span class="file-chip">apps/api/src/towers/periods.ts</span>
-            <span class="file-chip hot">apps/api/src/towers/routes.ts</span>
+            <span class="file-chip">apps/api/src/evaluation/service.ts</span>
+            <span class="file-chip">apps/api/src/towers/routes.ts</span>
           </div>
 
           <div class="grid grid-cols-2 gap-6">
             <!-- Before -->
             <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
               <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Before</p>
-              <pre class="mermaid" style="min-height:280px">
+              <pre class="mermaid" style="min-height:260px">
 flowchart TD
   EvalJob["evaluateTowerPeriod\n(service.ts)"] --> LI["loadEvaluationInput\n(input.ts)"]
+  EvalJob --> EP["evaluatePeriod\n(shared)"]
   EvalJob --> EN["enqueueNotifications\n(notifications.ts)"]
-  LI --> PW["periodWindowFor\n(periods.ts)"]
-  PW --> CPW["computePeriodWindow\n(shared)"]
 
-  Route["GET /towers/:id/period\n(routes.ts)"] --> LI2["inline: load memberships\ncount days, soloActive"]
-  Route --> PW2["periodWindowFor\n(periods.ts)"]
+  Route["GET /towers/:id/period\n(routes.ts)"] --> LI
+  Route --> EP2["evaluatePeriod\n(shared)"]
+  Route --> RA["~30 lines response assembly\n(inline in route handler)"]
 
-  style LI fill:#fef3c7,stroke:#d97706
-  style PW fill:#fef3c7,stroke:#d97706
-  style LI2 fill:#fef2f2,stroke:#dc2626
-  style PW2 fill:#fef3c7,stroke:#d97706
-
-  linkStyle 4 stroke:#dc2626,stroke-width:2
+  style RA fill:#fef3c7,stroke:#d97706
               </pre>
-              <p class="text-xs text-slate-500 text-center italic">Input loading duplicated between job and route. <code>periodWindowFor</code> is a passthrough.</p>
+              <p class="text-xs text-slate-500 text-center italic">Input loading already shared, but response assembly lived inline in the route handler.</p>
             </div>
             <!-- After -->
             <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
               <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">After</p>
-              <pre class="mermaid" style="min-height:280px">
+              <pre class="mermaid" style="min-height:260px">
 flowchart TD
-  EvalJob["evaluateTowerPeriod\n(write path)"] --> EM["Evaluation Module"]
-  Route["GET /towers/:id/period"] --> PM["previewTowerPeriod\n(read path)"]
+  EvalJob["evaluateTowerPeriod\n(write path)"] --> LI["loadEvaluationInput"]
+  Preview["previewTowerPeriod\n(read path)"] --> LI
 
-  subgraph DEEP ["Evaluation Module"]
+  subgraph DEEP ["evaluation/service.ts"]
     direction TB
-    EM --> IL["load input\n(internal)"]
-    PM --> IL
-    IL --> EV["evaluate\n(shared pure fn)"]
-    EV --> NF["enqueue notifications\n(internal)"]
+    LI --> EP["evaluatePeriod\n(shared pure fn)"]
+    EP --> RA["response assembly\n(internal)"]
+    EP --> EN["enqueue + persist\n(write path only)"]
   end
 
+  Route["GET /towers/:id/period\n(routes.ts — 1 line)"] --> Preview
+
   style DEEP fill:#0f172a,stroke:#1e293b,color:#e2e8f0
-  style EM fill:#1e293b,stroke:#334155,color:#e2e8f0
-  style PM fill:#1e293b,stroke:#334155,color:#e2e8f0
-  style IL fill:#1e293b,stroke:#334155,color:#94a3b8
-  style EV fill:#1e293b,stroke:#334155,color:#94a3b8
-  style NF fill:#1e293b,stroke:#334155,color:#94a3b8
+  style EvalJob fill:#1e293b,stroke:#334155,color:#e2e8f0
+  style Preview fill:#1e293b,stroke:#334155,color:#e2e8f0
+  style LI fill:#1e293b,stroke:#334155,color:#94a3b8
+  style EP fill:#1e293b,stroke:#334155,color:#94a3b8
+  style RA fill:#1e293b,stroke:#334155,color:#94a3b8
+  style EN fill:#1e293b,stroke:#334155,color:#94a3b8
               </pre>
-              <p class="text-xs text-slate-500 text-center italic">One module, two interface methods. Input loading is internal.</p>
+              <p class="text-xs text-slate-500 text-center italic">Two interface methods in <code>service.ts</code>. Route handler is a one-liner.</p>
             </div>
           </div>
 
-          <p class="text-sm"><strong>Problem:</strong> The route handler at <code class="mono text-xs">routes.ts:244–288</code> re-does the input assembly that <code class="mono text-xs">input.ts</code> already performs for the evaluation job, including a second inline <code>soloActive</code> calculation.</p>
-          <p class="text-sm"><strong>Solution:</strong> Two interface methods — <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">evaluateTowerPeriod</code> (write) and <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">previewTowerPeriod</code> (read) — with input loading, notification enqueueing, and period-window resolution as internal implementation.</p>
+          <p class="text-sm"><strong>What changed:</strong> The route handler's ~30-line response-assembly block (mapping <code class="mono text-xs">LoadedEvaluation</code> + evaluator output into <code class="mono text-xs">PeriodPreviewResponse</code>) was extracted into <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">previewTowerPeriod(tx, tower, period, now)</code> in <code class="mono text-xs">evaluation/service.ts</code>. The route handler now calls it and returns the result.</p>
+          <p class="text-sm"><strong>Note:</strong> The original review overstated the duplication — <code class="mono text-xs">loadEvaluationInput</code> was already shared between both paths. The remaining work was response assembly, not input loading. <code class="mono text-xs">periodWindowFor</code> was kept: it's an intentional convergence point (5 call sites, 4 files), not a passthrough to delete.</p>
 
           <ul class="text-sm space-y-1 list-none pl-0">
-            <li>✦ Locality: preview and evaluation share one input path</li>
-            <li>✦ Delete the shallow <code class="mono text-xs">periodWindowFor</code> passthrough</li>
-            <li>✦ <code>soloActive</code> calculated once, internally</li>
-            <li>✦ Route handler: 44 lines → ~5</li>
-            <li>✦ Tests exercise preview through the module interface</li>
+            <li>✓ Locality: preview logic in one function, next to the write path</li>
+            <li>✓ Route handler: ~35 lines → 1 line</li>
+            <li>✓ <code class="mono text-xs">periodWindowFor</code> retained (intentional design, not a passthrough)</li>
+            <li>⬡ <code>soloActive</code> still duplicated with tower-detail — deferred to Candidate 4</li>
           </ul>
         </article>
 
@@ -684,11 +677,11 @@ flowchart LR
       <section id="top-recommendation" class="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-8 space-y-4">
         <h2 class="text-2xl font-bold heading text-emerald-900">Top recommendation</h2>
         <p class="text-sm text-emerald-800">
-          Start with <a href="#candidates" class="underline font-semibold">Candidate 1 (notification dispatch)</a> — it's the fastest win: two nearly identical files collapsed into one, clear before/after, zero risk.
-          Then <a href="#candidates" class="underline font-semibold">Candidate 3 (absence module)</a> — it directly enables the ADR-0001 shield migration by giving it a home.
-          Then <a href="#candidates" class="underline font-semibold">Candidate 2 (evaluation orchestration)</a> — highest impact, most-changed area, route-handler duplication is a real source of bugs.
+          <a href="#candidates" class="underline font-semibold">Candidates 1 (notification dispatch)</a> and <a href="#candidates" class="underline font-semibold">3 (absence module)</a> were completed in a prior refactor.
+          <a href="#candidates" class="underline font-semibold">Candidate 2 (evaluation preview)</a> is now done — <code class="mono text-xs">previewTowerPeriod</code> extracted into the evaluation module.
+          Up next: Candidates 4 (<code>isLive</code> predicate) and 5 (tower aggregate) are worth exploring.
         </p>
-        <p class="text-xs text-emerald-600">Suggested order: 1 → 3 → 2. Candidates 4 and 5 are worth exploring after the first three land.</p>
+        <p class="text-xs text-emerald-600">Completed: 1 ✓, 2 ✓, 3 ✓. Remaining: 4, 5, 6.</p>
       </section>
 
     </main>

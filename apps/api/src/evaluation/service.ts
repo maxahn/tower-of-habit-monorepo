@@ -16,8 +16,13 @@ import {
   type Membership,
   type PeriodOutcome,
   type Tower,
+  type TowerPeriod,
 } from '@tower-of-habit/db';
-import { civilInZone, type EvaluationResponse } from '@tower-of-habit/shared';
+import {
+  civilInZone,
+  type EvaluationResponse,
+  type PeriodPreviewResponse,
+} from '@tower-of-habit/shared';
 import {
   buildBaseBlockDraft,
   evaluatePeriod,
@@ -61,6 +66,45 @@ export type EvaluateFn = (
   periodId: string,
   now: Date
 ) => Promise<EvaluationResponse>;
+
+export async function previewTowerPeriod(
+  tx: Db,
+  tower: Tower,
+  period: TowerPeriod,
+  now: Date
+): Promise<PeriodPreviewResponse> {
+  const loaded = await loadEvaluationInput(tx, tower, period, now);
+  const out = evaluatePeriod(loaded.input);
+  return {
+    period: period as unknown as PeriodPreviewResponse['period'],
+    window: loaded.window,
+    now: now.toISOString(),
+    periodStatus: out.periodStatus,
+    quota: tower.quota,
+    members: loaded.memberships.map((m, i) => {
+      const o = out.perMember[i]!;
+      return {
+        membershipId: m.id,
+        userId: m.userId,
+        displayName: loaded.names.get(m.id) ?? null,
+        state: m.state,
+        qualifyingDays: loaded.input.members[i]!.qualifyingDays,
+        standing: o.standing,
+        daysNeeded: o.daysNeeded,
+        daysRemaining: o.daysRemaining,
+        slack: o.slack,
+      };
+    }),
+    outstanding:
+      out.periodStatus === 'wobbling'
+        ? out.perMember.filter((o) => o.standing === 'short').map((o) => o.membershipId)
+        : [],
+    height: tower.height,
+    currentStreak: tower.currentStreak,
+    soloActive:
+      loaded.memberships.filter((m) => m.state === 'active' || m.state === 'at_risk').length === 1,
+  };
+}
 
 export function createEvaluator(db: TxRunner, logger: Logger): EvaluateFn {
   return (towerId, periodId, now) =>
