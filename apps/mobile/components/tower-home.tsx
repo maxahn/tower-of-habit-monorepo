@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import type { TowerActiveResponse, PeriodPreviewResponse } from '@tower-of-habit/shared';
+import { AbsenceControls } from '~/components/absence-controls';
 import { Countdown } from '~/components/countdown';
 import { MemberRow } from '~/components/member-row';
 import { TowerVisualBoundary } from '~/components/tower-visual-boundary';
@@ -138,6 +139,33 @@ export function TowerHome({
           </CardContent>
         </Card>
       )}
+
+      {/* Own membership state warning */}
+      {myMember?.state === 'at_risk' && (
+        <Card className="border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950">
+          <CardContent className="py-3">
+            <Text className="font-semibold text-amber-800 dark:text-amber-200">
+              You are at risk
+            </Text>
+            <Text className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+              Missing the next period will make you dormant.
+            </Text>
+          </CardContent>
+        </Card>
+      )}
+      {myMember?.state === 'dormant' && (
+        <Card className="border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+          <CardContent className="py-3">
+            <Text className="font-semibold text-zinc-600 dark:text-zinc-300">You are dormant</Text>
+            <Text className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Your entries no longer count toward the tower.
+            </Text>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Absence controls */}
+      {myMember && <AbsenceControls towerId={data.tower.id} member={myMember} />}
 
       {/* Members */}
       <Card>

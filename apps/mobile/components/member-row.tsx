@@ -8,6 +8,12 @@ const STATE_STYLES: Record<string, { label: string; bg: string; text: string }> 
   dormant: { label: 'Dormant', bg: 'bg-zinc-100', text: 'text-zinc-500' },
 };
 
+const DORMANCY_LABELS: Record<string, string> = {
+  consecutive_miss: 'Missed periods',
+  backstop: 'Backstop',
+  voluntary: 'Voluntary absence',
+};
+
 function StateBadge({ state }: { state: string }) {
   const style = STATE_STYLES[state] ?? STATE_STYLES.active!;
   return (
@@ -42,6 +48,12 @@ function StandingIndicator({ standing }: { standing: string }) {
   return null;
 }
 
+function formatReturnDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  const date = new Date(Number(y), Number(m) - 1, Number(d));
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 export function MemberRow({
   member,
   preview,
@@ -53,8 +65,12 @@ export function MemberRow({
   isHost: boolean;
   isSelf: boolean;
 }) {
+  const isDormant = member.state === 'dormant';
+
   return (
-    <View className="flex-row items-center justify-between border-b border-border py-3">
+    <View
+      className={`flex-row items-center justify-between border-b border-border py-3 ${isDormant ? 'opacity-50' : ''}`}
+    >
       <View className="flex-1">
         <View className="flex-row items-center gap-2">
           <Text className="text-base font-medium text-foreground">
@@ -75,6 +91,16 @@ export function MemberRow({
           <Text className="text-sm text-muted-foreground">{member.habitName}</Text>
           <StateBadge state={member.state} />
         </View>
+        {isDormant && member.dormancyReason && (
+          <Text className="mt-0.5 text-xs text-zinc-500">
+            {DORMANCY_LABELS[member.dormancyReason] ?? member.dormancyReason}
+          </Text>
+        )}
+        {member.voluntaryReturnDate && (
+          <Text className="mt-0.5 text-xs text-blue-600 dark:text-blue-400">
+            Returns {formatReturnDate(member.voluntaryReturnDate)}
+          </Text>
+        )}
       </View>
       {preview && <StandingIndicator standing={preview.standing} />}
     </View>

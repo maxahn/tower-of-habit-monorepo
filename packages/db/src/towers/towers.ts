@@ -233,6 +233,10 @@ export type TowerMemberRow = {
   habitName: string;
   habitType: (typeof habits.$inferSelect)['type'];
   state: MembershipState;
+  dormantSince: Date | null;
+  dormancyReason: 'consecutive_miss' | 'backstop' | 'voluntary' | null;
+  voluntaryReturnDate: string | null;
+  voluntaryAbsenceDaysUsed: number;
   joinedAt: Date;
 };
 
@@ -250,6 +254,10 @@ export async function listTowerMembers(db: Db, towerId: string): Promise<TowerMe
       habitName: habits.name,
       habitType: habits.type,
       state: memberships.state,
+      dormantSince: memberships.dormantSince,
+      dormancyReason: memberships.dormancyReason,
+      voluntaryReturnDate: memberships.voluntaryReturnDate,
+      voluntaryAbsenceDaysUsed: memberships.voluntaryAbsenceDaysUsed,
       joinedAt: memberships.joinedAt,
     })
     .from(memberships)

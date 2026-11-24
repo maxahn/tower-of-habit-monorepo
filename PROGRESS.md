@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 5.11 — Dormancy and absence UI
+**Next task:** 5.12 — Solo-active warning
 
 **Blockers:** None
 
 ## Done
+
+- 5.11 Dormancy and absence UI: Extended `TowerMemberRow` (db) and `towerMemberSchema` (shared) with `dormantSince`, `dormancyReason`, `voluntaryReturnDate`, `voluntaryAbsenceDaysUsed` fields. Updated `MemberRow` component: dormant members rendered at 50% opacity with dormancy reason label (Missed periods / Backstop / Voluntary absence), `voluntaryReturnDate` shown as "Returns [date]" in blue. At-risk members keep amber badge. Created `AbsenceControls` component with day-count selector (1–14 days, capped by annual budget of 28), confirm/cancel flows with Alert dialogs. `useDeclareAbsence` / `useCancelAbsence` hooks call `POST` / `DELETE /towers/:id/absence`. Tower home shows own membership state banners (at_risk amber warning, dormant grey notice) and inline absence controls.
 
 - 5.10 Base block history (strata view): Created `StrataBlock` component (`components/strata-block.tsx`) with expandable block rows showing ordinal, height, date range, and member count. Tap expands to show full roster with qualifying days ratio and dormancy indicator. `CurrentRunCard` shows live streak and member count with blue accent. History screen (`app/(tabs)/towers/[id]/history.tsx`) displays FlatList of base blocks newest-first with current run card at top. Empty state when no previous runs exist. Added history route to tower detail layout. Wired "View base blocks" pressable in tower home to navigate to history (always visible, label adapts to block count).
 

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  dormancyReasonSchema,
   habitTypeSchema,
   membershipStateSchema,
   periodTypeSchema,
@@ -9,6 +10,7 @@ import { baseBlockResponseSchema, towerPeriodResponseSchema } from './periods-bl
 import {
   displayText,
   ianaTimeZone,
+  localDate,
   nonNegativeInt,
   positiveInt,
   timestamp,
@@ -199,6 +201,10 @@ export const towerMemberSchema = z.strictObject({
   habitName: displayText,
   habitType: habitTypeSchema,
   state: membershipStateSchema,
+  dormantSince: timestamp.nullable(),
+  dormancyReason: dormancyReasonSchema.nullable(),
+  voluntaryReturnDate: localDate.nullable(),
+  voluntaryAbsenceDaysUsed: nonNegativeInt,
   joinedAt: timestamp,
 });
 export type TowerMember = z.infer<typeof towerMemberSchema>;

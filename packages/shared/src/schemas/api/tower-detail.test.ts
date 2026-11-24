@@ -36,6 +36,10 @@ const MEMBER = {
   habitName: 'Run',
   habitType: 'binary',
   state: 'active',
+  dormantSince: null,
+  dormancyReason: null,
+  voluntaryReturnDate: null,
+  voluntaryAbsenceDaysUsed: 0,
   joinedAt: '2026-01-01T12:00:00.000Z',
 };
 
