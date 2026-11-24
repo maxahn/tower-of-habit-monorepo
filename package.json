@@ -26,7 +26,7 @@
     "dev:down": "ENV_FILE=.env.dev docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.dev.yml --env-file .env.dev down",
     "db:admin": "ENV_FILE=.env.dev docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev up -d pgadmin",
     "dev:worker": "ENV_FILE=.env.dev docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev up -d postgres redis && pnpm --filter @tower-of-habit/worker dev",
-    "dev:api": "ENV_FILE=.env.dev docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev up -d postgres redis && pnpm --filter @tower-of-habit/api dev",
+    "dev:api": "ENV_FILE=.env.dev docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev up -d postgres redis pgadmin && pnpm --filter @tower-of-habit/api dev",
     "dev:mobile": "ENV_FILE=.env.dev docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.dev up -d postgres redis && pnpm --filter @tower-of-habit/mobile dev",
     "services:up:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging up -d",
     "services:down:staging": "ENV_FILE=.env.staging docker compose --env-file .env.staging down",
