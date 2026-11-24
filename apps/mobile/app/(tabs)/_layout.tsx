@@ -20,6 +20,7 @@ export default function TabLayout() {
           tabBarInactiveTintColor: isDark ? 'hsl(240, 5%, 65%)' : 'hsl(240, 4%, 46%)',
         }}
       >
+        <Tabs.Screen name="index" options={{ href: null }} />
         <Tabs.Screen
           name="habits"
           options={{
