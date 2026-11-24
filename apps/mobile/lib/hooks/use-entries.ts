@@ -5,6 +5,7 @@ import type {
   LogEntryRequest,
   LogEntryResponse,
 } from '@tower-of-habit/shared';
+import { NetworkError } from '../api-client';
 import { useAuth } from '../auth-context';
 import { habitKeys } from './use-habits';
 
@@ -37,7 +38,8 @@ export function useLogEntry(habitId: string, towerId?: string | null) {
 
       return { previous };
     },
-    onError: (_err, _data, context) => {
+    onError: (err, _data, context) => {
+      if (err instanceof NetworkError) return;
       if (context?.previous) {
         queryClient.setQueryData(habitKeys.entries(habitId), context.previous);
       }

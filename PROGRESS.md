@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 5.14 — Offline and flaky-connection handling
+**Next task:** 5.15 — Settings screen (full)
 
 **Blockers:** None
 
 ## Done
+
+- 5.14 Offline and flaky-connection handling: Configured TanStack Query with `networkMode: 'offlineFirst'` for both queries and mutations so stale cache is served and mutations are paused while offline. Mutations retry up to 3 times on `NetworkError` with exponential backoff (1s, 2s, 4s, max 30s). Created `useIsOnline` hook (`lib/hooks/use-online.ts`) wrapping TanStack's `onlineManager.subscribe`. Created `OfflineBanner` component (`components/offline-banner.tsx`) shown at top of tab layout when offline, displaying pending mutation count. Updated `LogEntry` and `useLogEntry` to suppress error alerts for `NetworkError` (since they auto-retry). Idempotency keys (`clientEntryId`) already exist on log entries from 5.3, preventing duplicates on retry. Full sync queue deferred to M6 per D4.
 
 - 5.13 Empty states and first-run guidance: Created reusable `EmptyState` component (`components/empty-state.tsx`) with icon, title, description, and action slot. Updated habits list empty state: explains that habits are building blocks of towers, guides to "Create your first habit". Updated towers list: checks whether the user has any habits — if not, directs them to create a habit first; if they do, offers "Create a tower" and "Join with a code" buttons. Enhanced habit detail "no entries" state with a visual card pointing to the log section above. Improved strata history empty state: explains that base blocks appear after a collapse and rebuild. Added lobby guidance hint when host is alone, prompting them to share the join code.
 

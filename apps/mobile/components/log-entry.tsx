@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 import type { TextInputInstance } from 'react-native';
 import type { HabitResponse, HabitTierResponse, LogEntryRequest } from '@tower-of-habit/shared';
+import { NetworkError } from '~/lib/api-client';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Text } from '~/components/ui/text';
@@ -31,7 +32,10 @@ export function LogEntry({ habit, tiers, towerId }: Props) {
           setNumericText('');
           setTimeout(() => setCooldown(false), 1000);
         },
-        onError: (err) => Alert.alert('Error', err.message),
+        onError: (err) => {
+          if (err instanceof NetworkError) return;
+          Alert.alert('Error', err.message);
+        },
       });
     },
     [disabled, logEntry]
