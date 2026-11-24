@@ -124,7 +124,7 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
       throw new ApiError(res.status, code, message, details);
     }
 
-    if (res.status === 204 || res.headers.get('content-length') === '0') {
+    if (res.status === 204 || res.status === 202 || res.headers.get('content-length') === '0') {
       return undefined as T;
     }
 
