@@ -158,13 +158,14 @@ export function TowerHome({
       </Card>
 
       {/* Strata history link */}
-      {data.blocks.length > 0 && (
-        <Pressable className="items-center py-2">
-          <Text className="text-sm font-medium text-primary">
-            View base blocks ({data.blocks.length})
-          </Text>
-        </Pressable>
-      )}
+      <Pressable
+        className="items-center py-2"
+        onPress={() => router.push(`/(tabs)/towers/${data.tower.id}/history`)}
+      >
+        <Text className="text-sm font-medium text-primary">
+          {data.blocks.length > 0 ? `View base blocks (${data.blocks.length})` : 'View run history'}
+        </Text>
+      </Pressable>
     </View>
   );
 }

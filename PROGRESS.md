@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 5.10 — Base block history (strata view)
+**Next task:** 5.11 — Dormancy and absence UI
 
 **Blockers:** None
 
 ## Done
+
+- 5.10 Base block history (strata view): Created `StrataBlock` component (`components/strata-block.tsx`) with expandable block rows showing ordinal, height, date range, and member count. Tap expands to show full roster with qualifying days ratio and dormancy indicator. `CurrentRunCard` shows live streak and member count with blue accent. History screen (`app/(tabs)/towers/[id]/history.tsx`) displays FlatList of base blocks newest-first with current run card at top. Empty state when no previous runs exist. Added history route to tower detail layout. Wired "View base blocks" pressable in tower home to navigate to history (always visible, label adapts to block count).
 
 - 5.9 Tower animation (Reanimated): Created `TowerVisual` component (`components/tower-visual.tsx`) with stacked block segments — current run in blue, base blocks in muted slate. Max 20 visible segments. New blocks animate in via Reanimated `FadeIn`. Collapse animation uses `useAnimatedStyle` with opacity/translate/scale interpolation, triggered when `periodStatus === 'collapsed'`. Dark mode supported. `TowerVisualBoundary` wrapper (`components/tower-visual-boundary.tsx`) is the swap point for a future Skia renderer. Added `react-native-reanimated/plugin` to `babel.config.js`. Integrated at the top of `TowerHome`.
 

@@ -12,6 +12,7 @@ export default function TowerDetailLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Tower' }} />
+      <Stack.Screen name="history" options={{ title: 'Block History' }} />
     </Stack>
   );
 }
