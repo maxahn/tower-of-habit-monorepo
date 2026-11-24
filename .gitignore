@@ -15,6 +15,7 @@ build/
 .turbo/
 .eslintcache
 .prettiercache
+*.apk
 
 # ── SECRETS ──────────────────────────────────
 # Deliberately kept at root so they apply at EVERY depth, regardless
