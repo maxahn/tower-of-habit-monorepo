@@ -164,6 +164,22 @@ export function TowerHome({
         </Card>
       )}
 
+      {/* Solo-active warning */}
+      {data.soloActive &&
+        myMember &&
+        (myMember.state === 'active' || myMember.state === 'at_risk') && (
+          <Card className="border-orange-300 bg-orange-50 dark:border-orange-700 dark:bg-orange-950">
+            <CardContent className="py-3">
+              <Text className="font-semibold text-orange-800 dark:text-orange-200">
+                You're the only active member
+              </Text>
+              <Text className="mt-1 text-sm text-orange-700 dark:text-orange-300">
+                Everyone else is dormant. If you miss a period, the tower collapses.
+              </Text>
+            </CardContent>
+          </Card>
+        )}
+
       {/* Absence controls */}
       {myMember && <AbsenceControls towerId={data.tower.id} member={myMember} />}
 

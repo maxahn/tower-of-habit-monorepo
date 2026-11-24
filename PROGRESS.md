@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 5.12 — Solo-active warning
+**Next task:** 5.13 — Empty states and first-run guidance
 
 **Blockers:** None
 
 ## Done
+
+- 5.12 Solo-active warning: Added solo-active warning card to `TowerHome` component. When `data.soloActive` is true and the current user is active or at_risk, an orange warning card displays "You're the only active member" with the message that missing a period will collapse the tower. The `soloActive` boolean was already computed server-side and present in `TowerActiveResponse`; this ticket wires it into the UI.
 
 - 5.11 Dormancy and absence UI: Extended `TowerMemberRow` (db) and `towerMemberSchema` (shared) with `dormantSince`, `dormancyReason`, `voluntaryReturnDate`, `voluntaryAbsenceDaysUsed` fields. Updated `MemberRow` component: dormant members rendered at 50% opacity with dormancy reason label (Missed periods / Backstop / Voluntary absence), `voluntaryReturnDate` shown as "Returns [date]" in blue. At-risk members keep amber badge. Created `AbsenceControls` component with day-count selector (1–14 days, capped by annual budget of 28), confirm/cancel flows with Alert dialogs. `useDeclareAbsence` / `useCancelAbsence` hooks call `POST` / `DELETE /towers/:id/absence`. Tower home shows own membership state banners (at_risk amber warning, dormant grey notice) and inline absence controls.
 

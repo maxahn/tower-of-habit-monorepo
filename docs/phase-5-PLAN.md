@@ -21,7 +21,7 @@
 | **5.9**  | Tower animation (Reanimated; Skia deferred) | ✅ done    |
 | **5.10** | Base block history (strata view)            | ✅ done    |
 | **5.11** | Dormancy and absence UI                     | ✅ done    |
-| **5.12** | Solo-active warning                         | ⬜ todo    |
+| **5.12** | Solo-active warning                         | ✅ done    |
 | **5.13** | Empty states and first-run guidance         | ⬜ todo    |
 | **5.14** | Offline and flaky-connection handling       | ⬜ todo    |
 | **5.15** | Settings screen (full)                      | 🟡 partial |
