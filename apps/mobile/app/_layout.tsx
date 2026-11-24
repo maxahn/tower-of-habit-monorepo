@@ -1,7 +1,7 @@
 import '../global.css';
 
 import { QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { Redirect, Slot } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ErrorBoundary } from '~/components/error-boundary';
 import { AuthProvider, useAuth } from '~/lib/auth-context';
@@ -19,14 +19,15 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ErrorBoundary>
-          <AuthGate />
+          <QueryCacheCleaner />
+          <RootNavigator />
         </ErrorBoundary>
       </AuthProvider>
     </QueryClientProvider>
   );
 }
 
-function AuthGate() {
+function QueryCacheCleaner() {
   const { state } = useAuth();
   const queryClient = useQueryClient();
 
@@ -36,8 +37,31 @@ function AuthGate() {
     }
   }, [state.status, queryClient]);
 
-  if (state.status === 'loading') return null;
-  if (state.status === 'unauthenticated') return <Redirect href="/(auth)/login" />;
-  if (state.status === 'onboarding') return <Redirect href="/(auth)/profile-setup" />;
-  return <Slot />;
+  return null;
+}
+
+function RootNavigator() {
+  const { state } = useAuth();
+
+  const isLoading = state.status === 'loading';
+  const isAuthenticated = state.status === 'authenticated';
+  const isOnboarding = state.status === 'onboarding';
+
+  if (isLoading) return null;
+
+  const authRedirect = isOnboarding ? '/(auth)/profile-setup' : '/(auth)/login';
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={isAuthenticated} redirectTo={authRedirect}>
+        <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+
+      <Stack.Protected guard={!isAuthenticated} redirectTo="/index">
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
+
+      <Stack.Screen name="dev" />
+    </Stack>
+  );
 }
