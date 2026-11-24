@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import type { TowerActiveResponse, PeriodPreviewResponse } from '@tower-of-habit/shared';
 import { Countdown } from '~/components/countdown';
 import { MemberRow } from '~/components/member-row';
+import { TowerVisualBoundary } from '~/components/tower-visual-boundary';
 import { Button } from '~/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Text } from '~/components/ui/text';
@@ -55,8 +56,17 @@ export function TowerHome({
 
   const myMember = data.members.find((m) => m.userId === userId);
 
+  const isCollapsing = preview?.periodStatus === 'collapsed';
+
   return (
     <View className="gap-4">
+      {/* Tower visual */}
+      <TowerVisualBoundary
+        height={totalHeight(data)}
+        blocks={data.blocks}
+        isCollapsing={isCollapsing}
+      />
+
       {/* Header */}
       <View>
         <Text variant="h3">{data.tower.name}</Text>

@@ -18,7 +18,7 @@
 | **5.6**  | Join by code                                | ✅ done    |
 | **5.7**  | Tower home: height, streak, members, period | ✅ done    |
 | **5.8**  | Countdown timer anchored to deadline_at     | ✅ done    |
-| **5.9**  | Tower animation (Reanimated; Skia deferred) | ⬜ todo    |
+| **5.9**  | Tower animation (Reanimated; Skia deferred) | ✅ done    |
 | **5.10** | Base block history (strata view)            | ⬜ todo    |
 | **5.11** | Dormancy and absence UI                     | ⬜ todo    |
 | **5.12** | Solo-active warning                         | ⬜ todo    |

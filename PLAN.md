@@ -12,7 +12,7 @@ Detailed plan: `docs/phase-5-PLAN.md` · Tickets: `docs/phase-5-tickets.md`
 - [x] **5.6** Join by code
 - [x] **5.7** Tower home: height, streak, members, period
 - [x] **5.8** Countdown timer anchored to deadline_at
-- [ ] **5.9** Tower animation (Reanimated; Skia deferred)
+- [x] **5.9** Tower animation (Reanimated; Skia deferred)
 - [ ] **5.10** Base block history (strata view)
 - [ ] **5.11** Dormancy and absence UI
 - [ ] **5.12** Solo-active warning

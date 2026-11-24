@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 5.9 — Tower animation (Reanimated; Skia deferred)
+**Next task:** 5.10 — Base block history (strata view)
 
 **Blockers:** None
 
 ## Done
+
+- 5.9 Tower animation (Reanimated): Created `TowerVisual` component (`components/tower-visual.tsx`) with stacked block segments — current run in blue, base blocks in muted slate. Max 20 visible segments. New blocks animate in via Reanimated `FadeIn`. Collapse animation uses `useAnimatedStyle` with opacity/translate/scale interpolation, triggered when `periodStatus === 'collapsed'`. Dark mode supported. `TowerVisualBoundary` wrapper (`components/tower-visual-boundary.tsx`) is the swap point for a future Skia renderer. Added `react-native-reanimated/plugin` to `babel.config.js`. Integrated at the top of `TowerHome`.
 
 - 5.8 Countdown timer anchored to deadline_at: Created `Countdown` component (`components/countdown.tsx`) that takes a `deadlineAt` ISO timestamp and displays a live days:hours:minutes:seconds countdown updating every second. Visual urgency tiers: normal (> 24h), attention (< 24h, amber background/border), urgent (< 1h, red background/border). Past deadline shows "Past deadline — evaluating…" instead of negative numbers. Interval cleans up on unmount and resets when `deadlineAt` changes. Integrated into `TowerHome` below the period card.
 

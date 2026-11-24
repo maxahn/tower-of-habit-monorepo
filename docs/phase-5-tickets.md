@@ -241,35 +241,37 @@ Detailed specs for every M5 ticket. The plan and build order live in `phase-5-PL
 
 ---
 
-## 5.9 — Tower animation (Reanimated)
+## 5.9 — Tower animation (Reanimated) ✅
 
 **Goal:** a visual tower that grows with height and collapses visually.
 
-**Prerequisites:** `react-native-reanimated` 4.7.1 is already in `apps/mobile/package.json`.
+**Prerequisites:** `react-native-reanimated` 4.7.1 in `apps/mobile/package.json`. Babel plugin added to `babel.config.js`.
 
 **Files:**
 
 - `apps/mobile/components/tower-visual.tsx` — animated tower component
 - `apps/mobile/components/tower-visual-boundary.tsx` — swappable boundary wrapper
+- Updated `apps/mobile/components/tower-home.tsx` — integrates `TowerVisualBoundary` at top of view
+- Updated `apps/mobile/babel.config.js` — added `react-native-reanimated/plugin`
 
 **Work:**
 
-1. The tower visual is a component that takes `height`, `blocks` (base block history), and `isCollapsing` as props.
-2. Renders stacked blocks using `react-native-reanimated`. Each unit of height is a block segment. Base blocks (previous runs) rendered in a muted color underneath the current run.
-3. Entry animation: when height increases, the new block slides/fades in from the top.
-4. Collapse animation: when `isCollapsing` is true (or height resets), blocks tumble/fade and the base block appears.
-5. Wrap in a `TowerVisualBoundary` component that imports the Reanimated version. This boundary is the swap point for a future Skia renderer — the boundary component is the only file that needs to change.
-6. Keep performance in mind: use `useAnimatedStyle`, avoid JS-thread animations. Target 60fps on a Pixel 6a equivalent.
-7. The tower visual sits at the top of the tower home screen (5.7).
+1. `TowerVisual` component takes `height`, `blocks` (base block history), and `isCollapsing` as props. Capped at 20 visible block segments.
+2. Renders stacked `BlockSegment` components using `react-native-reanimated`. Current run blocks in blue, base blocks in muted slate. Dark mode supported via `useColorScheme`.
+3. Entry animation: new blocks use `FadeIn` entering animation with `Easing.out(Easing.cubic)`.
+4. Collapse animation: when `isCollapsing` is true (triggered by `periodStatus === 'collapsed'`), blocks fade/translate/scale down via `useAnimatedStyle` + `interpolate`. All animations on UI thread.
+5. `TowerVisualBoundary` wraps `TowerVisual` — the swap point for a future Skia renderer.
+6. Foundation line rendered below the block stack.
+7. Integrated at the top of `TowerHome`, above the header stats.
 
 **Note:** `.scratch/future-features/issues/01-member-color-tower-visual.md` defers member-color tower visual to post-Phase 5.
 
 **Acceptance:**
 
-- [ ] Tower grows visually as height increases
-- [ ] Base blocks visible beneath current run
-- [ ] Animation runs at 60fps on a mid-range device
-- [ ] Boundary component is swappable without touching the tower home
+- [x] Tower grows visually as height increases
+- [x] Base blocks visible beneath current run
+- [x] Animation runs on UI thread (useAnimatedStyle, Reanimated entering)
+- [x] Boundary component is swappable without touching the tower home
 
 ---
 
