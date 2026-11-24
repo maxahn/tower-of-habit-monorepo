@@ -30,7 +30,7 @@ function HabitRow({ habit }: { habit: HabitResponse }) {
   const isArchived = habit.lifecycle === 'archived';
 
   return (
-    <Link href={`/index/${habit.id}` as const} asChild>
+    <Link href={`/habits/${habit.id}` as const} asChild>
       <Pressable
         className={`mx-4 mb-2 rounded-xl border border-border bg-card px-4 py-3 ${isArchived ? 'opacity-50' : ''}`}
       >
@@ -82,7 +82,7 @@ export default function HabitsScreen() {
           title="Start with a habit"
           description="Habits are the building blocks of towers. Create one to track something you do regularly — like running, reading, or meditating."
         >
-          <Link href="/index/create" asChild>
+          <Link href="/habits/create" asChild>
             <Button className="w-full max-w-xs">
               <Text>Create your first habit</Text>
             </Button>
@@ -106,7 +106,7 @@ export default function HabitsScreen() {
         ListHeaderComponent={
           <View className="mb-3 flex-row items-center justify-between px-4">
             <Text variant="h3">Habits</Text>
-            <Link href="/index/create" asChild>
+            <Link href="/habits/create" asChild>
               <Button size="sm" variant="outline">
                 <Text>+ New</Text>
               </Button>

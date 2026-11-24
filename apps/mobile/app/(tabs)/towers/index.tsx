@@ -66,7 +66,7 @@ export default function TowersListScreen() {
               title="Towers need habits"
               description="Each tower member brings a habit. Create a habit first on the Habits tab, then come back to start or join a tower."
             >
-              <Link href="/(tabs)/index/create" asChild>
+              <Link href="/(tabs)/habits/create" asChild>
                 <Button className="w-full max-w-xs">
                   <Text>Create a habit</Text>
                 </Button>

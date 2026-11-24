@@ -77,7 +77,7 @@ export default function VerifyScreen() {
       if (result.isNewUser || result.user.displayName === null) {
         router.replace('/(auth)/profile-setup');
       } else {
-        router.replace('/(tabs)/index');
+        router.replace('/(tabs)/habits');
       }
     } catch (err) {
       if (err instanceof ApiError) {

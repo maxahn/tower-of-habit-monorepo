@@ -17,7 +17,7 @@ import { Text } from '~/components/ui/text';
 import { useColorScheme } from '~/lib/use-color-scheme';
 
 export default function DevScreen() {
-  if (!__DEV__) return <Redirect href="/index" />;
+  if (!__DEV__) return <Redirect href="/habits" />;
 
   const { colorScheme, toggleColorScheme } = useColorScheme();
   const [inputValue, setInputValue] = useState('');

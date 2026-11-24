@@ -46,7 +46,10 @@ import { jsonBody } from '../validation.js';
 
 export type EntryRouteDeps = { db: TxRunner };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function ownHabit(tx: Db, ctx: RequestCtx, id: string): Promise<Habit> {
+  if (!UUID_RE.test(id)) throw new DomainError(404, 'not_found', 'Habit not found');
   const habit = await getHabit(tx, id);
   if (!habit || habit.ownerId !== ctx.userId) {
     throw new DomainError(404, 'not_found', 'Habit not found');

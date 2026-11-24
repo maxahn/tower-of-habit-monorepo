@@ -101,8 +101,12 @@ async function userTimezone(tx: Db, ctx: RequestCtx): Promise<string> {
   return (await getUser(tx, ctx.userId))?.timezone ?? 'UTC';
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function habitId(c: Context<AppEnv>): string {
-  return c.req.param('id') ?? '';
+  const id = c.req.param('id') ?? '';
+  if (!UUID_RE.test(id)) throw new DomainError(404, 'not_found', 'Habit not found');
+  return id;
 }
 
 export function mountHabitRoutes(api: Hono<AppEnv>, deps: HabitRouteDeps): void {

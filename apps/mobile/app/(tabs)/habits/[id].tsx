@@ -205,7 +205,7 @@ export default function HabitDetailScreen() {
             <View className="flex-row gap-3">
               <Pressable
                 onPress={() =>
-                  router.push({ pathname: '/index/edit' as const, params: { id: habit.id } })
+                  router.push({ pathname: '/habits/edit' as const, params: { id: habit.id } })
                 }
                 className="flex-1 items-center rounded-lg border border-border bg-card py-3"
               >

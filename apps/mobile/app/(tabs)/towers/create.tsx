@@ -159,7 +159,7 @@ export default function CreateTowerScreen() {
                   tower.
                 </Text>
                 <Button
-                  onPress={() => router.push('/(tabs)/index/create' as never)}
+                  onPress={() => router.push('/(tabs)/habits/create' as never)}
                   className="mt-3"
                   variant="outline"
                 >

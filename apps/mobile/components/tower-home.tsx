@@ -90,7 +90,7 @@ export function TowerHome({
       {/* Log shortcut */}
       {myMember && (myMember.state === 'active' || myMember.state === 'at_risk') && (
         <Button
-          onPress={() => router.push(`/(tabs)/index/${myMember.habitId}`)}
+          onPress={() => router.push(`/(tabs)/habits/${myMember.habitId}`)}
           className="bg-primary"
         >
           <Text className="font-semibold text-primary-foreground">Log {myMember.habitName}</Text>
