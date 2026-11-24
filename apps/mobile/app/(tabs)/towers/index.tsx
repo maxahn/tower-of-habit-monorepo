@@ -1,8 +1,10 @@
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, View } from 'react-native';
 import type { TowerStatus } from '@tower-of-habit/shared';
+import { EmptyState } from '~/components/empty-state';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
+import { useHabits } from '~/lib/hooks/use-habits';
 import { useTowers } from '~/lib/hooks/use-towers';
 
 const LIFECYCLE_BADGE: Record<TowerStatus, { bg: string; text: string }> = {
@@ -14,7 +16,9 @@ const LIFECYCLE_BADGE: Record<TowerStatus, { bg: string; text: string }> = {
 
 export default function TowersListScreen() {
   const { data, isLoading, refetch, isRefetching } = useTowers();
+  const { data: habitsData } = useHabits();
   const towers = data?.towers ?? [];
+  const hasHabits = (habitsData?.habits?.length ?? 0) > 0;
 
   if (isLoading) {
     return (
@@ -39,24 +43,36 @@ export default function TowersListScreen() {
           />
         }
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center pt-24">
-            <Text variant="h3">No towers yet</Text>
-            <Text variant="muted" className="mt-2 text-center">
-              Create a tower to build streaks with friends, or join one with a code.
-            </Text>
-            <View className="mt-6 flex-row gap-3">
-              <Button onPress={() => router.push('./create' as never)} className="flex-1">
-                <Text>Create Tower</Text>
+          hasHabits ? (
+            <EmptyState
+              icon="🏗️"
+              title="Build a tower"
+              description="Towers are group streaks. Create one and invite friends, or join an existing tower with a code."
+            >
+              <Button onPress={() => router.push('./create' as never)} className="w-full max-w-xs">
+                <Text>Create a tower</Text>
               </Button>
               <Button
                 variant="outline"
                 onPress={() => router.push('./join' as never)}
-                className="flex-1"
+                className="w-full max-w-xs"
               >
-                <Text>Join Tower</Text>
+                <Text>Join with a code</Text>
               </Button>
-            </View>
-          </View>
+            </EmptyState>
+          ) : (
+            <EmptyState
+              icon="🏗️"
+              title="Towers need habits"
+              description="Each tower member brings a habit. Create a habit first on the Habits tab, then come back to start or join a tower."
+            >
+              <Link href="/(tabs)/index/create" asChild>
+                <Button className="w-full max-w-xs">
+                  <Text>Create a habit</Text>
+                </Button>
+              </Link>
+            </EmptyState>
+          )
         }
         renderItem={({ item }) => (
           <Pressable

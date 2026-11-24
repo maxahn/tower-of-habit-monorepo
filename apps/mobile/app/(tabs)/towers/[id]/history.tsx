@@ -36,9 +36,13 @@ export default function HistoryScreen() {
     return (
       <View className="flex-1 bg-background px-4 pt-4">
         {header}
-        <View className="flex-1 items-center justify-center pb-20">
-          <Text variant="muted" className="text-center">
-            No previous runs yet — this is your tower's first attempt.
+        <View className="mt-8 items-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-8">
+          <Text className="text-3xl">🧱</Text>
+          <Text className="mt-2 text-center text-sm font-medium text-foreground">
+            First attempt
+          </Text>
+          <Text variant="muted" className="mt-1 text-center">
+            This is your tower's first run. Base blocks appear here after a collapse and rebuild.
           </Text>
         </View>
       </View>

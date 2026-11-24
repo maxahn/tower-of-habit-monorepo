@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 5.13 — Empty states and first-run guidance
+**Next task:** 5.14 — Offline and flaky-connection handling
 
 **Blockers:** None
 
 ## Done
+
+- 5.13 Empty states and first-run guidance: Created reusable `EmptyState` component (`components/empty-state.tsx`) with icon, title, description, and action slot. Updated habits list empty state: explains that habits are building blocks of towers, guides to "Create your first habit". Updated towers list: checks whether the user has any habits — if not, directs them to create a habit first; if they do, offers "Create a tower" and "Join with a code" buttons. Enhanced habit detail "no entries" state with a visual card pointing to the log section above. Improved strata history empty state: explains that base blocks appear after a collapse and rebuild. Added lobby guidance hint when host is alone, prompting them to share the join code.
 
 - 5.12 Solo-active warning: Added solo-active warning card to `TowerHome` component. When `data.soloActive` is true and the current user is active or at_risk, an orange warning card displays "You're the only active member" with the message that missing a period will collapse the tower. The `soloActive` boolean was already computed server-side and present in `TowerActiveResponse`; this ticket wires it into the UI.
 

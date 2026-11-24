@@ -230,9 +230,16 @@ export default function HabitDetailScreen() {
             </Text>
             {entriesLoading && <ActivityIndicator className="mt-4" />}
             {!entriesLoading && entries.length === 0 && (
-              <Text variant="muted" className="mt-2 text-center">
-                No entries yet. Log your first entry to start your streak.
-              </Text>
+              <View className="mt-4 items-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-8">
+                <Text className="text-3xl">📝</Text>
+                <Text className="mt-2 text-center text-sm font-medium text-foreground">
+                  No entries yet
+                </Text>
+                <Text variant="muted" className="mt-1 text-center">
+                  Use the log section above to record your first entry and start building your
+                  streak.
+                </Text>
+              </View>
             )}
           </View>
         }

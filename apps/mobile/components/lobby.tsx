@@ -169,6 +169,17 @@ export function Lobby({ data, onLeave }: { data: TowerLobbyResponse; onLeave?: (
         </View>
       </View>
 
+      {/* Guidance for lone host */}
+      {isHost && members.length === 1 && (
+        <View className="mt-6 rounded-xl border border-dashed border-primary/30 bg-primary/5 px-5 py-4">
+          <Text className="text-sm font-medium text-foreground">Share the code to get started</Text>
+          <Text variant="muted" className="mt-1">
+            You need at least one more member before the tower can begin. Send the join code to a
+            friend.
+          </Text>
+        </View>
+      )}
+
       {/* Actions */}
       <View className="mt-8">
         {isHost ? (

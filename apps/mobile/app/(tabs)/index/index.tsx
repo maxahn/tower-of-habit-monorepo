@@ -1,5 +1,6 @@
 import { Link } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, View } from 'react-native';
+import { EmptyState } from '~/components/empty-state';
 import { Button } from '~/components/ui/button';
 import { Text } from '~/components/ui/text';
 import { useHabits } from '~/lib/hooks/use-habits';
@@ -75,16 +76,18 @@ export default function HabitsScreen() {
 
   if (habits.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center bg-background px-6">
-        <Text variant="h3">Habits</Text>
-        <Text variant="muted" className="mt-2 text-center">
-          Create your first habit to get started.
-        </Text>
-        <Link href="/index/create" asChild>
-          <Button className="mt-6">
-            <Text>Create Habit</Text>
-          </Button>
-        </Link>
+      <View className="flex-1 bg-background">
+        <EmptyState
+          icon="🌱"
+          title="Start with a habit"
+          description="Habits are the building blocks of towers. Create one to track something you do regularly — like running, reading, or meditating."
+        >
+          <Link href="/index/create" asChild>
+            <Button className="w-full max-w-xs">
+              <Text>Create your first habit</Text>
+            </Button>
+          </Link>
+        </EmptyState>
       </View>
     );
   }
