@@ -31,10 +31,9 @@ import { runMigrations } from 'graphile-worker';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createEvaluator } from '@tower-of-habit/api/evaluation';
 import type { Logger } from './logger.js';
-import { processNudge } from './nudge.js';
 import { materialisePeriods } from './sweep.js';
+import { dispatchPeriodNotifications } from './period-notifications.js';
 import { runTick } from './tick.js';
-import { processWobble } from './wobble.js';
 
 const noop = () => {};
 const logger: Logger = { info: noop, warn: noop, error: noop };
@@ -249,8 +248,8 @@ describe('40-day timeline', () => {
       const nudgeAt = new Date(schedule.nudgeAt);
       const wobbleAt = new Date(schedule.wobbleAt);
 
-      // processNudge: C is the only one who hasn't logged
-      const nudgeCount = await processNudge(db, period.id, nudgeAt);
+      // dispatchPeriodNotifications('nudge'): C is the only one who hasn't logged
+      const nudgeCount = await dispatchPeriodNotifications(db, period.id, nudgeAt, 'nudge');
       expect(nudgeCount).toBe(1);
       await assertNotifCount(1);
 
@@ -259,8 +258,8 @@ describe('40-day timeline', () => {
       expect(notifsAfterNudge[0]!.type).toBe('nudge');
       expect(notifsAfterNudge[0]!.userId).toBe(userC.id);
 
-      // processWobble: anyone outstanding → wobble to ALL live members
-      const wobbleCount = await processWobble(db, period.id, wobbleAt);
+      // dispatchPeriodNotifications('wobble'): anyone outstanding → wobble to ALL live members
+      const wobbleCount = await dispatchPeriodNotifications(db, period.id, wobbleAt, 'wobble');
       expect(wobbleCount).toBe(3);
       await assertNotifCount(4);
 

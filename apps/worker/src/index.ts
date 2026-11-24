@@ -17,11 +17,10 @@ import { createHealthchecksHeartbeat, createNoopHeartbeat } from './heartbeat.js
 import { createJsonLogger } from './logger.js';
 import { startTickLoop, type TickLoop } from './loop.js';
 import { collectAndLogMetrics, failedJobCount } from './metrics.js';
-import { processNudge } from './nudge.js';
+import { dispatchPeriodNotifications } from './period-notifications.js';
 import { checkPushReceipts, deliverPush } from './push.js';
 import { materialisePeriods } from './sweep.js';
 import { runTick } from './tick.js';
-import { processWobble } from './wobble.js';
 
 const logger = createJsonLogger();
 logger.info({ config: redactedConfig(config) }, 'worker starting');
@@ -62,12 +61,12 @@ const taskList: TaskList = {
   },
   async nudge(payload, helpers) {
     const { periodId } = payload as { periodId: string };
-    const count = await processNudge(db, periodId, new Date());
+    const count = await dispatchPeriodNotifications(db, periodId, new Date(), 'nudge');
     helpers.logger.info(`nudge: ${periodId} → ${count} notifications`);
   },
   async wobble(payload, helpers) {
     const { periodId } = payload as { periodId: string };
-    const count = await processWobble(db, periodId, new Date());
+    const count = await dispatchPeriodNotifications(db, periodId, new Date(), 'wobble');
     helpers.logger.info(`wobble: ${periodId} → ${count} notifications`);
   },
   async backstop_sweep(_payload, helpers) {
