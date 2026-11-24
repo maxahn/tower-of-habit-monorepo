@@ -50,13 +50,13 @@ describe('lockPeriodForEvaluation (FOR UPDATE SKIP LOCKED)', () => {
 });
 
 describe('tower run counters', () => {
-  it('extendTowerRun adds one to height and streak; closeTowerRun resets both', async () => {
+  it('extendTowerRun adds one to height and streak; closeTowerRun resets currentStreak only', async () => {
     const s = await scenarios.towerRunningFor(3, { members: 1 }); // height 2
     const id = s.tower!.id;
     expect(await extendTowerRun(db, id)).toMatchObject({ height: 3, currentStreak: 3 });
-    expect(await closeTowerRun(db, id)).toMatchObject({ height: 0, currentStreak: 0 });
+    expect(await closeTowerRun(db, id)).toMatchObject({ height: 3, currentStreak: 0 });
     const [row] = await db.select().from(towers).where(eq(towers.id, id));
-    expect(row).toMatchObject({ height: 0, currentStreak: 0 });
+    expect(row).toMatchObject({ height: 3, currentStreak: 0 });
   });
 
   it('lockTower returns the locked row, or undefined for an unknown id', async () => {

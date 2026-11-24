@@ -108,7 +108,7 @@ describe('corruption and repair', () => {
 
     const repair = await repairTower(db, id);
     expect(repair.repaired).toBe(true);
-    expect(repair.after).toEqual({ height: 4, currentStreak: 4 });
+    expect(repair.after).toEqual({ height: 8, currentStreak: 4 });
     expect(repair.blockDivergences).toContainEqual({
       field: 'blocks.length',
       expected: 1,

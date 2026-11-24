@@ -22,7 +22,7 @@ describe('persisted scenarios', () => {
   it('the 1.11 done-when, in one line', async () => {
     const s = await scenarios.towerRunningFor(12, { members: 3, traits: [memberMissedPeriods(1)] });
 
-    expect(s.tower).toMatchObject({ lifecycle: 'active', height: 0, currentStreak: 0 });
+    expect(s.tower).toMatchObject({ lifecycle: 'active', height: 10, currentStreak: 0 });
     expect(s.periods).toHaveLength(12);
     expect(s.periods.filter((p) => p.state === 'evaluated')).toHaveLength(11);
     expect(s.periods.at(-2)!.outcome).toBe('collapsed');

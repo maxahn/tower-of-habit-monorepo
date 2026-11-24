@@ -288,7 +288,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(0, 0); // height resets on collapse
+      await assertState(4, 0); // height is cumulative (never resets), streak resets
 
       // Notifications: 3 collapse + 1 at_risk (C)
       await assertNotifCount(8);
@@ -316,7 +316,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(1, 1);
+      await assertState(5, 1);
       await assertNotifCount(8); // survived = no new notifications
     }
 
@@ -328,7 +328,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(day - 5, day - 5);
+      await assertState(day - 1, day - 5);
       await assertNotifCount(8);
     }
 
@@ -346,7 +346,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(16, 16);
+      await assertState(20, 16);
       await assertNotifCount(8);
     }
 
@@ -357,7 +357,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(day - 5, day - 5);
+      await assertState(day - 1, day - 5);
       await assertNotifCount(8);
     }
 
@@ -369,7 +369,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(20, 20);
+      await assertState(24, 20);
       await assertNotifCount(8);
 
       // B should be active again (day_elapsed trigger returned them)
@@ -389,7 +389,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(21, 21);
+      await assertState(25, 21);
       await assertNotifCount(8);
     }
 
@@ -402,7 +402,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(day - 5, day - 5);
+      await assertState(day - 1, day - 5);
       await assertNotifCount(8);
     }
 
@@ -411,7 +411,7 @@ describe('40-day timeline', () => {
       const date = dayDate(30);
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(0, 0);
+      await assertState(28, 0);
 
       // Notifications: 3 collapse + 3 at_risk (A, B, C all active, all first miss)
       await assertNotifCount(14);
@@ -436,7 +436,7 @@ describe('40-day timeline', () => {
       const date = dayDate(31);
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(1, 1); // extendTowerRun: 0+1
+      await assertState(29, 1); // extendTowerRun: height 28+1, streak 0+1
       await assertNotifCount(14); // survived = no new notifications
     }
 
@@ -445,7 +445,7 @@ describe('40-day timeline', () => {
       const date = dayDate(32);
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(1, 1); // hibernated = height unchanged
+      await assertState(29, 1); // hibernated = height unchanged
 
       await assertNotifCount(17); // 3 hibernate notifications (first hibernation)
       const notifs = await listNotificationsForTower(db, tower.id, 500);
@@ -458,7 +458,7 @@ describe('40-day timeline', () => {
       const date = dayDate(day);
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(1, 1); // height unchanged through hibernation
+      await assertState(29, 1); // height unchanged through hibernation
       await assertNotifCount(17); // subsequent hibernation = no new notifications
     }
 
@@ -470,7 +470,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(2, 2); // extendTowerRun: 1+1
+      await assertState(30, 2); // extendTowerRun: height 29+1, streak 1+1
       await assertNotifCount(17);
     }
 
@@ -483,7 +483,7 @@ describe('40-day timeline', () => {
 
       const period = await pendingPeriod(date);
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
-      await assertState(3, 3); // extendTowerRun: 2+1
+      await assertState(31, 3); // extendTowerRun: height 30+1, streak 2+1
       await assertNotifCount(17);
 
       // DST verification: compare evaluateAt between day 39 and day 40
@@ -501,11 +501,12 @@ describe('40-day timeline', () => {
     // ==================== Final assertions ====================
     expect((await verifyTower(db, tower.id)).ok).toBe(true);
 
-    // Cumulative height: sum(block_heights) + towers.height
+    // Cumulative height equals total survived periods across all runs
     const blocks = await listBaseBlocksForTower(db, tower.id);
     const sumBlockHeights = blocks.reduce((s, b) => s + b.blockHeight, 0);
     const finalTower = (await getTower(db, tower.id))!;
-    expect(sumBlockHeights + finalTower.height).toBe(31);
+    expect(finalTower.height).toBe(31);
+    expect(sumBlockHeights + finalTower.currentStreak).toBe(finalTower.height);
 
     // Exact notification count
     const allNotifications = await listNotificationsForTower(db, tower.id, 500);
@@ -640,9 +641,9 @@ describe('sub-minimum run', () => {
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
 
       t = (await getTower(db, tower.id))!;
-      expect(t.height).toBe(0);
+      expect(t.height).toBe(2);
 
-      // No base block (height 2 < MIN_BLOCK_DAYS 3)
+      // No base block (run height 2 < MIN_BLOCK_DAYS 3)
       const blocks = await listBaseBlocksForTower(db, tower.id);
       expect(blocks).toHaveLength(0);
     }
@@ -661,7 +662,7 @@ describe('sub-minimum run', () => {
     }
 
     t = (await getTower(db, tower.id))!;
-    expect(t.height).toBe(10);
+    expect(t.height).toBe(12);
 
     // Day 14: nobody logs → collapsed
     {
@@ -670,7 +671,7 @@ describe('sub-minimum run', () => {
       await tick(new Date(period.evaluateAt.getTime() + 60_000));
 
       t = (await getTower(db, tower.id))!;
-      expect(t.height).toBe(0);
+      expect(t.height).toBe(12);
       expect(t.currentStreak).toBe(0);
 
       // 1 block: the sub-minimum 2-day run produced nothing
