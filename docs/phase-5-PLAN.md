@@ -8,23 +8,23 @@
 
 ## Status
 
-| Ticket   | Scope                                       | State   |
-| -------- | ------------------------------------------- | ------- |
-| **5.1**  | Habit creation + tier ladder editor         | ⬜ todo |
-| **5.2**  | Habit list + standalone habit view          | ⬜ todo |
-| **5.3**  | Logging: binary, numeric, tier picker       | ⬜ todo |
-| **5.4**  | Tower creation + deadline picker            | ⬜ todo |
-| **5.5**  | Lobby: code sharing, members, start         | ⬜ todo |
-| **5.6**  | Join by code                                | ⬜ todo |
-| **5.7**  | Tower home: height, streak, members, period | ⬜ todo |
-| **5.8**  | Countdown timer anchored to deadline_at     | ⬜ todo |
-| **5.9**  | Tower animation (Reanimated; Skia deferred) | ⬜ todo |
-| **5.10** | Base block history (strata view)            | ⬜ todo |
-| **5.11** | Dormancy and absence UI                     | ⬜ todo |
-| **5.12** | Solo-active warning                         | ⬜ todo |
-| **5.13** | Empty states and first-run guidance         | ⬜ todo |
-| **5.14** | Offline and flaky-connection handling       | ⬜ todo |
-| **5.15** | Settings screen (full)                      | ⬜ todo |
+| Ticket   | Scope                                       | State      |
+| -------- | ------------------------------------------- | ---------- |
+| **5.1**  | Habit creation + tier ladder editor         | ✅ done    |
+| **5.2**  | Habit list + standalone habit view          | ✅ done    |
+| **5.3**  | Logging: binary, numeric, tier picker       | ✅ done    |
+| **5.4**  | Tower creation + deadline picker            | ✅ done    |
+| **5.5**  | Lobby: code sharing, members, start         | ✅ done    |
+| **5.6**  | Join by code                                | ✅ done    |
+| **5.7**  | Tower home: height, streak, members, period | ✅ done    |
+| **5.8**  | Countdown timer anchored to deadline_at     | ✅ done    |
+| **5.9**  | Tower animation (Reanimated; Skia deferred) | ⬜ todo    |
+| **5.10** | Base block history (strata view)            | ⬜ todo    |
+| **5.11** | Dormancy and absence UI                     | ⬜ todo    |
+| **5.12** | Solo-active warning                         | ⬜ todo    |
+| **5.13** | Empty states and first-run guidance         | ⬜ todo    |
+| **5.14** | Offline and flaky-connection handling       | ⬜ todo    |
+| **5.15** | Settings screen (full)                      | 🟡 partial |
 
 ---
 

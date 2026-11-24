@@ -2,215 +2,220 @@
 
 Detailed specs for every M5 ticket. The plan and build order live in `phase-5-PLAN.md`.
 
+> **Note:** The Habits tab lives under `app/(tabs)/index/` (making it the default home tab), not `app/(tabs)/habits/` as originally specced. All habit-related file paths below reflect the actual structure.
+
 ---
 
-## 5.1 — Habit creation + tier ladder editor
+## 5.1 — Habit creation + tier ladder editor ✅
 
 **Goal:** a user can create binary, numeric, and tiered habits from the Habits tab.
 
 **Files:**
 
-- `apps/mobile/app/(tabs)/habits/create.tsx` — creation form
-- `apps/mobile/lib/hooks/use-habits.ts` — TanStack Query hooks (`useCreateHabit`, `useHabits`)
+- `apps/mobile/app/(tabs)/index/create.tsx` — creation form
+- `apps/mobile/app/(tabs)/index/edit.tsx` — edit form (reuses same pattern, `PATCH /habits/:id`)
+- `apps/mobile/lib/hooks/use-habits.ts` — TanStack Query hooks (`useCreateHabit`, `useHabits`, `useHabit`, `useHabitEntries`, `useUpdateHabit`, `useArchiveHabit`)
 - `apps/mobile/components/tier-ladder-editor.tsx` — reusable tier editor component
 
 **Work:**
 
-1. Create the habit creation screen with react-hook-form + zodResolver using `createHabitRequestSchema` from shared.
-2. Three habit types selectable at the top: binary ("Did you do it?"), numeric ("How much?"), tiered ("Which level?").
+1. Habit creation screen uses react-hook-form + zodResolver with `createHabitRequestSchema` from shared.
+2. Three habit types selectable at the top: binary, numeric, tiered (via `HabitType` from `@tower-of-habit/shared`).
 3. Common fields: name (required), period unit (day/week), period length (default 1), quota (default 1 for daily).
 4. Numeric-specific: unit label (e.g. "minutes", "pages"), threshold value for tier 0.
-5. Tiered-specific: inline tier ladder editor. Start with one tier (label + optional threshold). "Add tier" button appends a row. Each row has label, threshold (optional), and a delete button (minimum 1 tier). Tier indices are contiguous from 0, thresholds strictly increasing — validate before submit.
-6. `useCreateHabit` mutation calls `POST /habits` and invalidates the habits list query on success.
-7. On success, navigate back to the habits list.
+5. Tiered-specific: inline tier ladder editor. Start with one tier (label + threshold). "Add tier" button appends a row. Each row has label, threshold, and a delete button (minimum 1 tier). Thresholds must be strictly increasing — validated via `buildRequest()` before submit. Grilling fix Q10: threshold inputs always shown for tiered habits.
+6. `useCreateHabit` mutation calls `POST /v1/habits` and invalidates the habits list query on success.
+7. On success, navigate back via `router.back()`.
+8. Edit screen (`edit.tsx`) allows updating name, unit, period, quota via `useUpdateHabit` (`PATCH /v1/habits/:id`). Type is read-only.
 
 **Acceptance:**
 
-- [ ] All three habit types create successfully and appear in the list
-- [ ] Validation errors show inline (empty name, non-increasing thresholds, etc.)
-- [ ] The tier ladder enforces at least 1 tier and strictly increasing thresholds
+- [x] All three habit types create successfully and appear in the list
+- [x] Validation errors show inline (empty name, non-increasing thresholds, etc.)
+- [x] The tier ladder enforces at least 1 tier and strictly increasing thresholds
 
 ---
 
-## 5.2 — Habit list + standalone habit view
+## 5.2 — Habit list + standalone habit view ✅
 
-**Goal:** the Habits tab shows all habits with streaks; tapping one opens a detail screen with entry history.
+**Goal:** the Habits tab shows all habits with type badges and period info; tapping one opens a detail screen with streak, entries, and actions.
 
 **Files:**
 
-- `apps/mobile/app/(tabs)/habits/index.tsx` — habit list (replaces placeholder)
-- `apps/mobile/app/(tabs)/habits/[id].tsx` — habit detail
-- `apps/mobile/app/(tabs)/habits/_layout.tsx` — stack navigator
-- `apps/mobile/lib/hooks/use-habits.ts` — add `useHabit`, `useHabitEntries`
+- `apps/mobile/app/(tabs)/index/index.tsx` — habit list (FlatList)
+- `apps/mobile/app/(tabs)/index/[id].tsx` — habit detail
+- `apps/mobile/app/(tabs)/index/_layout.tsx` — stack navigator (index, create, [id], edit)
+- `apps/mobile/lib/hooks/use-habits.ts` — `useHabit`, `useHabitEntries`
 
 **Work:**
 
-1. Convert the Habits tab to a stack navigator with index (list) and [id] (detail) routes.
-2. Habit list: `GET /habits` → FlatList. Each row shows name, type badge, current streak, period info. Sorted by lifecycle (active first) then name.
-3. Pull-to-refresh on the list.
-4. Habit detail screen: header with name, type, period, quota. Current streak displayed prominently. Entry history as a reverse-chronological list from `GET /habits/:id/entries`. Tower association shown if the habit is in a tower (from `habitDetailResponseSchema.tower`).
-5. Edit button in the header → navigates to an edit screen (reuses the create form with pre-filled values, `PATCH /habits/:id`).
-6. Archive action (confirmation dialog → `POST /habits/:id/archive`). Archived habits appear greyed at the bottom of the list.
+1. Habits tab is a stack navigator with four screens: index (list), create (modal), [id] (detail), edit (modal). Dark/light header colors via `useColorScheme`.
+2. Habit list: `GET /v1/habits` → FlatList of `HabitRow` components. Each row shows name, type badge, period label, quota. Sorted: active first (alphabetical), archived last.
+3. Pull-to-refresh on the list. Empty state with "Create Habit" CTA.
+4. Habit detail screen: streak card (prominent), `LogEntry` component (from 5.3), habit info card (type, period, quota, unit), tier ladder, tower association, entry history (reverse-chronological FlatList). `EntryRow` subcomponent shows localDate, loggedAt, numericValue, tierReached, countsTowardQuota.
+5. Edit button → navigates to `/index/edit` with pre-filled values (`useUpdateHabit`, `PATCH /v1/habits/:id`).
+6. Archive action (confirmation Alert → `useArchiveHabit`, `POST /v1/habits/:id/archive`). Archived habits appear with an archived badge at the bottom of the list.
 
 **Acceptance:**
 
-- [ ] Habits list loads, shows streak per habit, supports pull-to-refresh
-- [ ] Tapping a habit opens detail with entry history
-- [ ] Edit and archive work end-to-end
-- [ ] Archived habits appear greyed out at the bottom
+- [x] Habits list loads, shows type/period per habit, supports pull-to-refresh
+- [x] Tapping a habit opens detail with entry history
+- [x] Edit and archive work end-to-end
+- [x] Archived habits appear at the bottom with archived badge
 
 ---
 
-## 5.3 — Logging: binary, numeric, tier picker
+## 5.3 — Logging: binary, numeric, tier picker ✅
 
 **Goal:** the core action — logging an entry for a habit.
 
 **Files:**
 
 - `apps/mobile/components/log-entry.tsx` — logging UI component (binary button, numeric input, tier picker)
-- `apps/mobile/lib/hooks/use-entries.ts` — `useLogEntry` mutation
-- Update `apps/mobile/app/(tabs)/habits/[id].tsx` to include logging
+- `apps/mobile/lib/hooks/use-entries.ts` — `useLogEntry` mutation (entry list query lives in `use-habits.ts`)
+- Integrated into `apps/mobile/app/(tabs)/index/[id].tsx`
 
 **Work:**
 
-1. Logging UI lives on the habit detail screen, prominently above the entry history.
-2. Binary habits: a single large "Done" button. Tapping logs tier 0, no numeric value.
-3. Numeric habits: a number input + "Log" button. The input is pre-focused. Submitting sends `numericValue`. Show the threshold needed to qualify.
-4. Tiered habits: a vertical list of tier labels. Tapping a tier logs that tier index + its threshold as numeric value. Highlight the selected tier with a check.
-5. Optimistic mutation: generate a `clientEntryId` (uuid) before submitting. Add the entry to the query cache immediately. If the server returns an error, roll back and show a toast.
-6. After logging, the entry appears in history and the streak updates (invalidate habit detail query).
-7. If the habit is in a tower, also invalidate the tower detail query so the period preview reflects the new log.
-8. Duplicate protection: disable the log button for 1 second after a successful log. The `clientEntryId` on the server prevents true duplicates.
+1. `LogEntry` component takes `habit`, `tiers`, and optional `towerId` props. Renders inline on the habit detail screen above entry history. Only shown when habit is not archived.
+2. Binary habits: single "Done" button, logs `tierReached: 0`.
+3. Numeric habits: text input + "Log" button with `returnKeyType="done"` / `onSubmitEditing`. Shows threshold hint from first tier. Submits `numericValue`.
+4. Tiered habits: sorted tier buttons, each logs `tierReached: tier.tierIndex` and optionally `numericValue: tier.thresholdValue`.
+5. All branches generate a `clientEntryId` via `crypto.randomUUID()` for idempotency.
+6. Optimistic mutation in `useLogEntry`: constructs an `EntryResponse` from request data, prepends to cached entry list. On error, rolls back to previous cache state.
+7. On settle: invalidates `habitKeys.entries`, `habitKeys.detail`, and if `towerId` provided, `['towers', 'detail', towerId]`.
+8. 1-second cooldown after successful log (button text changes to "Logged!").
 
 **Acceptance:**
 
-- [ ] Binary, numeric, and tiered logging all work
-- [ ] Optimistic update: entry appears immediately, reverts on error
-- [ ] Double-tap produces one credit and no error toast
-- [ ] Streak updates after logging
+- [x] Binary, numeric, and tiered logging all work
+- [x] Optimistic update: entry appears immediately, reverts on error
+- [x] Double-tap produces one credit and no error toast
+- [x] Streak updates after logging
 
 ---
 
-## 5.4 — Tower creation + deadline picker
+## 5.4 — Tower creation + deadline picker ✅
 
 **Goal:** a user can create a tower, selecting their habit, deadline time, timezone, and grace window.
 
 **Files:**
 
 - `apps/mobile/app/(tabs)/towers/create.tsx` — creation form
-- `apps/mobile/components/deadline-picker.tsx` — time picker defaulting to 22:00
-- `apps/mobile/lib/hooks/use-towers.ts` — `useCreateTower`, `useTowers`
+- `apps/mobile/components/deadline-picker.tsx` — custom hour/minute grid defaulting to 22:00
+- `apps/mobile/lib/hooks/use-towers.ts` — `useCreateTower`, `useTowers`, `useEligibleHabits`
 
 **Work:**
 
-1. Tower creation form with react-hook-form + zodResolver using `createTowerRequestSchema`.
-2. Fields: name, habit (picker from user's active non-tower habits), period unit, period length, quota, deadline time, timezone (defaults to device timezone), grace window minutes.
-3. Deadline picker: defaults to 22:00. Time-only picker (hours and minutes). Show a warning if the selected time would be an odd local hour (e.g. 3 AM) for the user's timezone — this matters when members are in distant timezones.
-4. Wobble and nudge lead minutes: use defaults from shared (`DEFAULT_WOBBLE_LEAD_MINUTES`, `DEFAULT_NUDGE_LEAD_MINUTES`). Advanced section expandable to override.
-5. `useCreateTower` mutation calls `POST /towers` and navigates to the new tower's lobby on success.
-6. Habit picker: only shows active habits not already in a tower. If no eligible habits exist, show a prompt to create one first.
+1. Tower creation form uses react-hook-form + zodResolver with `createTowerRequestSchema`.
+2. Fields: name, habitId (picker from eligible habits), periodUnit (day/week), periodLength, quota, deadlineTime, graceWindowMinutes, weekResetDay (weekly only).
+3. `DeadlinePicker`: custom tap-to-expand grid of 24 hours + 4 minute options (0, 15, 30, 45). Defaults to 22:00. Warns (amber text) if deadline is between midnight and 6 AM.
+4. Wobble and nudge lead minutes: read-only display of defaults from shared (`DEFAULT_WOBBLE_LEAD_MINUTES`, `DEFAULT_NUDGE_LEAD_MINUTES`) in an expandable advanced section. Not user-editable.
+5. `useCreateTower` calls `POST /v1/towers`, invalidates tower list + habit list. On success navigates to new tower's lobby via `router.replace('./${data.tower.id}')` (grilling fix Q3).
+6. `useEligibleHabits`: fetches all habits, filters to `lifecycle === 'active'`, then fetches each detail to check `!d.tower`. Shows "Create Habit" button when no eligible habits exist, linking to `/(tabs)/index/create`.
+7. Timezone auto-detected via `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 
 **Acceptance:**
 
-- [ ] Tower creates successfully with selected habit
-- [ ] Deadline defaults to 22:00, timezone to device timezone
-- [ ] Habit picker excludes habits already in a tower
-- [ ] No eligible habits → "Create a habit first" prompt
+- [x] Tower creates successfully with selected habit
+- [x] Deadline defaults to 22:00, timezone to device timezone
+- [x] Habit picker excludes habits already in a tower
+- [x] No eligible habits → "Create a habit first" prompt
 
 ---
 
-## 5.5 — Lobby: code sharing, member list, start
+## 5.5 — Lobby: code sharing, member list, start ✅
 
 **Goal:** the tower lobby screen where the host shares the join code and starts the tower.
 
 **Files:**
 
-- `apps/mobile/app/(tabs)/towers/[id]/index.tsx` — tower detail (lobby or active, via discriminated union)
+- `apps/mobile/app/(tabs)/towers/[id]/index.tsx` — tower detail dispatcher (lobby or active, via `data.kind`)
 - `apps/mobile/app/(tabs)/towers/[id]/_layout.tsx` — stack for tower sub-screens
-- `apps/mobile/components/lobby.tsx` — lobby view component
+- `apps/mobile/components/lobby.tsx` — lobby view component (has its own inline `MemberRow`, separate from `member-row.tsx`)
 
 **Work:**
 
-1. Tower detail screen fetches `GET /towers/:id`. The response is a discriminated union: `kind: 'lobby'` or `kind: 'active'`. This ticket handles the lobby case.
+1. Tower detail screen fetches `GET /v1/towers/:id` via `useTower(id, { refetchInterval: 10_000 })` for 10-second auto-refresh (grilling fix Q2). Dispatches to `<Lobby>` or `<TowerHome>` based on `data.kind`.
 2. Lobby view shows:
    - Tower name and settings summary (period, quota, deadline)
-   - Join code formatted as `XXXX-XXXX` with a copy button and share button (native share sheet)
-   - Member list: each row shows display name, habit name, habit type badge. The host has a "Host" badge.
-   - Host sees a "Remove" action on each non-self member (swipe or long press → `DELETE /towers/:id/memberships/:membershipId`)
-   - Host sees a "Start Tower" button (disabled until ≥ 2 members). Calls `POST /towers/:id/start`.
-3. Non-host members see a "Leave" action instead of Remove/Start.
-4. Pull-to-refresh to pick up new members who joined.
-5. After start, the response triggers a refetch that switches the view to the active tower home (5.7).
+   - Join code formatted as `XXXX-XXXX` with Copy (`expo-clipboard`) and Share (native `Share.share`) buttons
+   - Member list: each row shows display name, habit name, habit type badge (B/N/T). Host has a "Host" badge.
+   - Host sees "Remove" button on each non-self member (with confirmation Alert → `useRemoveMember`, `DELETE /v1/towers/:id/memberships/:membershipId`)
+   - Host sees "Start Tower" button (disabled until `members.length >= 2`, calls `useStartTower`, `POST /v1/towers/:id/start`)
+3. Non-host members see "Leave Tower" button (confirmation Alert → `useLeaveTower`, navigates back to tower list).
+4. All three mutations have `onError` handlers that show `Alert.alert('Error', err.message)` (grilling fix Q12).
+5. Pull-to-refresh via ScrollView. After start, refetch switches view to active tower home.
 
 **Acceptance:**
 
-- [ ] Join code displayed, copyable, shareable
-- [ ] Member list updates on pull-to-refresh
-- [ ] Host can remove members and start the tower (≥ 2 members)
-- [ ] Non-host can leave
-- [ ] Starting transitions to the active tower view
+- [x] Join code displayed, copyable, shareable
+- [x] Member list updates on pull-to-refresh and 10s auto-refresh
+- [x] Host can remove members and start the tower (>= 2 members)
+- [x] Non-host can leave
+- [x] Starting transitions to the active tower view
 
 ---
 
-## 5.6 — Join by code
+## 5.6 — Join by code ✅
 
 **Goal:** a user can join an existing tower by entering its join code.
 
 **Files:**
 
 - `apps/mobile/app/(tabs)/towers/join.tsx` — join screen (modal)
-- `apps/mobile/lib/hooks/use-towers.ts` — add `useJoinTower`
+- `apps/mobile/lib/hooks/use-towers.ts` — `useJoinTower`, `useEligibleHabits`
 
 **Work:**
 
-1. Join screen presented as a modal from the towers list (FAB or header button).
-2. Input field for the 8-character join code. Auto-uppercase, strip non-alphanumeric. Accept with or without a hyphen separator.
-3. Habit picker: select which of their active, non-tower habits to bring. Same picker as 5.4.
-4. Submit calls `POST /towers/join` with `{ joinCode, habitId }`.
-5. On success, navigate to the tower lobby/detail screen.
-6. Error handling: invalid code (404), already a member (409), rate limited (429).
+1. Join screen presented as a modal from the towers list.
+2. Code input with auto-formatting (`XXXX-XXXX`), strips non-alphanumeric, uppercases, 8-char limit.
+3. Habit picker via `useEligibleHabits()` — same eligible-habits pattern as 5.4 with radio-button-style selection. If no eligible habits, shows warning card with "Create Habit" button linking to `/(tabs)/index/create`.
+4. `useJoinTower` calls `POST /v1/towers/join` with `{ joinCode, habitId }`, invalidates `towerKeys.list()` and `habitKeys.list()`.
+5. On success: `router.replace('./${data.tower.id}')` to go directly to the tower.
+6. Error branching: 404 → "Invalid Code", 409 → "Already Joined", 429 → "Too Many Attempts", else generic.
 
 **Acceptance:**
 
-- [ ] Can join a tower by code and see the lobby
-- [ ] Habit picker only shows eligible habits
-- [ ] Error states displayed clearly (invalid code, already joined, rate limited)
+- [x] Can join a tower by code and see the lobby
+- [x] Habit picker only shows eligible habits
+- [x] Error states displayed clearly (invalid code, already joined, rate limited)
 
 ---
 
-## 5.7 — Tower home: height, streak, members, period
+## 5.7 — Tower home: height, streak, members, period ✅
 
 **Goal:** the active tower screen — the central view of the product.
 
 **Files:**
 
 - `apps/mobile/components/tower-home.tsx` — active tower view component
-- `apps/mobile/components/member-row.tsx` — member status row
-- Update `apps/mobile/app/(tabs)/towers/[id]/index.tsx` to handle `kind: 'active'`
+- `apps/mobile/components/member-row.tsx` — member status row (separate from lobby's inline MemberRow)
+- `apps/mobile/app/(tabs)/towers/[id]/index.tsx` — dispatches to `<TowerHome>` when `kind: 'active'`
 
 **Work:**
 
-1. Active tower view (from `towerActiveResponseSchema`) shows:
-   - **Header:** tower name, height (current run) and total height (sum of block heights + current), streak count. Height and streak are two distinct numbers, never summed.
-   - **Current period:** period number, start/end dates, deadline (from `deadlineAt`). Period state badge (pending, wobbling, etc.).
-   - **Member grid/list:** each member row shows display name, habit name, membership state (active/at_risk/dormant), and whether they've met quota for the current period. Use `towerMemberSchema` fields.
-   - **Wobble indicator:** when the period state indicates wobbling, show a visual warning. Identify which members are outstanding (haven't met quota).
-2. The tower's `soloActive` flag triggers the solo warning (5.12).
-3. Navigation: back to tower list. Sub-navigation to strata history (5.10).
-4. Pull-to-refresh reloads the tower detail.
-5. If the user's own membership is active/at_risk, show a prominent "Log" shortcut that navigates to their habit's logging screen.
+1. `TowerHome` takes `data: TowerActiveResponse` and `preview?: PeriodPreviewResponse`. `usePeriodPreview(id)` fetches `GET /v1/towers/:id/period` with 10s polling interval.
+2. Header: tower name, three stats — streak (`currentStreak`), total height (`totalHeight()` sums `blocks[].blockHeight + currentStreak`), block count.
+3. "Log" shortcut button: visible when user's `myMember.state` is `'active'` or `'at_risk'`, navigates to `/(tabs)/index/${myMember.habitId}`.
+4. Period card: date range, deadline formatted with date+time, `PeriodStatusBadge` (open/wobbling/survived/collapsed) from preview.
+5. `<Countdown deadlineAt={...} />` rendered below the period card (5.8).
+6. Wobble warning card: amber-styled, shown when `preview.periodStatus === 'wobbling'`, lists outstanding members by name.
+7. Members card: `<MemberRow>` for each member with display name, Host/You badges, habit name, state badge (active/at_risk/dormant with colored styling), standing indicator from preview (green checkmark for `'met'`, red X for `'short'`, blue dash for `'excused'`).
+8. "View base blocks (N)" pressable at the bottom (navigation target not yet implemented — 5.10).
+9. Pull-to-refresh reloads tower detail and period preview.
 
 **Acceptance:**
 
-- [ ] Height and streak shown as two distinct numbers
-- [ ] Member states displayed correctly (active, at_risk, dormant)
-- [ ] Period info uses `deadlineAt` only
-- [ ] Pull-to-refresh works
-- [ ] "Log" shortcut navigates to the user's habit
+- [x] Height and streak shown as two distinct numbers
+- [x] Member states displayed correctly (active, at_risk, dormant)
+- [x] Period info uses `deadlineAt` only
+- [x] Pull-to-refresh works
+- [x] "Log" shortcut navigates to the user's habit
 
 ---
 
-## 5.8 — Countdown timer anchored to deadline_at
+## 5.8 — Countdown timer anchored to deadline_at ✅
 
 **Goal:** a live countdown to the period deadline.
 
@@ -220,25 +225,27 @@ Detailed specs for every M5 ticket. The plan and build order live in `phase-5-PL
 
 **Work:**
 
-1. A `Countdown` component that takes a `deadlineAt` ISO timestamp.
-2. Displays days, hours, minutes, seconds remaining. Updates every second via `useEffect` + `setInterval`.
-3. When time is up: shows "Evaluating..." or "Past deadline" rather than negative numbers.
-4. Visual urgency tiers: normal (> 24h), attention (< 24h, amber), urgent (< 1h, red).
-5. Placed on the tower home screen (5.7) below the period info.
-6. Performance: the interval cleans up on unmount. No Reanimated here — a 1s `setInterval` is fine for text.
+1. `Countdown` component takes `{ deadlineAt: string }` (ISO timestamp).
+2. Displays days (hidden if 0), hours, minutes, seconds — zero-padded, `tabular-nums` font. Updates every second via `useEffect` + `setInterval`.
+3. Past-deadline state: shows "Past deadline — evaluating..." in a muted card instead of negative numbers.
+4. Urgency tiers: normal (> 24h, plain), attention (1h–24h, amber border/bg), urgent (< 1h, red border/bg).
+5. Colon separators between segments with matching urgency color.
+6. Interval resets when `deadlineAt` prop changes and cleans up on unmount.
 
 **Acceptance:**
 
-- [ ] Countdown ticks accurately against `deadlineAt`
-- [ ] Shows appropriate urgency styling
-- [ ] Cleans up interval on unmount
-- [ ] Never shows `evaluateAt`
+- [x] Countdown ticks accurately against `deadlineAt`
+- [x] Shows appropriate urgency styling
+- [x] Cleans up interval on unmount
+- [x] Never shows `evaluateAt`
 
 ---
 
 ## 5.9 — Tower animation (Reanimated)
 
 **Goal:** a visual tower that grows with height and collapses visually.
+
+**Prerequisites:** `react-native-reanimated` 4.7.1 is already in `apps/mobile/package.json`.
 
 **Files:**
 
@@ -254,6 +261,8 @@ Detailed specs for every M5 ticket. The plan and build order live in `phase-5-PL
 5. Wrap in a `TowerVisualBoundary` component that imports the Reanimated version. This boundary is the swap point for a future Skia renderer — the boundary component is the only file that needs to change.
 6. Keep performance in mind: use `useAnimatedStyle`, avoid JS-thread animations. Target 60fps on a Pixel 6a equivalent.
 7. The tower visual sits at the top of the tower home screen (5.7).
+
+**Note:** `.scratch/future-features/issues/01-member-color-tower-visual.md` defers member-color tower visual to post-Phase 5.
 
 **Acceptance:**
 
@@ -272,6 +281,8 @@ Detailed specs for every M5 ticket. The plan and build order live in `phase-5-PL
 
 - `apps/mobile/app/(tabs)/towers/[id]/history.tsx` — strata history screen
 - `apps/mobile/components/strata-block.tsx` — single block row
+
+**Note:** Tower home (5.7) already has a "View base blocks (N)" pressable but no navigation target yet.
 
 **Work:**
 
@@ -294,6 +305,8 @@ Detailed specs for every M5 ticket. The plan and build order live in `phase-5-PL
 ## 5.11 — Dormancy and absence UI
 
 **Goal:** members can see dormancy states and declare/cancel absences.
+
+**Prerequisites:** Backend absence redesign (`.scratch/absence-redesign/`) with 4 sub-issues (schema migration, evaluator shield logic, absence endpoint validation, shield notifications) must complete first. See ADR `docs/adr/0001-shield-based-absence.md`.
 
 **Files:**
 
@@ -353,6 +366,8 @@ Detailed specs for every M5 ticket. The plan and build order live in `phase-5-PL
 - `apps/mobile/components/empty-state.tsx` — reusable empty state component
 - Update habits list, towers list, habit detail (no entries)
 
+**Note:** The habits list (5.2) and towers list already have basic inline empty states with CTAs. This ticket extracts a reusable component and ensures consistent treatment across all screens.
+
 **Work:**
 
 1. Habits tab empty state: "Create your first habit to get started." CTA button → habit creation.
@@ -373,11 +388,13 @@ Detailed specs for every M5 ticket. The plan and build order live in `phase-5-PL
 
 **Goal:** the app doesn't break when the network is spotty.
 
+**Existing work:** `apps/mobile/lib/online-manager.ts` already wires `@react-native-community/netinfo` into TanStack Query's `onlineManager`. Only the UI layer remains.
+
 **Files:**
 
 - `apps/mobile/components/offline-banner.tsx` — offline indicator
 - `apps/mobile/lib/hooks/use-entries.ts` — update logging mutation for offline retry
-- Update `apps/mobile/lib/online-manager.ts` if needed
+- `apps/mobile/lib/online-manager.ts` — already exists, update if needed
 
 **Work:**
 
@@ -400,13 +417,15 @@ Detailed specs for every M5 ticket. The plan and build order live in `phase-5-PL
 
 **Goal:** expand the existing settings screen with account management and tower-related settings.
 
+**Existing work:** `apps/mobile/app/(tabs)/settings.tsx` already has user info card (name, email, timezone), push notification status/toggle, sign-out button, and API URL debug line.
+
 **Files:**
 
 - Update `apps/mobile/app/(tabs)/settings.tsx`
 
 **Work:**
 
-1. Keep existing: user info card, push notification toggle, sign out, API URL debug info.
+1. ~~Keep existing: user info card, push notification toggle, sign out, API URL debug info.~~ Already done.
 2. Add: timezone display with a note that it syncs from the device (read-only for now; `PATCH /me` with new timezone is M6).
 3. Add: active sessions list from `GET /me/sessions`. Each row shows user agent and last seen. Current session highlighted. "Revoke all other sessions" button → `POST /auth/sessions/revoke-all`.
 4. Add: app version and build number from Expo Constants.
