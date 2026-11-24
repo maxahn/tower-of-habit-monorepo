@@ -23,11 +23,6 @@ ENV NODE_ENV=production
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
-COPY --from=build /app/packages/shared/src ./packages/shared/src
-COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=build /app/packages/db/src ./packages/db/src
-COPY --from=build /app/packages/db/package.json ./packages/db/package.json
-COPY --from=build /app/packages/db/node_modules ./packages/db/node_modules
 COPY --from=build /app/packages/db/drizzle.config.ts ./packages/db/drizzle.config.ts
 COPY --from=build /app/packages/db/migrations ./packages/db/migrations
 EXPOSE 3000

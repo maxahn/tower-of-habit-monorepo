@@ -18,6 +18,10 @@ services:
     networks: [internal, dev_host_access]
     ports:
       - '127.0.0.1:6379:6379'
+  api:
+    networks: [edge, internal, dev_host_access]
+    ports:
+      - '127.0.0.1:3000:3000'
   # Dev-only DB GUI at http://localhost:5050 (desktop mode, no login).
   # Server is pre-registered via servers.json; enter the POSTGRES_PASSWORD
   # once on first connect and tick "Save password" (persists in pgadmin_data).
