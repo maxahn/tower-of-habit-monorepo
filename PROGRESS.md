@@ -1,10 +1,12 @@
 # Progress
 
-**Next task:** 5.15 — Settings screen (full)
+**Next task:** Phase 5 complete. Ready for exit gate testing.
 
 **Blockers:** None
 
 ## Done
+
+- 5.15 Settings screen (full): Expanded the partial settings screen into a full implementation with four sections. Profile section shows user info with inline edit mode for display name (PATCH /v1/me), timezone shown as read-only with device-detection note. Notifications section shows push permission status with enable/open-settings button. Active sessions section lists all live sessions from GET /v1/me/sessions, marks the current device, shows last-active timestamps, and offers "Sign out other devices" (POST /v1/auth/sessions/revoke-all) with confirmation dialog. Sign out button with confirmation dialog. App version displayed at bottom from expo config.
 
 - 5.14 Offline and flaky-connection handling: Configured TanStack Query with `networkMode: 'offlineFirst'` for both queries and mutations so stale cache is served and mutations are paused while offline. Mutations retry up to 3 times on `NetworkError` with exponential backoff (1s, 2s, 4s, max 30s). Created `useIsOnline` hook (`lib/hooks/use-online.ts`) wrapping TanStack's `onlineManager.subscribe`. Created `OfflineBanner` component (`components/offline-banner.tsx`) shown at top of tab layout when offline, displaying pending mutation count. Updated `LogEntry` and `useLogEntry` to suppress error alerts for `NetworkError` (since they auto-retry). Idempotency keys (`clientEntryId`) already exist on log entries from 5.3, preventing duplicates on retry. Full sync queue deferred to M6 per D4.
 
