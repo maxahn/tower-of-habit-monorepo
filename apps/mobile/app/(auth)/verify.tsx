@@ -74,6 +74,11 @@ export default function VerifyScreen() {
         public: true,
       });
       signIn(result.token, result.expiresAt, result.user, result.isNewUser);
+      if (result.isNewUser || result.user.displayName === null) {
+        router.replace('/(auth)/profile-setup');
+      } else {
+        router.replace('/(tabs)/index');
+      }
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 401) {
