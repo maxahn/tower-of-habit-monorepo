@@ -10,6 +10,7 @@ export default function TabLayout() {
     <View className="flex-1">
       <OfflineBanner />
       <Tabs
+        initialRouteName="habits"
         screenOptions={{
           headerShown: true,
           tabBarActiveTintColor: isDark ? 'hsl(217, 91%, 60%)' : 'hsl(221, 83%, 53%)',
