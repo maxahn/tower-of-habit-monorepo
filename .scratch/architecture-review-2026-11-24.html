@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture review for tower-of-habit</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+    </script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+      .badge-strong { background: #059669; color: white; }
+      .badge-exploring { background: #d97706; color: white; }
+      .badge-speculative { background: #64748b; color: white; }
+      body { font-family: 'Inter', sans-serif; }
+      h1, h2, h3, .heading { font-family: 'Source Serif 4', Georgia, serif; }
+      code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+      .depth-bar {
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+      }
+      .depth-bar .interface-zone {
+        background: #e2e8f0;
+        border: 2px solid #94a3b8;
+        border-radius: 6px 6px 0 0;
+        text-align: center;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #475569;
+        padding: 4px 0;
+      }
+      .depth-bar .impl-zone {
+        background: #1e293b;
+        border-radius: 0 0 6px 6px;
+        text-align: center;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        padding: 4px 0;
+      }
+      .depth-bar.shallow .interface-zone { height: 80px; }
+      .depth-bar.shallow .impl-zone { height: 90px; }
+      .depth-bar.deep .interface-zone { height: 36px; }
+      .depth-bar.deep .impl-zone { height: 160px; background: linear-gradient(135deg, #0f172a, #1e293b); }
+
+      .file-scatter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .file-scatter .file-chip {
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 0.7rem;
+        font-family: 'JetBrains Mono', monospace;
+        color: #334155;
+      }
+      .file-scatter .file-chip.hot {
+        border-color: #f97316;
+        background: #fff7ed;
+      }
+
+      .adr-callout {
+        background: #fffbeb;
+        border-left: 4px solid #d97706;
+        padding: 12px 16px;
+        border-radius: 0 6px 6px 0;
+        font-size: 0.85rem;
+        color: #92400e;
+      }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+      <!-- Header -->
+      <header class="space-y-4">
+        <h1 class="text-4xl font-bold tracking-tight">Architecture Review</h1>
+        <p class="text-slate-500 text-sm">tower-of-habit-monorepo &middot; 2026-11-24</p>
+        <div class="flex flex-wrap gap-4 text-xs text-slate-500 mt-4">
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block w-5 h-5 border-2 border-slate-400 rounded"></span>
+            Module
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block w-5 border-t-2 border-dashed border-slate-400" style="width:20px"></span>
+            Seam
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block w-5 border-t-2 border-red-500" style="width:20px"></span>
+            Leakage
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block w-5 h-5 rounded" style="background:linear-gradient(135deg,#0f172a,#1e293b)"></span>
+            Deep module
+          </span>
+        </div>
+      </header>
+
+      <section id="candidates" class="space-y-14">
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- CANDIDATE 1 -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <article class="space-y-5">
+          <div class="flex items-start justify-between">
+            <h2 class="text-2xl font-bold heading">1. Consolidate notification dispatch into one deep module</h2>
+            <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Strong</span>
+          </div>
+
+          <div class="file-scatter">
+            <span class="file-chip hot">apps/worker/src/nudge.ts</span>
+            <span class="file-chip hot">apps/worker/src/wobble.ts</span>
+            <span class="file-chip">apps/worker/src/backstop.ts</span>
+            <span class="file-chip">apps/worker/src/index.ts</span>
+          </div>
+
+          <!-- Before / After -->
+          <div class="grid grid-cols-2 gap-6">
+            <!-- Before -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Before</p>
+              <pre class="mermaid" style="min-height:260px">
+flowchart TD
+  T["tick loop"] --> N["processNudge"]
+  T --> W["processWobble"]
+  N --> DB1["fetch period"]
+  N --> DB2["fetch tower"]
+  N --> DB3["list memberships"]
+  N --> DB4["count qualifying days"]
+  N --> DB5["enqueue notification"]
+  W --> DB6["fetch period"]
+  W --> DB7["fetch tower"]
+  W --> DB8["list memberships"]
+  W --> DB9["count qualifying days"]
+  W --> DB10["enqueue notification"]
+  style N fill:#fef3c7,stroke:#d97706
+  style W fill:#fef3c7,stroke:#d97706
+              </pre>
+              <p class="text-xs text-slate-500 text-center italic">Two parallel shallow modules, each reimplementing the same 5-step pipeline</p>
+            </div>
+            <!-- After -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">After</p>
+              <pre class="mermaid" style="min-height:260px">
+flowchart TD
+  T["tick loop"] --> D["dispatchPeriodNotifications\n(db, periodId, now, kind)"]
+  subgraph DEEP ["Period Notification Module"]
+    direction TB
+    D --> P["fetch period + tower"]
+    P --> M["list live memberships"]
+    M --> Q["count qualifying days"]
+    Q --> S{"kind?"}
+    S -->|nudge| F1["filter: short of quota"]
+    S -->|wobble| F2["filter: all if any short"]
+    F1 --> E["enqueue"]
+    F2 --> E
+  end
+  style DEEP fill:#0f172a,stroke:#1e293b,color:#e2e8f0
+  style D fill:#1e293b,stroke:#334155,color:#e2e8f0
+  style P fill:#1e293b,stroke:#334155,color:#94a3b8
+  style M fill:#1e293b,stroke:#334155,color:#94a3b8
+  style Q fill:#1e293b,stroke:#334155,color:#94a3b8
+  style S fill:#1e293b,stroke:#334155,color:#94a3b8
+  style F1 fill:#1e293b,stroke:#334155,color:#94a3b8
+  style F2 fill:#1e293b,stroke:#334155,color:#94a3b8
+  style E fill:#1e293b,stroke:#334155,color:#94a3b8
+              </pre>
+              <p class="text-xs text-slate-500 text-center italic">One deep module; the kind parameter selects the notification strategy</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <!-- Mass diagram: depth comparison -->
+            <div class="flex items-end justify-center gap-8 py-4">
+              <div class="text-center space-y-1">
+                <div class="depth-bar shallow mx-auto" style="width:120px">
+                  <div class="interface-zone">Interface</div>
+                  <div class="impl-zone">Impl</div>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">nudge.ts &mdash; shallow</p>
+              </div>
+              <div class="text-center space-y-1">
+                <div class="depth-bar shallow mx-auto" style="width:120px">
+                  <div class="interface-zone">Interface</div>
+                  <div class="impl-zone">Impl</div>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">wobble.ts &mdash; shallow</p>
+              </div>
+            </div>
+            <div class="flex items-end justify-center gap-8 py-4">
+              <div class="text-center space-y-1">
+                <div class="depth-bar deep mx-auto" style="width:160px">
+                  <div class="interface-zone">Interface</div>
+                  <div class="impl-zone">Implementation</div>
+                </div>
+                <p class="text-xs text-slate-400 mt-2">period-notifications.ts &mdash; deep</p>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-sm"><strong>Problem:</strong> Nudge and wobble are near-identical shallow modules: each independently fetches the period, tower, memberships, counts qualifying days, and enqueues notifications — differing only in the final filter.</p>
+          <p class="text-sm"><strong>Solution:</strong> One <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">dispatchPeriodNotifications(db, periodId, now, kind)</code> interface that internalizes the shared load-filter-count pipeline.</p>
+
+          <ul class="text-sm space-y-1 list-none pl-0">
+            <li>✦ Locality: quota check in one place</li>
+            <li>✦ Leverage: one interface, two callers</li>
+            <li>✦ Interface shrinks from two to one</li>
+            <li>✦ Delete ~30 lines of duplicated fetch/filter</li>
+            <li>✦ Tests hit one seam instead of two</li>
+          </ul>
+        </article>
+
+        <hr class="border-slate-200" />
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- CANDIDATE 2 -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <article class="space-y-5">
+          <div class="flex items-start justify-between">
+            <h2 class="text-2xl font-bold heading">2. Absorb evaluation input assembly into the evaluation orchestrator</h2>
+            <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Strong</span>
+          </div>
+
+          <div class="file-scatter">
+            <span class="file-chip hot">apps/api/src/evaluation/service.ts</span>
+            <span class="file-chip hot">apps/api/src/evaluation/input.ts</span>
+            <span class="file-chip">apps/api/src/evaluation/notifications.ts</span>
+            <span class="file-chip">apps/api/src/towers/periods.ts</span>
+            <span class="file-chip hot">apps/api/src/towers/routes.ts</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <!-- Before -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Before</p>
+              <pre class="mermaid" style="min-height:280px">
+flowchart TD
+  EvalJob["evaluateTowerPeriod\n(service.ts)"] --> LI["loadEvaluationInput\n(input.ts)"]
+  EvalJob --> EN["enqueueNotifications\n(notifications.ts)"]
+  LI --> PW["periodWindowFor\n(periods.ts)"]
+  PW --> CPW["computePeriodWindow\n(shared)"]
+
+  Route["GET /towers/:id/period\n(routes.ts)"] --> LI2["inline: load memberships\ncount days, soloActive"]
+  Route --> PW2["periodWindowFor\n(periods.ts)"]
+
+  style LI fill:#fef3c7,stroke:#d97706
+  style PW fill:#fef3c7,stroke:#d97706
+  style LI2 fill:#fef2f2,stroke:#dc2626
+  style PW2 fill:#fef3c7,stroke:#d97706
+
+  linkStyle 4 stroke:#dc2626,stroke-width:2
+              </pre>
+              <p class="text-xs text-slate-500 text-center italic">Input loading duplicated between job and route. <code>periodWindowFor</code> is a passthrough.</p>
+            </div>
+            <!-- After -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">After</p>
+              <pre class="mermaid" style="min-height:280px">
+flowchart TD
+  EvalJob["evaluateTowerPeriod\n(write path)"] --> EM["Evaluation Module"]
+  Route["GET /towers/:id/period"] --> PM["previewTowerPeriod\n(read path)"]
+
+  subgraph DEEP ["Evaluation Module"]
+    direction TB
+    EM --> IL["load input\n(internal)"]
+    PM --> IL
+    IL --> EV["evaluate\n(shared pure fn)"]
+    EV --> NF["enqueue notifications\n(internal)"]
+  end
+
+  style DEEP fill:#0f172a,stroke:#1e293b,color:#e2e8f0
+  style EM fill:#1e293b,stroke:#334155,color:#e2e8f0
+  style PM fill:#1e293b,stroke:#334155,color:#e2e8f0
+  style IL fill:#1e293b,stroke:#334155,color:#94a3b8
+  style EV fill:#1e293b,stroke:#334155,color:#94a3b8
+  style NF fill:#1e293b,stroke:#334155,color:#94a3b8
+              </pre>
+              <p class="text-xs text-slate-500 text-center italic">One module, two interface methods. Input loading is internal.</p>
+            </div>
+          </div>
+
+          <p class="text-sm"><strong>Problem:</strong> The route handler at <code class="mono text-xs">routes.ts:244–288</code> re-does the input assembly that <code class="mono text-xs">input.ts</code> already performs for the evaluation job, including a second inline <code>soloActive</code> calculation.</p>
+          <p class="text-sm"><strong>Solution:</strong> Two interface methods — <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">evaluateTowerPeriod</code> (write) and <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">previewTowerPeriod</code> (read) — with input loading, notification enqueueing, and period-window resolution as internal implementation.</p>
+
+          <ul class="text-sm space-y-1 list-none pl-0">
+            <li>✦ Locality: preview and evaluation share one input path</li>
+            <li>✦ Delete the shallow <code class="mono text-xs">periodWindowFor</code> passthrough</li>
+            <li>✦ <code>soloActive</code> calculated once, internally</li>
+            <li>✦ Route handler: 44 lines → ~5</li>
+            <li>✦ Tests exercise preview through the module interface</li>
+          </ul>
+        </article>
+
+        <hr class="border-slate-200" />
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- CANDIDATE 3 -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <article class="space-y-5">
+          <div class="flex items-start justify-between">
+            <h2 class="text-2xl font-bold heading">3. Deepen the absence declaration into a domain module</h2>
+            <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Strong</span>
+          </div>
+
+          <div class="file-scatter">
+            <span class="file-chip hot">apps/api/src/towers/routes.ts</span>
+            <span class="file-chip">packages/db/src/towers/memberships/memberships.ts</span>
+            <span class="file-chip">packages/shared/src/evaluator/dormancy.ts</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <!-- Before: cross-section showing layers the route handler passes through -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Before</p>
+              <div class="space-y-0 mt-4">
+                <div class="h-10 border-l-4 border-orange-400 bg-orange-50 flex items-center px-4 text-xs mono text-orange-800 rounded-t">
+                  POST /towers/:id/absence — route handler
+                </div>
+                <div class="h-8 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
+                  validate date range (14-day cap)
+                </div>
+                <div class="h-8 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
+                  check 28-day budget ⚠️ contradicts ADR-0001
+                </div>
+                <div class="h-8 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
+                  decide: immediate vs deferred transition
+                </div>
+                <div class="h-8 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
+                  updateMembership() — write 1
+                </div>
+                <div class="h-8 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700 rounded-b">
+                  transitionMembership() — write 2
+                </div>
+                <div class="h-6"></div>
+                <div class="h-10 border-l-4 border-orange-400 bg-orange-50 flex items-center px-4 text-xs mono text-orange-800 rounded">
+                  DELETE /towers/:id/absence — another 20 lines inline
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 text-center italic mt-3">60+ lines of domain logic embedded in the route handler. No module to test.</p>
+            </div>
+            <!-- After -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">After</p>
+              <div class="space-y-0 mt-4">
+                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-4 text-xs mono text-slate-600 rounded-t">
+                  POST /towers/:id/absence — 3 lines
+                </div>
+                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-4 text-xs mono text-slate-600 rounded-b">
+                  DELETE /towers/:id/absence — 3 lines
+                </div>
+                <div class="flex items-center justify-center py-2">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M12 20l-4-4M12 20l4-4" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="rounded-lg overflow-hidden" style="background:linear-gradient(135deg,#0f172a,#1e293b)">
+                  <div class="h-8 flex items-center justify-center text-xs uppercase tracking-wider text-slate-400 border-b border-slate-700">
+                    Absence Module — interface
+                  </div>
+                  <div class="px-4 py-3 space-y-1">
+                    <p class="text-xs mono text-emerald-400">declareAbsence(tx, towerId, userId, range, now)</p>
+                    <p class="text-xs mono text-emerald-400">cancelAbsence(tx, towerId, userId, now)</p>
+                  </div>
+                  <div class="h-px bg-slate-600 mx-4" style="border-top:2px dashed #475569"></div>
+                  <div class="px-4 py-3 space-y-1">
+                    <p class="text-xs mono text-slate-500">validate date range</p>
+                    <p class="text-xs mono text-slate-500">check shield count (ADR-0001)</p>
+                    <p class="text-xs mono text-slate-500">transition logic</p>
+                    <p class="text-xs mono text-slate-500">DB mutations</p>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 text-center italic mt-3">Route handlers become thin adapters. Domain rules testable through the module interface.</p>
+            </div>
+          </div>
+
+          <div class="adr-callout mt-4">
+            <strong>ADR-0001 conflict:</strong> The route handler still checks <code class="mono text-xs">voluntaryAbsenceDaysUsed + days > 28</code> — the budget-based mechanic that ADR-0001 (shield-based absence) decided against. Extracting this into a module isolates the migration to one place.
+          </div>
+
+          <p class="text-sm"><strong>Problem:</strong> The absence declaration is 60 lines of domain logic embedded in a route handler — date validation, budget arithmetic, dormancy timing, two DB writes — with no module to test independently.</p>
+          <p class="text-sm"><strong>Solution:</strong> An absence module with <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">declareAbsence</code> and <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">cancelAbsence</code> as the interface; the route handlers become 3-line adapters.</p>
+
+          <ul class="text-sm space-y-1 list-none pl-0">
+            <li>✦ Locality: absence rules in one place</li>
+            <li>✦ Route handler loses 50+ lines of business logic</li>
+            <li>✦ Testable without HTTP scaffolding</li>
+            <li>✦ ADR-0001 migration isolated to one module</li>
+          </ul>
+        </article>
+
+        <hr class="border-slate-200" />
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- CANDIDATE 4 -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <article class="space-y-5">
+          <div class="flex items-start justify-between">
+            <h2 class="text-2xl font-bold heading">4. Extract the isLive membership predicate</h2>
+            <span class="badge-exploring text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Worth exploring</span>
+          </div>
+
+          <div class="file-scatter">
+            <span class="file-chip hot">packages/shared/src/evaluator/evaluate.ts</span>
+            <span class="file-chip">packages/shared/src/evaluator/dormancy.ts</span>
+            <span class="file-chip">apps/worker/src/nudge.ts</span>
+            <span class="file-chip">apps/worker/src/wobble.ts</span>
+            <span class="file-chip">apps/api/src/towers/routes.ts</span>
+            <span class="file-chip">apps/api/src/towers/service.ts</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <!-- Before: scattered definitions -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Before</p>
+              <div class="relative" style="height:260px">
+                <!-- Six scattered boxes -->
+                <div class="absolute top-2 left-2 bg-amber-50 border border-amber-300 rounded px-3 py-2 text-xs mono" style="width:160px">
+                  evaluate.ts<br><span class="text-amber-700">const isLive = …</span>
+                </div>
+                <div class="absolute top-2 right-2 bg-amber-50 border border-amber-300 rounded px-3 py-2 text-xs mono" style="width:160px">
+                  dormancy.ts<br><span class="text-amber-700">const isLive = …</span>
+                </div>
+                <div class="absolute top-20 left-8 bg-amber-50 border border-amber-300 rounded px-3 py-2 text-xs mono" style="width:170px">
+                  nudge.ts<br><span class="text-amber-700">.filter(m => state…)</span>
+                </div>
+                <div class="absolute top-20 right-8 bg-amber-50 border border-amber-300 rounded px-3 py-2 text-xs mono" style="width:170px">
+                  wobble.ts<br><span class="text-amber-700">.filter(m => state…)</span>
+                </div>
+                <div class="absolute bottom-10 left-2 bg-amber-50 border border-amber-300 rounded px-3 py-2 text-xs mono" style="width:160px">
+                  routes.ts<br><span class="text-amber-700">.filter(m => …)</span>
+                </div>
+                <div class="absolute bottom-10 right-2 bg-amber-50 border border-amber-300 rounded px-3 py-2 text-xs mono" style="width:160px">
+                  service.ts<br><span class="text-amber-700">.filter(m => …)</span>
+                </div>
+                <!-- Center label -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <span class="text-red-400 text-xs font-semibold uppercase tracking-wider bg-white px-2 py-1 rounded border border-red-200">6 definitions</span>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 text-center italic">The same predicate defined independently in 6 places across 3 packages</p>
+            </div>
+            <!-- After -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">After</p>
+              <div class="relative flex flex-col items-center justify-center" style="height:260px">
+                <!-- Single source -->
+                <div class="rounded-lg overflow-hidden mb-4" style="width:220px; background:linear-gradient(135deg,#0f172a,#1e293b)">
+                  <div class="px-4 py-3 text-center">
+                    <p class="text-xs uppercase tracking-wider text-slate-400">@tower-of-habit/shared</p>
+                    <p class="text-sm mono text-emerald-400 mt-1">isLive(state): boolean</p>
+                  </div>
+                </div>
+                <!-- Arrows fanning out -->
+                <svg width="300" height="60" viewBox="0 0 300 60" class="mb-2">
+                  <line x1="150" y1="0" x2="30" y2="55" stroke="#94a3b8" stroke-width="1.5" />
+                  <line x1="150" y1="0" x2="90" y2="55" stroke="#94a3b8" stroke-width="1.5" />
+                  <line x1="150" y1="0" x2="150" y2="55" stroke="#94a3b8" stroke-width="1.5" />
+                  <line x1="150" y1="0" x2="210" y2="55" stroke="#94a3b8" stroke-width="1.5" />
+                  <line x1="150" y1="0" x2="270" y2="55" stroke="#94a3b8" stroke-width="1.5" />
+                </svg>
+                <div class="flex gap-3 text-xs text-slate-400">
+                  <span>eval</span>
+                  <span>dorm</span>
+                  <span>nudge</span>
+                  <span>routes</span>
+                  <span>svc</span>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 text-center italic">One definition, six import sites. Zero drift.</p>
+            </div>
+          </div>
+
+          <p class="text-sm"><strong>Problem:</strong> The concept "a membership is live" (<code class="mono text-xs">state === 'active' || state === 'at_risk'</code>) is a core domain predicate defined independently in 6 places across 3 packages.</p>
+          <p class="text-sm"><strong>Solution:</strong> One exported <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">isLive(state: MembershipState): boolean</code> in <code class="mono text-xs">@tower-of-habit/shared</code>. All six sites import it.</p>
+
+          <ul class="text-sm space-y-1 list-none pl-0">
+            <li>✦ Locality: "what counts as live" in one place</li>
+            <li>✦ Leverage: one definition, six call sites</li>
+            <li>✦ Zero risk of drift between evaluator and worker</li>
+          </ul>
+        </article>
+
+        <hr class="border-slate-200" />
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- CANDIDATE 5 -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <article class="space-y-5">
+          <div class="flex items-start justify-between">
+            <h2 class="text-2xl font-bold heading">5. Consolidate the tower-aggregate interface</h2>
+            <span class="badge-exploring text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Worth exploring</span>
+          </div>
+
+          <div class="file-scatter">
+            <span class="file-chip hot">packages/db/src/towers/towers.ts</span>
+            <span class="file-chip hot">packages/db/src/towers/periods/periods.ts</span>
+            <span class="file-chip hot">packages/db/src/towers/memberships/memberships.ts</span>
+            <span class="file-chip">packages/db/src/towers/blocks/blocks.ts</span>
+            <span class="file-chip">packages/db/src/index.ts</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <!-- Before -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Before</p>
+              <pre class="mermaid" style="min-height:280px">
+flowchart LR
+  Caller["evaluation/service.ts\nimports 16 symbols"] --> T["towers.ts\n~12 exports"]
+  Caller --> P["periods.ts\n~10 exports"]
+  Caller --> M["memberships.ts\n~8 exports"]
+  Caller --> B["blocks.ts\n~4 exports"]
+  T --> DB[(Postgres)]
+  P --> DB
+  M --> DB
+  B --> DB
+
+  style T fill:#fef3c7,stroke:#d97706
+  style P fill:#fef3c7,stroke:#d97706
+  style M fill:#fef3c7,stroke:#d97706
+  style B fill:#fef3c7,stroke:#d97706
+              </pre>
+              <p class="text-xs text-slate-500 text-center italic">~40 exports, flat barrel. Callers must know lock ordering and state transitions.</p>
+            </div>
+            <!-- After -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">After</p>
+              <pre class="mermaid" style="min-height:280px">
+flowchart LR
+  Caller["evaluation/service.ts\nimports 3 symbols"] --> AGG
+
+  subgraph AGG ["Tower Aggregate Module"]
+    direction TB
+    I["evaluatePeriod\nstartTower\njoinTower"] --> T2["towers (internal)"]
+    I --> P2["periods (internal)"]
+    I --> M2["memberships (internal)"]
+    I --> B2["blocks (internal)"]
+  end
+
+  AGG --> DB[(Postgres)]
+
+  style AGG fill:#0f172a,stroke:#1e293b,color:#e2e8f0
+  style I fill:#1e293b,stroke:#334155,color:#e2e8f0
+  style T2 fill:#1e293b,stroke:#334155,color:#94a3b8
+  style P2 fill:#1e293b,stroke:#334155,color:#94a3b8
+  style M2 fill:#1e293b,stroke:#334155,color:#94a3b8
+  style B2 fill:#1e293b,stroke:#334155,color:#94a3b8
+              </pre>
+              <p class="text-xs text-slate-500 text-center italic">~10 high-level operations. CRUD is internal. Invariants enforced by the module.</p>
+            </div>
+          </div>
+
+          <p class="text-sm"><strong>Problem:</strong> The tower aggregate (tower + periods + memberships + blocks) is spread across four modules all re-exported flat. Callers import 16+ symbols and must know the correct lock-load-transition sequence.</p>
+          <p class="text-sm"><strong>Solution:</strong> A tower-aggregate module with ~10 high-level operations (<code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">evaluatePeriod</code>, <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">startTower</code>, <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">joinTower</code>). Individual CRUD functions become implementation.</p>
+
+          <ul class="text-sm space-y-1 list-none pl-0">
+            <li>✦ Locality: state-machine invariants in one place</li>
+            <li>✦ Leverage: callers import one module, not four</li>
+            <li>✦ Interface shrinks from ~40 exports to ~10</li>
+            <li>✦ Lock ordering enforced by implementation</li>
+          </ul>
+        </article>
+
+        <hr class="border-slate-200" />
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- CANDIDATE 6 -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <article class="space-y-5">
+          <div class="flex items-start justify-between">
+            <h2 class="text-2xl font-bold heading">6. Deepen entry logging into a domain module</h2>
+            <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Strong</span>
+          </div>
+
+          <div class="file-scatter">
+            <span class="file-chip hot">apps/api/src/entries/routes.ts</span>
+            <span class="file-chip hot">packages/db/src/habits/entries/entries.ts</span>
+            <span class="file-chip">packages/shared/src/evaluator/qualify.ts</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-6">
+            <!-- Before -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Before</p>
+              <div class="space-y-0 mt-4">
+                <div class="h-10 border-l-4 border-orange-400 bg-orange-50 flex items-center px-4 text-xs mono text-orange-800 rounded-t">
+                  POST /entries — 88-line route handler
+                </div>
+                <div class="h-7 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
+                  resolve day boundary (tz / deadline / grace)
+                </div>
+                <div class="h-7 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
+                  gap-fill probe + localDate resolution
+                </div>
+                <div class="h-7 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
+                  qualification check (qualifies)
+                </div>
+                <div class="h-7 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
+                  recordEntry() — write
+                </div>
+                <div class="h-7 border-l-4 border-red-400 bg-red-50/60 flex items-center px-4 text-xs mono text-red-700">
+                  ⚠ update lastQualifyingDate
+                </div>
+                <div class="h-7 border-l-4 border-red-400 bg-red-50/60 flex items-center px-4 text-xs mono text-red-700">
+                  ⚠ stepMembership dormancy wake-up
+                </div>
+                <div class="h-7 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700 rounded-b">
+                  sourceOf() — grace-window concept
+                </div>
+                <div class="h-5"></div>
+                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-4 text-xs mono text-slate-600 rounded">
+                  logEntry() (DB layer) — parallel pipeline, no membership effects
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 text-center italic mt-3">Two entry-logging paths. The route handler owns membership side-effects the DB path skips.</p>
+            </div>
+            <!-- After -->
+            <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">After</p>
+              <div class="space-y-0 mt-4">
+                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-4 text-xs mono text-slate-600 rounded-t">
+                  POST /entries — 5-line adapter
+                </div>
+                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-4 text-xs mono text-slate-600 rounded-b">
+                  logEntry() callers — same 5-line shape
+                </div>
+                <div class="flex items-center justify-center py-2">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M12 20l-4-4M12 20l4-4" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="rounded-lg overflow-hidden" style="background:linear-gradient(135deg,#0f172a,#1e293b)">
+                  <div class="h-8 flex items-center justify-center text-xs uppercase tracking-wider text-slate-400 border-b border-slate-700">
+                    Entry Logging Module — interface
+                  </div>
+                  <div class="px-4 py-3 space-y-1">
+                    <p class="text-xs mono text-emerald-400">logHabitEntry(tx, userId, habitId, body, now)</p>
+                    <p class="text-xs mono text-slate-500 ml-2">→ { entry, qualifies, created, source, woke }</p>
+                  </div>
+                  <div class="h-px bg-slate-600 mx-4" style="border-top:2px dashed #475569"></div>
+                  <div class="px-4 py-3 space-y-1">
+                    <p class="text-xs mono text-slate-500">resolve day boundary</p>
+                    <p class="text-xs mono text-slate-500">resolve localDate + gap-fill</p>
+                    <p class="text-xs mono text-slate-500">check qualification</p>
+                    <p class="text-xs mono text-slate-500">write entry</p>
+                    <p class="text-xs mono text-slate-500">update membership counters</p>
+                    <p class="text-xs mono text-slate-500">dormancy wake-up</p>
+                    <p class="text-xs mono text-slate-500">compute source</p>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500 text-center italic mt-3">One module, one interface. Membership effects can't be forgotten.</p>
+            </div>
+          </div>
+
+          <div class="adr-callout mt-4">
+            <strong>Parallel-path risk:</strong> The DB-layer <code class="mono text-xs">logEntry()</code> resolves day boundaries and writes entries, but does <em>not</em> update <code class="mono text-xs">lastQualifyingDate</code> or fire the dormancy wake-up. The route handler's <code class="mono text-xs">recordEntry()</code> path does, but only because those 20 lines were added inline. Any new caller of either path will silently miss one side or the other.
+          </div>
+
+          <p class="text-sm"><strong>Problem:</strong> The <code class="mono text-xs">POST /entries</code> route handler is an 88-line pipeline that orchestrates seven domain concerns — day-boundary resolution, gap-fill probing, qualification, entry write, <code class="mono text-xs">lastQualifyingDate</code> bookkeeping, dormancy wake-up, and grace-window classification — paralleling the DB layer's <code class="mono text-xs">logEntry()</code> which does the first four independently but skips the membership effects.</p>
+          <p class="text-sm"><strong>Solution:</strong> One <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">logHabitEntry(tx, userId, habitId, body, now)</code> interface that internalizes the full pipeline. The route handler becomes a 5-line adapter.</p>
+
+          <ul class="text-sm space-y-1 list-none pl-0">
+            <li>✦ Locality: "how an entry is logged" in one place (today it's split across 3 files in 2 packages)</li>
+            <li>✦ Safety: dormancy wake-up and lastQualifyingDate can't be forgotten by a new caller</li>
+            <li>✦ Route handler: 88 lines → ~5</li>
+            <li>✦ Leverage: mobile offline queue, future bulk-import, and tests all hit one seam</li>
+            <li>✦ Delete: <code class="mono text-xs">sourceOf()</code> moves internal; gap-fill duplication collapses</li>
+          </ul>
+        </article>
+
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- TOP RECOMMENDATION -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <section id="top-recommendation" class="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-8 space-y-4">
+        <h2 class="text-2xl font-bold heading text-emerald-900">Top recommendation</h2>
+        <p class="text-sm text-emerald-800">
+          Start with <a href="#candidates" class="underline font-semibold">Candidate 1 (notification dispatch)</a> — it's the fastest win: two nearly identical files collapsed into one, clear before/after, zero risk.
+          Then <a href="#candidates" class="underline font-semibold">Candidate 3 (absence module)</a> — it directly enables the ADR-0001 shield migration by giving it a home.
+          Then <a href="#candidates" class="underline font-semibold">Candidate 2 (evaluation orchestration)</a> — highest impact, most-changed area, route-handler duplication is a real source of bugs.
+        </p>
+        <p class="text-xs text-emerald-600">Suggested order: 1 → 3 → 2. Candidates 4 and 5 are worth exploring after the first three land.</p>
+      </section>
+
+    </main>
+  </body>
+</html>
