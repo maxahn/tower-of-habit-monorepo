@@ -1,10 +1,10 @@
-import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import * as SplashScreen from 'expo-splash-screen';
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import type { SessionUser, MeResponse } from '@tower-of-habit/shared';
 import { createApiClient, type ApiClient } from './api-client';
+import { getApiBaseUrl } from './api-url';
 import { refreshPushTokenIfNeeded } from './push';
 
 const TOKEN_KEY = 'tower_session_token';
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const tokenRef = useRef<string | null>(null);
   const expiresAtRef = useRef<string | null>(null);
 
-  const baseUrl = Constants.expoConfig?.extra?.apiUrl ?? 'http://localhost:3000';
+  const baseUrl = getApiBaseUrl();
 
   const apiClient = useMemo(
     () =>
