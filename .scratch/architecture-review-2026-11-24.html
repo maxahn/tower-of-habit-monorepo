@@ -571,13 +571,12 @@ flowchart LR
         <article class="space-y-5">
           <div class="flex items-start justify-between">
             <h2 class="text-2xl font-bold heading">6. Deepen entry logging into a domain module</h2>
-            <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Strong</span>
+            <span class="badge-strong text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">Done ✓</span>
           </div>
 
           <div class="file-scatter">
-            <span class="file-chip hot">apps/api/src/entries/routes.ts</span>
-            <span class="file-chip hot">packages/db/src/habits/entries/entries.ts</span>
-            <span class="file-chip">packages/shared/src/evaluator/qualify.ts</span>
+            <span class="file-chip">apps/api/src/entries/service.ts</span>
+            <span class="file-chip">apps/api/src/entries/routes.ts</span>
           </div>
 
           <div class="grid grid-cols-2 gap-6">
@@ -595,55 +594,53 @@ flowchart LR
                   gap-fill probe + localDate resolution
                 </div>
                 <div class="h-7 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
-                  qualification check (qualifies)
+                  qualification check
                 </div>
                 <div class="h-7 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700">
                   recordEntry() — write
                 </div>
                 <div class="h-7 border-l-4 border-red-400 bg-red-50/60 flex items-center px-4 text-xs mono text-red-700">
-                  ⚠ update lastQualifyingDate
+                  ⚠ lastQualifyingDate bookkeeping
                 </div>
                 <div class="h-7 border-l-4 border-red-400 bg-red-50/60 flex items-center px-4 text-xs mono text-red-700">
-                  ⚠ stepMembership dormancy wake-up
+                  ⚠ dormancy wake-up
                 </div>
                 <div class="h-7 border-l-4 border-orange-300 bg-orange-50/60 flex items-center px-4 text-xs mono text-orange-700 rounded-b">
-                  sourceOf() — grace-window concept
+                  sourceOf() — response-only
                 </div>
                 <div class="h-5"></div>
                 <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-4 text-xs mono text-slate-600 rounded">
-                  logEntry() (DB layer) — parallel pipeline, no membership effects
+                  logEntry() (DB layer) — zero production callers, no membership effects
                 </div>
               </div>
-              <p class="text-xs text-slate-500 text-center italic mt-3">Two entry-logging paths. The route handler owns membership side-effects the DB path skips.</p>
+              <p class="text-xs text-slate-500 text-center italic mt-3">All domain logic inline in the route handler. DB-layer <code>logEntry()</code> was dead code.</p>
             </div>
             <!-- After -->
             <div class="rounded-lg border border-slate-200 bg-white p-5 space-y-3">
               <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">After</p>
               <div class="space-y-0 mt-4">
-                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-4 text-xs mono text-slate-600 rounded-t">
-                  POST /entries — 5-line adapter
-                </div>
-                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-4 text-xs mono text-slate-600 rounded-b">
-                  logEntry() callers — same 5-line shape
+                <div class="h-10 border-l-4 border-slate-300 bg-slate-50 flex items-center px-4 text-xs mono text-slate-600 rounded">
+                  POST /entries — 3-line adapter
                 </div>
                 <div class="flex items-center justify-center py-2">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M12 20l-4-4M12 20l4-4" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/></svg>
                 </div>
                 <div class="rounded-lg overflow-hidden" style="background:linear-gradient(135deg,#0f172a,#1e293b)">
                   <div class="h-8 flex items-center justify-center text-xs uppercase tracking-wider text-slate-400 border-b border-slate-700">
-                    Entry Logging Module — interface
+                    entries/service.ts — interface
                   </div>
                   <div class="px-4 py-3 space-y-1">
-                    <p class="text-xs mono text-emerald-400">logHabitEntry(tx, userId, habitId, body, now)</p>
-                    <p class="text-xs mono text-slate-500 ml-2">→ { entry, qualifies, created, source, woke }</p>
+                    <p class="text-xs mono text-emerald-400">logHabitEntry(tx, habit, body, now)</p>
+                    <p class="text-xs mono text-slate-500 ml-2">→ LogEntryResponse &amp; { created }</p>
                   </div>
                   <div class="h-px bg-slate-600 mx-4" style="border-top:2px dashed #475569"></div>
                   <div class="px-4 py-3 space-y-1">
+                    <p class="text-xs mono text-slate-500">fetch tower binding + user</p>
                     <p class="text-xs mono text-slate-500">resolve day boundary</p>
                     <p class="text-xs mono text-slate-500">resolve localDate + gap-fill</p>
                     <p class="text-xs mono text-slate-500">check qualification</p>
-                    <p class="text-xs mono text-slate-500">write entry</p>
-                    <p class="text-xs mono text-slate-500">update membership counters</p>
+                    <p class="text-xs mono text-slate-500">recordEntry()</p>
+                    <p class="text-xs mono text-slate-500">lastQualifyingDate bookkeeping</p>
                     <p class="text-xs mono text-slate-500">dormancy wake-up</p>
                     <p class="text-xs mono text-slate-500">compute source</p>
                   </div>
@@ -653,19 +650,15 @@ flowchart LR
             </div>
           </div>
 
-          <div class="adr-callout mt-4">
-            <strong>Parallel-path risk:</strong> The DB-layer <code class="mono text-xs">logEntry()</code> resolves day boundaries and writes entries, but does <em>not</em> update <code class="mono text-xs">lastQualifyingDate</code> or fire the dormancy wake-up. The route handler's <code class="mono text-xs">recordEntry()</code> path does, but only because those 20 lines were added inline. Any new caller of either path will silently miss one side or the other.
-          </div>
-
-          <p class="text-sm"><strong>Problem:</strong> The <code class="mono text-xs">POST /entries</code> route handler is an 88-line pipeline that orchestrates seven domain concerns — day-boundary resolution, gap-fill probing, qualification, entry write, <code class="mono text-xs">lastQualifyingDate</code> bookkeeping, dormancy wake-up, and grace-window classification — paralleling the DB layer's <code class="mono text-xs">logEntry()</code> which does the first four independently but skips the membership effects.</p>
-          <p class="text-sm"><strong>Solution:</strong> One <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">logHabitEntry(tx, userId, habitId, body, now)</code> interface that internalizes the full pipeline. The route handler becomes a 5-line adapter.</p>
+          <p class="text-sm"><strong>What changed:</strong> The route handler's 85-line domain pipeline — day-boundary resolution, gap-fill, qualification, entry write, <code class="mono text-xs">lastQualifyingDate</code> bookkeeping, dormancy wake-up, and <code class="mono text-xs">sourceOf</code> — was extracted into <code class="mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">logHabitEntry(tx, habit, body, now)</code> in <code class="mono text-xs">entries/service.ts</code>. The route handler is now a 3-line adapter (auth check → call → respond).</p>
+          <p class="text-sm"><strong>Note:</strong> The DB-layer <code class="mono text-xs">logEntry()</code> had zero production callers — only DB tests used it. It remains for now; a follow-up commit will delete it and migrate its tests to <code class="mono text-xs">recordEntry</code>.</p>
 
           <ul class="text-sm space-y-1 list-none pl-0">
-            <li>✦ Locality: "how an entry is logged" in one place (today it's split across 3 files in 2 packages)</li>
-            <li>✦ Safety: dormancy wake-up and lastQualifyingDate can't be forgotten by a new caller</li>
-            <li>✦ Route handler: 88 lines → ~5</li>
-            <li>✦ Leverage: mobile offline queue, future bulk-import, and tests all hit one seam</li>
-            <li>✦ Delete: <code class="mono text-xs">sourceOf()</code> moves internal; gap-fill duplication collapses</li>
+            <li>✓ Locality: full entry-logging pipeline in one function</li>
+            <li>✓ Safety: dormancy wake-up and lastQualifyingDate can't be skipped</li>
+            <li>✓ Route handler: 88 lines → 3</li>
+            <li>✓ <code class="mono text-xs">sourceOf()</code> moved internal</li>
+            <li>⬡ Follow-up: delete dead <code>logEntry()</code> / <code>addSupplementalEntry()</code>, migrate DB tests</li>
           </ul>
         </article>
 
@@ -681,7 +674,7 @@ flowchart LR
           <a href="#candidates" class="underline font-semibold">Candidate 2 (evaluation preview)</a> is now done — <code class="mono text-xs">previewTowerPeriod</code> extracted into the evaluation module.
           Up next: Candidates 4 (<code>isLive</code> predicate) and 5 (tower aggregate) are worth exploring.
         </p>
-        <p class="text-xs text-emerald-600">Completed: 1 ✓, 2 ✓, 3 ✓. Remaining: 4, 5, 6.</p>
+        <p class="text-xs text-emerald-600">Completed: 1 ✓, 2 ✓, 3 ✓, 6 ✓. Remaining: 4 (isLive predicate), 5 (tower aggregate).</p>
       </section>
 
     </main>

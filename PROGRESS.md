@@ -6,6 +6,8 @@
 
 ## Done
 
+- Architecture: Extract `logHabitEntry` into entries service module (Candidate 6). Moved the 85-line domain pipeline (day-boundary resolution, gap-fill, qualification, entry write, lastQualifyingDate bookkeeping, dormancy wake-up, sourceOf) from the POST /entries route handler into `logHabitEntry(tx, habit, body, now)` in `entries/service.ts`. Route handler reduced to a 3-line adapter. DB-layer `logEntry()` (zero production callers) left for follow-up deletion with test migration.
+
 - Architecture: Extract `previewTowerPeriod` into evaluation module (Candidate 2). Moved ~30-line response-assembly block from `towers/routes.ts` into `evaluation/service.ts` as `previewTowerPeriod(tx, tower, period, now)`. Route handler reduced to a one-liner. Original review overstated the duplication (input loading was already shared); the actual work was response assembly extraction. `periodWindowFor` kept as intentional convergence point. `soloActive` duplication deferred to Candidate 4.
 
 - 5.15 Settings screen (full): Expanded the partial settings screen into a full implementation with four sections. Profile section shows user info with inline edit mode for display name (PATCH /v1/me), timezone shown as read-only with device-detection note. Notifications section shows push permission status with enable/open-settings button. Active sessions section lists all live sessions from GET /v1/me/sessions, marks the current device, shows last-active timestamps, and offers "Sign out other devices" (POST /v1/auth/sessions/revoke-all) with confirmation dialog. Sign out button with confirmation dialog. App version displayed at bottom from expo config.
