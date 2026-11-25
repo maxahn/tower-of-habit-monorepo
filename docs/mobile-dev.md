@@ -52,6 +52,13 @@ After a successful build:
 
 The dev client connects back to your local Expo dev server. After installing, start the dev server (`pnpm -F mobile dev`) and the app will pick it up automatically on the same network.
 
+**NOTE:** For installing dev build on iOS simulator with the new Device Hub, you may need to boot and then install via cli with the following commands:
+
+```bash
+    xcrun simctl boot "iPhone 17"
+    xcrun simctl install booted <path-to-your-app>.app
+```
+
 ## OTA Updates (expo-updates)
 
 Staging and production builds receive over-the-air updates via EAS Update. The `runtimeVersion` uses the `fingerprint` policy — updates are compatible as long as the native project hasn't changed.
