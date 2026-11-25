@@ -49,12 +49,15 @@ export default function TowersListScreen() {
               title="Build a tower"
               description="Towers are group streaks. Create one and invite friends, or join an existing tower with a code."
             >
-              <Button onPress={() => router.push('./create' as never)} className="w-full max-w-xs">
+              <Button
+                onPress={() => router.push('/towers/create' as never)}
+                className="w-full max-w-xs"
+              >
                 <Text>Create a tower</Text>
               </Button>
               <Button
                 variant="outline"
-                onPress={() => router.push('./join' as never)}
+                onPress={() => router.push('/towers/join' as never)}
                 className="w-full max-w-xs"
               >
                 <Text>Join with a code</Text>
@@ -76,7 +79,7 @@ export default function TowersListScreen() {
         }
         renderItem={({ item }) => (
           <Pressable
-            onPress={() => router.push(`./${item.tower.id}` as never)}
+            onPress={() => router.push(`/towers/${item.tower.id}` as never)}
             className="mb-3 rounded-xl border border-border bg-card p-4"
           >
             <View className="flex-row items-center justify-between">
@@ -108,12 +111,15 @@ export default function TowersListScreen() {
         <View className="absolute bottom-8 right-6 flex-row gap-3">
           <Button
             variant="outline"
-            onPress={() => router.push('./join' as never)}
+            onPress={() => router.push('/towers/join' as never)}
             className="rounded-full px-5"
           >
             <Text>Join</Text>
           </Button>
-          <Button onPress={() => router.push('./create' as never)} className="rounded-full px-5">
+          <Button
+            onPress={() => router.push('/towers/create' as never)}
+            className="rounded-full px-5"
+          >
             <Text>+ New</Text>
           </Button>
         </View>

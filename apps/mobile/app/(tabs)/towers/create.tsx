@@ -112,7 +112,7 @@ export default function CreateTowerScreen() {
     createTower.mutate(result, {
       onSuccess: (data) => {
         if (data && 'tower' in data) {
-          router.replace(`./${data.tower.id}` as never);
+          router.replace(`/towers/${data.tower.id}` as never);
         } else {
           router.back();
         }
