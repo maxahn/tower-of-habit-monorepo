@@ -16,6 +16,9 @@ build/
 .eslintcache
 .prettiercache
 *.apk
+*.app
+*.tar.gz
+*.ipa
 
 # ── SECRETS ──────────────────────────────────
 # Deliberately kept at root so they apply at EVERY depth, regardless
